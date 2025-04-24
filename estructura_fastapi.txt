@@ -1,0 +1,35 @@
+.
+├── auth.py
+├── database.py
+├── estructura_fastapi.txt
+├── main.py
+├── models
+│   ├── common.py
+│   ├── configuracion_eje.py
+│   ├── evento_neumatico.py
+│   ├── fabricante.py
+│   ├── __init__.py
+│   ├── neumatico.py
+│   ├── posicion_neumatico.py
+│   ├── proveedor.py
+│   ├── tipo_vehiculo.py
+│   ├── usuario.py
+│   └── vehiculo.py
+├── models.py
+├── routers
+│   ├── auth_router.py
+│   ├── __init__.py
+│   ├── neumaticos_router.py
+│   └── vehiculos_router.py
+└── schemas
+    ├── common.py
+    ├── evento_neumatico.py
+    ├── fabricante.py
+    ├── __init__.py
+    ├── neumatico.py
+    ├── proveedor.py
+    ├── token.py
+    ├── usuario.py
+    └── vehiculo.py
+
+4 directories, 29 files
