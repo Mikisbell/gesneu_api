@@ -14,3 +14,4 @@ class Usuario(UsuarioBase, table=True):
     password_hash: Optional[str] = None
     creado_en: datetime = Field(default_factory=utcnow_aware, sa_column=Column(TimestampTZ, nullable=False, server_default=text("now()")))
     actualizado_en: Optional[datetime] = Field(default=None, sa_column=Column(TimestampTZ, nullable=True))
+

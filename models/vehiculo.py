@@ -11,7 +11,7 @@ from models.common import TimestampTZ, utcnow_aware
 
 class Vehiculo(VehiculoBase, table=True): # Hereda de VehiculoBase
     __tablename__ = "vehiculos"
-    __table_args__ = {'extend_existing': True} # FIX para error de redefinición
+    __table_args__ = {'extend_existing': True} 
 
     # --- Campos específicos de la tabla (no en Base o con mapeo/default diferente) ---
     id: Optional[uuid.UUID] = Field(default_factory=uuid.uuid4, primary_key=True)

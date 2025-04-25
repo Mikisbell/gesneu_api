@@ -29,6 +29,7 @@ class VehiculoBase(SQLModel):
 class VehiculoCreate(VehiculoBase):
     pass
 
+
 class VehiculoRead(VehiculoBase):
     id: uuid.UUID
     odometro_actual: Optional[int] = None
@@ -36,7 +37,8 @@ class VehiculoRead(VehiculoBase):
     creado_en: datetime
     actualizado_en: Optional[datetime] = None
 
+
+
 class VehiculoUpdate(SQLModel):
     tipo_vehiculo_id: Optional[uuid.UUID] = None; placa: Optional[str] = None; vin: Optional[str] = None; numero_economico: Optional[str] = None; marca: Optional[str] = None; modelo_vehiculo: Optional[str] = None; anio_fabricacion: Optional[int] = None; fecha_alta: Optional[date] = None; fecha_baja: Optional[date] = None; activo: Optional[bool] = None; ubicacion_actual: Optional[str] = None; notas: Optional[str] = None
 
-# --- Modelos de Tabla ---

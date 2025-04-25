@@ -11,7 +11,6 @@ class UsuarioBase(SQLModel):
     nombre_completo: Optional[str] = None
     rol: str = Field(default="OPERADOR")
     activo: bool = True
-
 class UsuarioCreate(UsuarioBase):
     password: str
 
@@ -19,3 +18,4 @@ class UsuarioRead(UsuarioBase):
     id: uuid.UUID
     creado_en: datetime
     actualizado_en: Optional[datetime] = None
+
