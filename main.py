@@ -1,64 +1,52 @@
-# main.py (Corregido para incluir vehiculos_router)
+# main.py
 from fastapi import FastAPI
-# --- MODIFICADO: Limpiar imports e incluir vehiculos_router ---
-# Se elimina la línea duplicada "from routers import auth_router"
-# Se añade vehiculos_router a la importación principal
-from routers import auth_router, neumaticos_router, vehiculos_router
-# --- FIN MODIFICACIÓN ---
+# --- Importar asynccontextmanager ---
+from contextlib import asynccontextmanager # <--- Importar esto
 
-# Opcional: Configuración adicional de CORS, etc. si es necesario
-# from fastapi.middleware.cors import CORSMiddleware
+# Importar SQLModel y tu función init_db
+from sqlmodel import SQLModel # Asegúrate que SQLModel se importe si no lo estaba ya
+from database import settings, init_db
 
-# Crear la instancia de la aplicación FastAPI
+# importa tus routers...
+from routers.vehiculos import router as vehiculos_router
+# Importa otros routers que tengas...
+# from routers.neumaticos import router as neumaticos_router
+# from routers.auth import router as auth_router
+
+
+# --- Definir el lifespan ---
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    # Código que se ejecuta ANTES de que la aplicación empiece a recibir requests
+    print("Iniciando aplicación y base de datos...")
+    await init_db() # Llama a tu función para crear tablas
+    print("Base de datos lista.")
+    yield
+    # Código que se ejecuta DESPUÉS de que la aplicación termine (limpieza)
+    print("Cerrando aplicación...")
+    # Aquí podrías añadir código para cerrar conexiones si fuera necesario,
+    # aunque SQLAlchemy suele manejarlo bien.
+
+# --- Crear la app CON el lifespan ---
 app = FastAPI(
-    title="API GesNeuBD - Gestión de Neumáticos",
-    description="API para gestionar el ciclo de vida de neumáticos.",
-    version="0.1.0",
+    title=settings.APP_NAME,
+    lifespan=lifespan # <--- Pasar la función lifespan aquí
 )
 
-# Opcional: Configurar CORS si tu frontend está en un dominio diferente
-# origins = [
-#     "http://localhost",
-#     "http://localhost:8080", # Ejemplo si tu frontend corre en el puerto 8080
-#     # Añade aquí los orígenes permitidos
-# ]
-# app.add_middleware(
-#     CORSMiddleware,
-#     allow_origins=origins,
-#     allow_credentials=True,
-#     allow_methods=["*"],
-#     allow_headers=["*"],
-# )
-
-# Incluir los routers en la aplicación
-app.include_router(auth_router.router) # Para /token (sin prefijo general)
-app.include_router(
-    neumaticos_router.router,
-    prefix="/api/v1" # Prefijo común para las rutas de neumáticos/eventos
-    # Los tags como "Neumáticos y Eventos" se definen mejor dentro del propio router
-)
-# --- MODIFICADO: Descomentar e incluir vehiculos_router ---
-# Incluir el nuevo router de vehículos con su propio prefijo y tag
-app.include_router(
-    vehiculos_router.router,
-    prefix="/api/v1/vehiculos", # Ruta base para los endpoints de vehículos
-    tags=["Vehículos"] # Etiqueta para agrupar en /docs
-)
-# --- FIN MODIFICACIÓN ---
+# --- Eliminar el decorador @app.on_event ---
+# @app.on_event("startup")   <--- Eliminar esta línea
+# async def on_startup():    <--- Eliminar esta línea
+#     await init_db()        <--- Eliminar esta línea
 
 
-# Endpoint raíz simple
+# incluye routers con prefix/tags
+app.include_router(vehiculos_router, prefix="/vehiculos", tags=["Vehículos"])
+# Incluye tus otros routers aquí...
+# app.include_router(neumaticos_router, prefix="/neumaticos", tags=["Neumáticos y Eventos"])
+# app.include_router(auth_router, prefix="/auth", tags=["Authentication"])
+
+
+# Puedes añadir una ruta raíz simple para verificar que la app corre
 @app.get("/", tags=["Root"])
 async def read_root():
-    return {"message": "Bienvenido a la API de GesNeuBD"}
-
-# Eventos de startup/shutdown (se mantienen comentados)
-# @app.on_event("startup")
-# async def on_startup():
-#     # await init_db() # Crear tablas si no existen (cuidado si ya las creaste con SQL)
-#     print("Iniciando API...")
-
-# @app.on_event("shutdown")
-# async def shutdown_event():
-#     # Cerrar conexión a BD, etc.
-#     pass
+    return {"message": f"Bienvenido a {settings.APP_NAME}"}

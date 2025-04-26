@@ -1,8 +1,6 @@
 # schemas/common.py
 from enum import Enum
 
-
-# --- Enums Python ---
 class EstadoNeumaticoEnum(str, Enum):
     EN_STOCK = "EN_STOCK"; INSTALADO = "INSTALADO"; EN_REPARACION = "EN_REPARACION"; EN_REENCAUCHE = "EN_REENCAUCHE"; DESECHADO = "DESECHADO"; EN_TRANSITO = "EN_TRANSITO"
 class LadoVehiculoEnum(str, Enum):

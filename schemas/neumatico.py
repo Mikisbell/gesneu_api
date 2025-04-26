@@ -1,10 +1,10 @@
-#schemas/neumatico.py
+# schemas/neumatico.py
 import uuid
 from datetime import date, datetime
 from typing import Optional
 from sqlmodel import SQLModel, Field
-# Importar Enums (Ajusta ruta si es necesario)
-from schemas.common import EstadoNeumaticoEnum, TipoEventoNeumaticoEnum # <-- Existita
+# Importar Enums
+from schemas.common import EstadoNeumaticoEnum, TipoEventoNeumaticoEnum
 
 class NeumaticoBase(SQLModel):
     numero_serie: Optional[str] = Field(default=None, index=True)
@@ -35,39 +35,8 @@ class NeumaticoRead(NeumaticoBase):
     creado_en: datetime
     actualizado_en: Optional[datetime] = None
 
-# --- Modelos para Vistas (Ejemplo) ---
 class HistorialNeumaticoItem(SQLModel):
-    # Formato limpio
-    evento_id: uuid.UUID
-    tipo_evento: TipoEventoNeumaticoEnum
-    timestamp_evento: datetime
-    usuario_registra: Optional[str] = None
-    placa: Optional[str] = None
-    numero_economico: Optional[str] = None
-    codigo_posicion: Optional[str] = None
-    odometro_vehiculo_en_evento: Optional[int] = None
-    profundidad_remanente_mm: Optional[float] = None
-    presion_psi: Optional[float] = None
-    costo_evento: Optional[float] = None
-    moneda_costo: Optional[str] = None
-    proveedor_servicio: Optional[str] = None
-    motivo_desecho: Optional[str] = None
-    notas: Optional[str] = None
+    evento_id: uuid.UUID; tipo_evento: TipoEventoNeumaticoEnum; timestamp_evento: datetime; usuario_registra: Optional[str]=None; placa: Optional[str]=None; numero_economico: Optional[str]=None; codigo_posicion: Optional[str]=None; odometro_vehiculo_en_evento: Optional[int]=None; profundidad_remanente_mm: Optional[float]=None; presion_psi: Optional[float]=None; costo_evento: Optional[float]=None; moneda_costo: Optional[str]=None; proveedor_servicio: Optional[str]=None; motivo_desecho: Optional[str]=None; notas: Optional[str]=None
 
 class NeumaticoInstaladoItem(SQLModel):
-    # Formato limpio
-    neumatico_id: uuid.UUID
-    numero_serie: Optional[str] = None
-    dot: Optional[str] = None
-    nombre_modelo: Optional[str] = None
-    medida: Optional[str] = None
-    fabricante: Optional[str] = None
-    placa: Optional[str] = None
-    numero_economico: Optional[str] = None
-    tipo_vehiculo: Optional[str] = None
-    codigo_posicion: Optional[str] = None
-    profundidad_actual_mm: Optional[float] = None
-    presion_actual_psi: Optional[float] = None
-    kilometraje_neumatico_acumulado: Optional[int] = None
-    vida_actual: Optional[int] = None
-    reencauches_realizados: Optional[int] = None
+    neumatico_id: uuid.UUID; numero_serie: Optional[str]=None; dot: Optional[str]=None; nombre_modelo: Optional[str]=None; medida: Optional[str]=None; fabricante: Optional[str]=None; placa: Optional[str]=None; numero_economico: Optional[str]=None; tipo_vehiculo: Optional[str]=None; codigo_posicion: Optional[str]=None; profundidad_actual_mm: Optional[float]=None; presion_actual_psi: Optional[float]=None; kilometraje_neumatico_acumulado: Optional[int]=None; vida_actual: Optional[int]=None; reencauches_realizados: Optional[int]=None

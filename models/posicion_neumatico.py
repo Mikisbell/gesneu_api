@@ -1,15 +1,14 @@
 # models/posicion_neumatico.py
-from sqlmodel import SQLModel, Field
-from sqlalchemy import Column
-from sqlalchemy.types import Enum as SAEnum
-from typing import Optional
 import uuid
+from typing import Optional
+from sqlmodel import Field, SQLModel
+from sqlalchemy import Column, ForeignKey
+from sqlalchemy import Enum as SAEnum
+# --- Importar Enum desde common ---
 from schemas.common import LadoVehiculoEnum
-from models.common import TimestampTZ, utcnow_aware
 
 class PosicionNeumatico(SQLModel, table=True):
     __tablename__ = "posiciones_neumatico"
-    # Formato limpio
     id: Optional[uuid.UUID] = Field(default_factory=uuid.uuid4, primary_key=True)
     configuracion_eje_id: uuid.UUID = Field(foreign_key="configuraciones_eje.id")
     codigo_posicion: str = Field(max_length=10)

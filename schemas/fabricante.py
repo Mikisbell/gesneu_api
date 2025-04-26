@@ -4,26 +4,27 @@ from datetime import datetime
 from typing import Optional
 from sqlmodel import SQLModel, Field
 
-# Base: Campos comunes que pueden venir del cliente o mostrarse
 class FabricanteNeumaticoBase(SQLModel):
     nombre: str = Field(max_length=100, index=True) # Requerido
-    codigo_abreviado: Optional[str] = Field(default=None, unique=True, max_length=10)
+    codigo_abreviado: Optional[str] = Field(default=None, unique=True, max_length=10) # UNIQUE en DB
     pais_origen: Optional[str] = Field(default=None, max_length=50)
+    # Añadimos sitio_web basado en tu script SQL Fase 3
     sitio_web: Optional[str] = Field(default=None, max_length=255)
-    activo: bool = True
+    activo: bool = Field(default=True) # Especificar default explícito
 
-# Crear: Lo que la API recibe para crear un fabricante
 class FabricanteNeumaticoCreate(FabricanteNeumaticoBase):
-    pass # Los campos base son suficientes por ahora
+    # Usaremos esta para validar la entrada del POST
+    pass
 
-# Leer: Lo que la API devuelve al leer un fabricante
 class FabricanteNeumaticoRead(FabricanteNeumaticoBase):
+    # Usaremos esta como response_model para GET
     id: uuid.UUID
     creado_en: datetime
     actualizado_en: Optional[datetime] = None
+    # Podríamos añadir aquí creado_por/actualizado_por si fuera necesario
 
-# Actualizar: Campos opcionales para actualizar un fabricante
 class FabricanteNeumaticoUpdate(SQLModel):
+    # Modelo para PUT/PATCH, todo opcional
     nombre: Optional[str] = None
     codigo_abreviado: Optional[str] = None
     pais_origen: Optional[str] = None

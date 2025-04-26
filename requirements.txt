@@ -1,0 +1,11 @@
+# requirements.txt
+fastapi>=0.109.0
+uvicorn[standard]>=0.27.0
+sqlmodel>=0.0.11
+python-dotenv>=1.0.0
+passlib[bcrypt]>=1.7.4
+python-jose[cryptography]>=3.3.0
+pytest>=8.0.0
+httpx>=0.26.0
+alembic>=1.13.1
+aiosqlite>=0.17.0  # <-- Añade esta línea (puedes usar una versión más reciente si quieres)

@@ -1,36 +1,53 @@
-# models/evento_neumatico.py (Contenido Correcto)
+# models/evento_neumatico.py
 import uuid
-from datetime import datetime, timezone
-from typing import Optional, Dict, Any # Podrías necesitar Dict, Any si EventoNeumaticoBase no está completamente tipado
-
-from sqlalchemy import Column, ForeignKey, TIMESTAMP, text
-from sqlalchemy import Enum as SAEnum # Importar si EventoNeumaticoBase usa SAEnum aquí directamente (no lo hace ahora)
-from sqlalchemy.dialects.postgresql import JSONB # Importar si EventoNeumaticoBase usa JSONB aquí directamente (no lo hace ahora)
-from sqlmodel import Field, SQLModel
-
-# --- IMPORTANTE: Importar la clase Base desde schemas ---
-from schemas.evento_neumatico import EventoNeumaticoBase
-
-# --- Importar Helpers (ajusta ruta si los moviste a models/common.py) ---
+from models.proveedor import Proveedor
+from datetime import datetime
+from typing import Optional #, List (List ya no es necesario si quitaste eventos_siguientes)
+from sqlmodel import Field, SQLModel # No Relationship
+from sqlalchemy import Column, text, TIMESTAMP, ForeignKey
+# No imports de sqlalchemy.orm
+# from schemas.evento_neumatico import EventoNeumaticoBase # Si volviste a usarla
 from models.common import TimestampTZ, utcnow_aware
 
+# --- ¡¡ASEGÚRATE DE QUE ESTOS IMPORTS ESTÉN!! ---
+from models.neumatico import Neumatico
+from models.usuario import Usuario
+from models.vehiculo import Vehiculo
+from models.posicion_neumatico import PosicionNeumatico
+from models.motivo_desecho import MotivoDesecho
+# --- FIN IMPORTS ---
 
+# Si volviste a la herencia de Base, descomenta esto:
+from schemas.evento_neumatico import EventoNeumaticoBase
+
+# Heredamos de Base, definimos tabla y añadimos campos específicos + FK problemática
 class EventoNeumatico(EventoNeumaticoBase, table=True):
     __tablename__ = "eventos_neumaticos"
-    __table_args__ = {'extend_existing': True} # FIX
+    # Si EventoNeumaticoBase NO tiene table=True:
+    __table_args__ = {'extend_existing': True}
 
+    # ID y Timestamps específicos
     id: Optional[uuid.UUID] = Field(default_factory=uuid.uuid4, primary_key=True)
-    # Hereda todos los campos mapeados a columnas desde EventoNeumaticoBase
-
-    # --- Definir campos específicos de tabla que NO estén en Base ---
-    #    (En este caso, timestamp_evento y creado_en están en la tabla,
-    #     pero los definimos aquí con mapeo explícito para asegurar)
-    timestamp_evento: Optional[datetime] = Field(
-        default=None, # La BD tiene DEFAULT now()
+    timestamp_evento: datetime = Field(
+        default_factory=utcnow_aware,
         sa_column=Column(TimestampTZ, nullable=False, server_default=text("now()"))
     )
     creado_en: datetime = Field(
-        default_factory=utcnow_aware, # Python genera valor TZ-aware
-        sa_column=Column(TimestampTZ, nullable=False, server_default=text("now()")) # Mapeo explícito TZ-aware
+        default_factory=utcnow_aware,
+        sa_column=Column(TimestampTZ, nullable=False, server_default=text("now()"))
     )
-    # Relationship eliminada
+
+    # --- Columna FK Auto-Referenciada (Definición Correcta) ---
+    # Definimos el campo mapeado a la columna de BD y su FK.
+    relacion_evento_anterior: Optional[uuid.UUID] = Field(
+        default=None,
+        sa_column=Column("relacion_evento_anterior", ForeignKey("eventos_neumaticos.id"), nullable=True)
+    )
+    # --- FIN FK ---
+
+    # --- Relationships ELIMINADAS ---
+    # evento_anterior: Optional["EventoNeumatico"] = Relationship(...) # BORRADO
+    # eventos_siguientes: List["EventoNeumatico"] = Relationship(...) # BORRADO
+    # --- FIN Relationships ---
+
+    # Los demás campos (neumatico_id, usuario_id, etc.) se heredan de EventoNeumaticoBase

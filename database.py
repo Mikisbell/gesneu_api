@@ -2,38 +2,47 @@
 import os
 from typing import AsyncGenerator
 
-from dotenv import load_dotenv
-from sqlalchemy.ext.asyncio import create_async_engine
-from sqlmodel import SQLModel
-from sqlmodel.ext.asyncio.session import AsyncSession
+# --- Importaciones Corregidas ---
+from sqlmodel.ext.asyncio.session import AsyncSession  # <--- Importar de SQLModel
+from sqlalchemy.ext.asyncio import create_async_engine, AsyncEngine
 from sqlalchemy.orm import sessionmaker
+from sqlmodel import SQLModel # Asegurar que SQLModel esté importado para metadata
 
-# Cargar variables de entorno desde el archivo .env
-load_dotenv()
+from pydantic_settings import BaseSettings, SettingsConfigDict
 
-DATABASE_URL = os.getenv("DATABASE_URL")
+class Settings(BaseSettings):
+    APP_NAME: str = "GesNeu API"
+    DATABASE_URL: str
+    model_config = SettingsConfigDict(
+        env_file=".env",
+        extra="ignore",
+    )
 
-if not DATABASE_URL:
-    raise ValueError("No se encontró la variable de entorno DATABASE_URL")
+settings = Settings()
 
-# motor de base de datos asíncrono
-# echo=True es útil para debug, muestra las consultas SQL ejecutadas
-# echo=False para producción
-engine = create_async_engine(DATABASE_URL, echo=True, future=True)
-
-# Fábrica de sesiones asíncronas
-AsyncSessionFactory = sessionmaker(
-    bind=engine, class_=AsyncSession, expire_on_commit=False
+# Motor asíncrono (sin cambios)
+engine: AsyncEngine = create_async_engine(
+    settings.DATABASE_URL,
+    echo=True,  # Considera False en producción
+    future=True,
 )
 
-# Dependencia de FastAPI para obtener una sesión de BD
+# --- Fabrica de sesiones (Usa AsyncSession de SQLModel) ---
+AsyncSessionLocal = sessionmaker(
+    bind=engine,
+    class_=AsyncSession,  # <--- Usa la AsyncSession importada de SQLModel
+    expire_on_commit=False,
+)
+
+# Dependencia para FastAPI (Inyectará sesión SQLModel)
 async def get_session() -> AsyncGenerator[AsyncSession, None]:
-    """Generador de sesión de base de datos asíncrona para dependencias de FastAPI."""
-    async with AsyncSessionFactory() as session:
+    """Proporciona una sesión de base de datos asíncrona (SQLModel) por request"""
+    async with AsyncSessionLocal() as session:
         yield session
 
-# Función para inicializar la BD (crear tablas - Opcional si ya existen)
-# async def init_db():
-#     async with engine.begin() as conn:
-#         # await conn.run_sync(SQLModel.metadata.drop_all) # Cuidado: Borra tablas existentes
-#         await conn.run_sync(SQLModel.metadata.create_all)
+# Inicializar tablas (sin cambios, pero depende de que los modelos importen SQLModel)
+async def init_db():
+    """Crea las tablas definidas en los modelos en la base de datos"""
+    async with engine.begin() as conn:
+        # SQLModel necesita ser importado en los archivos de tus modelos
+        await conn.run_sync(SQLModel.metadata.create_all)
