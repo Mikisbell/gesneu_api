@@ -27,8 +27,14 @@ class ProveedorRead(ProveedorBase):
     actualizado_en: Optional[datetime] = None
 
 class ProveedorUpdate(SQLModel):
-    nombre: Optional[str] = None
+    # Campos que ya estaban:
+    nombre: Optional[str] = Field(default=None, max_length=150) # Añadir max_length por consistencia
     tipo: Optional[TipoProveedorEnum] = None
-    rfc: Optional[str] = None
+    rfc: Optional[str] = Field(default=None, max_length=13)
     activo: Optional[bool] = None
-    # Añadir otros campos si permites actualizarlos
+    # --- AÑADIR CAMPOS FALTANTES ---
+    contacto_principal: Optional[str] = None
+    telefono: Optional[str] = Field(default=None, max_length=50)
+    email: Optional[str] = Field(default=None, max_length=100)
+    direccion: Optional[str] = None
+    # --------------------------------

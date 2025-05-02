@@ -1,21 +1,19 @@
 # main.py
 from fastapi import FastAPI
-# --- Importar asynccontextmanager ---
-from contextlib import asynccontextmanager # <--- Importar esto
+from contextlib import asynccontextmanager
 
-# Importar SQLModel y tu función init_db
-from sqlmodel import SQLModel # Asegúrate que SQLModel se importe si no lo estaba ya
+from sqlmodel import SQLModel
 from database import settings, init_db
 
-# importa tus routers...
+# Importa tus routers existentes...
 from routers.vehiculos import router as vehiculos_router
-from routers.auth import router as auth_router # <--- ASEGÚRATE DE IMPORTARLO
-from routers.usuarios import router as usuarios_router # <--- Importar el nuevo router
-
-# Importa otros routers que tengas...
-# from routers.neumaticos import router as neumaticos_router
-# from routers.auth import router as auth_router
-
+from routers.auth import router as auth_router
+from routers.usuarios import router as usuarios_router
+from routers.neumaticos import router as neumaticos_router
+# --- AÑADIR IMPORTACIÓN DEL NUEVO ROUTER ---
+from routers.proveedores import router as proveedores_router
+from routers.tipos_vehiculo import router as tipos_vehiculo_router
+from routers.fabricantes_neumatico import router as fabricantes_router # <-- Nueva importación
 
 # --- Definir el lifespan ---
 @asynccontextmanager
@@ -35,21 +33,14 @@ app = FastAPI(
     title=settings.APP_NAME,
     lifespan=lifespan # <--- Pasar la función lifespan aquí
 )
-
-# --- Eliminar el decorador @app.on_event ---
-# @app.on_event("startup")   <--- Eliminar esta línea
-# async def on_startup():    <--- Eliminar esta línea
-#     await init_db()        <--- Eliminar esta línea
 # incluye routers
 app.include_router(auth_router, prefix="/auth", tags=["Authentication"])
 app.include_router(usuarios_router, prefix="/usuarios", tags=["Usuarios"]) # <--- Incluir el 
 app.include_router(vehiculos_router, prefix="/vehiculos", tags=["Vehículos"])
-
-
-# Incluye tus otros routers aquí...
-# app.include_router(neumaticos_router, prefix="/neumaticos", tags=["Neumáticos y Eventos"])
-# app.include_router(auth_router, prefix="/auth", tags=["Authentication"])
-
+app.include_router(neumaticos_router, prefix="/neumaticos", tags=["Neumáticos y Eventos"])
+app.include_router(tipos_vehiculo_router)
+app.include_router(proveedores_router)
+app.include_router(fabricantes_router) # <-- Nueva línea
 
 # Puedes añadir una ruta raíz simple para verificar que la app corre
 @app.get("/", tags=["Root"])

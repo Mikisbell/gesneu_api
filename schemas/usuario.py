@@ -6,10 +6,10 @@ from pydantic import EmailStr, Field # Asegúrate que Field esté importado
 from sqlmodel import SQLModel # Asegúrate que SQLModel esté importado
 
 class UsuarioBase(SQLModel):
-    username: str = Field(index=True, unique=True, max_length=50) # Añadir max_length si aplica
-    email: Optional[EmailStr] = Field(default=None, unique=True, index=True, max_length=100) # Añadir max_length
-    nombre_completo: Optional[str] = Field(default=None, max_length=200) # Añadir max_length
-    rol: str = Field(default="OPERADOR", max_length=50) # Añadir max_length
+    username: str = Field(index=True, unique=True, max_length=50) # <-- ASÍ
+    email: Optional[EmailStr] = Field(default=None, unique=True, index=True, max_length=100) # <-- ASÍ
+    nombre_completo: Optional[str] = Field(default=None, max_length=200)
+    rol: str = Field(default="OPERADOR", max_length=50)
     activo: bool = True
 
 class UsuarioCreate(UsuarioBase):

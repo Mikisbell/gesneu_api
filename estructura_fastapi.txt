@@ -1,0 +1,58 @@
+.
+├── auth.py
+├── core
+│   ├── config.py
+│   ├── dependencies.py
+│   ├── __init__.py
+│   └── security.py
+├── database.py
+├── docker-compose.yml
+├── Dockerfile
+├── estructura_fastapi.txt
+├── main.py
+├── models
+│   ├── common.py
+│   ├── configuracion_eje.py
+│   ├── evento_neumatico.py
+│   ├── fabricante.py
+│   ├── __init__.py
+│   ├── modelo.py
+│   ├── motivo_desecho.py
+│   ├── neumatico.py
+│   ├── posicion_neumatico.py
+│   ├── proveedor.py
+│   ├── registro_odometro.py
+│   ├── tipo_vehiculo.py
+│   ├── usuario.py
+│   └── vehiculo.py
+├── os
+├── README.md
+├── requirements.txt
+├── routers
+│   ├── auth.py
+│   ├── __init__.py
+│   ├── neumaticos.py
+│   ├── usuarios.py
+│   └── vehiculos.py
+├── schemas
+│   ├── common.py
+│   ├── evento_neumatico.py
+│   ├── fabricante.py
+│   ├── __init__.py
+│   ├── neumatico.py
+│   ├── proveedor.py
+│   ├── token.py
+│   ├── usuario.py
+│   └── vehiculo.py
+├── tests
+│   ├── conftest.py
+│   ├── __init__.py
+│   ├── test_neumaticos.py
+│   ├── test_usuarios.py
+│   └── test_vehiculos.py
+└── utils
+    ├── __init__.py
+    ├── logging.py
+    └── validators.py
+
+7 directories, 49 files

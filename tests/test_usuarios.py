@@ -21,7 +21,6 @@ valid_user_data = {
     "rol": "OPERADOR",
     "activo": True
 }
-
 # --- Prueba de creación exitosa ---
 @pytest.mark.asyncio
 async def test_crear_usuario_exitoso(client: AsyncClient, db_session: AsyncSession):
@@ -63,8 +62,6 @@ async def test_crear_usuario_exitoso(client: AsyncClient, db_session: AsyncSessi
         "La contraseña guardada (hash) no coincide con la contraseña original."
     assert user_db.password_hash != valid_user_data["password"], \
         "¡Peligro! La contraseña parece estar guardada en texto plano en lugar de hash."
-
-
 # --- Prueba: Username Duplicado ---
 @pytest.mark.asyncio
 async def test_crear_usuario_username_duplicado(client: AsyncClient, db_session: AsyncSession):
@@ -96,8 +93,6 @@ async def test_crear_usuario_username_duplicado(client: AsyncClient, db_session:
     data = response_duplicate.json()
     assert "detail" in data
     assert f"El nombre de usuario '{initial_user_data['username']}' ya está registrado" in data["detail"]
-
-
 # --- Prueba: Email Duplicado ---
 @pytest.mark.asyncio
 async def test_crear_usuario_email_duplicado(client: AsyncClient, db_session: AsyncSession):
@@ -129,8 +124,6 @@ async def test_crear_usuario_email_duplicado(client: AsyncClient, db_session: As
     data = response_duplicate.json()
     assert "detail" in data
     assert f"El email '{initial_user_data['email']}' ya está registrado" in data["detail"]
-
-
 # --- Prueba: Obtener Usuario Actual (/me) ---
 @pytest.mark.asyncio
 async def test_read_users_me(client: AsyncClient, db_session: AsyncSession):
@@ -171,11 +164,10 @@ async def test_read_users_me(client: AsyncClient, db_session: AsyncSession):
     assert me_data["id"] == str(user_id_me)
     assert me_data["username"] == user_me.username
     assert me_data["email"] == user_me.email
-
-
 # --- Prueba: Listar Usuarios (GET /) (CORREGIDA - SIN DUPLICACIÓN) ---
 @pytest.mark.asyncio
 async def test_read_users(client: AsyncClient, db_session: AsyncSession):
+    
     """
     Prueba el endpoint GET /usuarios/ para listar usuarios.
     """
@@ -218,3 +210,206 @@ async def test_read_users(client: AsyncClient, db_session: AsyncSession):
     usernames_in_response = {user["username"] for user in users_list}
     assert user_list1.username in usernames_in_response
     assert user_list2.username in usernames_in_response
+
+# --- NUEVA PRUEBA: Obtener Usuario por ID (Éxito) ---
+@pytest.mark.asyncio
+async def test_read_user_by_id_success(client: AsyncClient, db_session: AsyncSession):
+    """
+    Prueba el endpoint GET /usuarios/{user_id} para obtener un usuario existente.
+    """
+    # 1. Crear un usuario de prueba directamente en la BD
+    user_password = "password_get_id"
+    hashed_password_get = get_password_hash(user_password)
+    user_get = Usuario(
+        username="test_user_get_id",
+        email="get_id@example.com",
+        password_hash=hashed_password_get,
+        activo=True,
+        rol="OPERADOR"
+    )
+    db_session.add(user_get)
+    await db_session.commit()
+    await db_session.refresh(user_get)
+    user_id_get = user_get.id # ID del usuario que queremos obtener
+    user_id_get_str = str(user_id_get)
+
+    # 2. Obtener un token (necesitamos estar logueados para llamar al endpoint)
+    #    Usaremos el mismo usuario para loguearnos y obtener el token
+    login_data = {"username": user_get.username, "password": user_password}
+    response_token = await client.post("/auth/token", data=login_data)
+    assert response_token.status_code == status.HTTP_200_OK, \
+        f"Fallo al obtener token para GET by ID: {response_token.text}"
+    access_token = response_token.json()["access_token"]
+    headers = {"Authorization": f"Bearer {access_token}"}
+
+    # 3. Llamar al endpoint GET /usuarios/{user_id} con el ID y el token
+    response = await client.get(f"/usuarios/{user_id_get_str}", headers=headers)
+
+    # 4. Verificar la respuesta
+    assert response.status_code == status.HTTP_200_OK, \
+        f"Status esperado 200 para GET by ID, obtenido {response.status_code}: {response.text}"
+    data = response.json()
+
+    # Verificar que los datos coinciden con el usuario creado
+    assert data["id"] == user_id_get_str
+    assert data["username"] == user_get.username
+    assert data["email"] == user_get.email
+
+# --- NUEVA PRUEBA: Obtener Usuario por ID (No Encontrado) ---
+@pytest.mark.asyncio
+async def test_read_user_by_id_not_found(client: AsyncClient, db_session: AsyncSession):
+    """
+    Prueba que GET /usuarios/{user_id} devuelve 404 si el ID no existe.
+    """
+    # 1. Crear un usuario y obtener token para poder llamar al endpoint
+    #    (Necesitamos estar autenticados, aunque el ID que busquemos no exista)
+    user_password = "password_get_404"
+    hashed_password_404 = get_password_hash(user_password)
+    user_auth = Usuario(
+        username="test_user_auth_404",
+        email="auth_404@example.com",
+        password_hash=hashed_password_404
+    )
+    db_session.add(user_auth)
+    await db_session.commit()
+
+    login_data = {"username": user_auth.username, "password": user_password}
+    response_token = await client.post("/auth/token", data=login_data)
+    assert response_token.status_code == status.HTTP_200_OK
+    access_token = response_token.json()["access_token"]
+    headers = {"Authorization": f"Bearer {access_token}"}
+
+    # 2. Generar un ID aleatorio que (con alta probabilidad) no exista
+    non_existent_id = uuid.uuid4()
+
+    # 3. Llamar al endpoint GET /usuarios/{user_id} con el ID inexistente
+    response = await client.get(f"/usuarios/{non_existent_id}", headers=headers)
+
+    # 4. Verificar que la respuesta sea 404 Not Found
+    assert response.status_code == status.HTTP_404_NOT_FOUND, \
+        f"Status esperado 404 para ID inexistente, obtenido {response.status_code}: {response.text}"
+
+    # 5. (Opcional) Verificar el detalle del error
+    data = response.json()
+    assert "detail" in data
+    assert f"Usuario con ID {non_existent_id} no encontrado" in data["detail"]
+
+@pytest.mark.asyncio
+async def test_update_user_success(client: AsyncClient, db_session: AsyncSession):
+    """
+    Prueba la actualización exitosa de un usuario via PUT /usuarios/{user_id}.
+    """
+    # 1. Crear un usuario inicial directamente en la BD
+    user_password = "password_update"
+    hashed_password_update = get_password_hash(user_password)
+    user_to_update = Usuario(
+        username="test_user_to_update",
+        email="update_me@example.com",
+        nombre_completo="Nombre Original",
+        password_hash=hashed_password_update,
+        activo=True,
+        rol="OPERADOR"
+    )
+    db_session.add(user_to_update)
+    await db_session.commit()
+    await db_session.refresh(user_to_update)
+    user_id_to_update = user_to_update.id
+    user_id_to_update_str = str(user_id_to_update)
+
+    # 2. Obtener un token para este usuario (o un admin si se requieren permisos)
+    login_data = {"username": user_to_update.username, "password": user_password}
+    response_token = await client.post("/auth/token", data=login_data)
+    assert response_token.status_code == status.HTTP_200_OK, \
+        f"Fallo al obtener token para PUT: {response_token.text}"
+    access_token = response_token.json()["access_token"]
+    headers = {"Authorization": f"Bearer {access_token}"}
+
+    # 3. Definir los datos de actualización
+    update_payload = {
+        "nombre_completo": "Nombre Actualizado",
+        "email": "updated_me@example.com",
+        "rol": "ADMIN", # Intentar cambiar el rol
+        "activo": False # Intentar desactivar
+        # No incluimos password ni username según nuestro schema UsuarioUpdate
+    }
+
+    # 4. Llamar al endpoint PUT /usuarios/{user_id}
+    response = await client.put(
+        f"/usuarios/{user_id_to_update_str}",
+        json=update_payload,
+        headers=headers
+    )
+
+    # 5. Verificar la respuesta HTTP
+    assert response.status_code == status.HTTP_200_OK, \
+        f"Status esperado 200 para PUT, obtenido {response.status_code}: {response.text}"
+    data = response.json()
+
+    # Verificar que la respuesta contenga los datos actualizados
+    assert data["id"] == user_id_to_update_str
+    assert data["username"] == user_to_update.username # Username no debería cambiar
+    assert data["nombre_completo"] == update_payload["nombre_completo"]
+    assert data["email"] == update_payload["email"]
+    assert data["rol"] == update_payload["rol"]
+    assert data["activo"] == update_payload["activo"]
+    assert "actualizado_en" in data and data["actualizado_en"] is not None
+
+    # 6. Verificar directamente en la Base de Datos que los cambios se guardaron
+    await db_session.refresh(user_to_update) # Refrescar el objeto desde la BD
+    assert user_to_update.nombre_completo == update_payload["nombre_completo"]
+    assert user_to_update.email == update_payload["email"]
+    assert user_to_update.rol == update_payload["rol"]
+    assert user_to_update.activo == update_payload["activo"]
+    assert user_to_update.actualizado_por == user_to_update.id # Asumiendo que el propio usuario se actualizó
+    assert user_to_update.actualizado_en is not None
+
+# tests/test_usuarios.py
+# ... (imports y pruebas existentes hasta test_update_user_success) ...
+
+
+# --- PRUEBA: Eliminar Usuario (Lógico) (CORREGIDA) ---
+@pytest.mark.asyncio
+async def test_delete_user_success(client: AsyncClient, db_session: AsyncSession):
+    """
+    Prueba la eliminación lógica exitosa de un usuario via DELETE /usuarios/{user_id}.
+    Verifica el código de estado 204 y que el usuario quede inactivo en la BD.
+    """
+    # 1. Crear un usuario de prueba directamente en la BD que vamos a eliminar
+    user_password = "password_delete"
+    hashed_password_delete = get_password_hash(user_password)
+    user_to_delete = Usuario(
+        username="test_user_to_delete",
+        email="delete_me@example.com",
+        password_hash=hashed_password_delete,
+        activo=True, # Asegurarse que empieza activo
+        rol="OPERADOR"
+    )
+    db_session.add(user_to_delete)
+    await db_session.commit()
+    await db_session.refresh(user_to_delete)
+    user_id_to_delete = user_to_delete.id
+    user_id_to_delete_str = str(user_id_to_delete)
+
+    # 2. Obtener un token (el usuario que realiza la acción de borrado)
+    #    (Idealmente sería un admin)
+    login_data = {"username": user_to_delete.username, "password": user_password}
+    response_token = await client.post("/auth/token", data=login_data)
+    assert response_token.status_code == status.HTTP_200_OK, \
+        f"Fallo al obtener token para DELETE: {response_token.text}"
+    access_token = response_token.json()["access_token"]
+    headers = {"Authorization": f"Bearer {access_token}"}
+
+    # 3. Llamar al endpoint DELETE /usuarios/{user_id}
+    response = await client.delete(f"/usuarios/{user_id_to_delete_str}", headers=headers)
+
+    # 4. Verificar la respuesta HTTP (204 No Content)
+    assert response.status_code == status.HTTP_204_NO_CONTENT, \
+        f"Status esperado 204 para DELETE, obtenido {response.status_code}"
+
+    # 5. Verificar directamente en la Base de Datos que el usuario está inactivo
+    #    Es importante refrescar ANTES de verificar
+    await db_session.refresh(user_to_delete) # Refrescar el estado desde la BD
+    assert not user_to_delete.activo, "El usuario debería estar inactivo (activo=False) tras DELETE."
+    assert user_to_delete.actualizado_en is not None # Verificar que se actualizó la fecha
+
+    # --- EL PASO 6 OPCIONAL HA SIDO ELIMINADO ---

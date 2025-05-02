@@ -4,12 +4,11 @@ from datetime import date, datetime, timezone
 from typing import Optional
 from pydantic import field_validator, ValidationInfo
 from sqlmodel import SQLModel, Field
-
 class VehiculoBase(SQLModel):
     tipo_vehiculo_id: uuid.UUID = Field(foreign_key="tipos_vehiculo.id")
-    numero_economico: str = Field(max_length=50, index=True)
-    placa: Optional[str] = Field(default=None, unique=True, index=True, max_length=15)
-    vin: Optional[str] = Field(default=None, unique=True, max_length=17)
+    numero_economico: str = Field(max_length=50, index=True) # <-- ASÍ
+    placa: Optional[str] = Field(default=None, unique=True, index=True, max_length=15) # <-- ASÍ
+    vin: Optional[str] = Field(default=None, unique=True, max_length=17) # <-- ASÍ
     marca: Optional[str] = Field(default=None, max_length=50)
     modelo_vehiculo: Optional[str] = Field(default=None, max_length=50)
     anio_fabricacion: Optional[int] = Field(default=None)
