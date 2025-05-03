@@ -266,14 +266,22 @@ DECLARE
     v_odometro_anterior integer;
     v_neumatico_record record;
     v_modelo_record record;
+    v_reencauches_new smallint;
+    v_vida_new smallint;
+    v_profundidad_new numeric;
 BEGIN
-    -- Ya no necesitamos los RAISE NOTICE ahora que sabemos dónde falla
-    -- RAISE NOTICE '[TRIGGER FN_ACT_ESTADO] Iniciando...';
+    RAISE NOTICE '[TRIGGER FN_ACT_ESTADO] Iniciando para evento tipo: %, neumatico ID: %', NEW.tipo_evento, NEW.neumatico_id; -- DEBUG INICIO
 
     SELECT * INTO v_neumatico_record FROM public.neumaticos WHERE id = NEW.neumatico_id FOR UPDATE;
-    SELECT reencauches_maximos INTO v_modelo_record FROM public.modelos_neumatico WHERE id = v_neumatico_record.modelo_id;
+    IF NOT FOUND THEN RAISE WARNING '[...] Neumático ID % no encontrado.', NEW.neumatico_id; RETURN NEW; END IF;
+    RAISE NOTICE '[TRIGGER FN_ACT_ESTADO] Estado PREVIO: %, Reencauches PREV: %, Vida PREV: %',
+                 v_neumatico_record.estado_actual, v_neumatico_record.reencauches_realizados, v_neumatico_record.vida_actual; -- DEBUG ESTADO PREVIO
 
-    -- Cálculo de Kilometraje
+    SELECT reencauches_maximos INTO v_modelo_record FROM public.modelos_neumatico WHERE id = v_neumatico_record.modelo_id;
+    IF NOT FOUND THEN RAISE WARNING '[...] Modelo ID % no encontrado.', v_neumatico_record.modelo_id; v_modelo_record.reencauches_maximos := 99; END IF;
+    RAISE NOTICE '[TRIGGER FN_ACT_ESTADO] Max reencauches: %', v_modelo_record.reencauches_maximos; -- DEBUG MAX REENCAUCHES
+
+    -- Cálculo de Kilometraje (igual que tu original)
     IF v_neumatico_record.estado_actual = 'INSTALADO' AND NEW.tipo_evento IN ('DESMONTAJE', 'INSPECCION', 'DESECHO') AND NEW.odometro_vehiculo_en_evento IS NOT NULL THEN
         -- *** CORRECCIÓN AQUÍ: Quitar "AND vehiculo_id = v_neumatico_record.ubicacion_actual_vehiculo_id" ***
         SELECT odometro_vehiculo_en_evento INTO v_odometro_anterior
@@ -285,32 +293,71 @@ BEGIN
           AND timestamp_evento < NEW.timestamp_evento
         ORDER BY timestamp_evento DESC
         LIMIT 1;
-        -- RAISE NOTICE '[TRIGGER FN_ACT_ESTADO] Odómetro Anterior Encontrado (Corregido): %', v_odometro_anterior; -- Podrías dejar este si quieres verificar
+        RAISE NOTICE '[TRIGGER FN_ACT_ESTADO] Odómetro Anterior Encontrado (Corregido): %', v_odometro_anterior; -- Podrías dejar este si quieres verificar
 
         IF v_odometro_anterior IS NOT NULL AND NEW.odometro_vehiculo_en_evento > v_odometro_anterior THEN
             v_kilometros_recorridos := NEW.odometro_vehiculo_en_evento - v_odometro_anterior;
         ELSE
              v_kilometros_recorridos := 0;
         END IF;
+        RAISE NOTICE '[TRIGGER FN_ACT_ESTADO] KM Recorridos calculados: %', v_kilometros_recorridos; -- DEBUG KM
     ELSE
          v_kilometros_recorridos := 0;
     END IF;
 
-    -- Actualización del Neumático (El CASE se mantiene igual que antes)
+    -- Actualización del Neumático
     CASE NEW.tipo_evento
+
+        -- Bloques WHEN originales extraídos de tu backup:
         WHEN 'INSTALACION' THEN UPDATE public.neumaticos SET estado_actual = 'INSTALADO', ubicacion_actual_vehiculo_id = NEW.vehiculo_id, ubicacion_actual_posicion_id = NEW.posicion_id, fecha_ultimo_evento = NEW.timestamp_evento, kilometraje_acumulado = 0, actualizado_en = now(), actualizado_por = NEW.usuario_id WHERE id = NEW.neumatico_id;
         WHEN 'DESMONTAJE' THEN UPDATE public.neumaticos SET estado_actual = NEW.destino_desmontaje, ubicacion_actual_vehiculo_id = NULL, ubicacion_actual_posicion_id = NULL, fecha_ultimo_evento = NEW.timestamp_evento, kilometraje_acumulado = v_neumatico_record.kilometraje_acumulado + v_kilometros_recorridos, fecha_desecho = CASE WHEN NEW.destino_desmontaje = 'DESECHADO' THEN NEW.timestamp_evento::date ELSE fecha_desecho END, motivo_desecho_id = CASE WHEN NEW.destino_desmontaje = 'DESECHADO' THEN NEW.motivo_desecho_id_evento ELSE motivo_desecho_id END, actualizado_en = now(), actualizado_por = NEW.usuario_id WHERE id = NEW.neumatico_id;
         WHEN 'INSPECCION' THEN IF v_kilometros_recorridos > 0 THEN UPDATE public.neumaticos SET kilometraje_acumulado = v_neumatico_record.kilometraje_acumulado + v_kilometros_recorridos, fecha_ultimo_evento = NEW.timestamp_evento, actualizado_en = now(), actualizado_por = NEW.usuario_id WHERE id = NEW.neumatico_id; ELSE UPDATE public.neumaticos SET fecha_ultimo_evento = NEW.timestamp_evento, actualizado_en = now(), actualizado_por = NEW.usuario_id WHERE id = NEW.neumatico_id; END IF;
         WHEN 'REPARACION_ENTRADA' THEN UPDATE public.neumaticos SET estado_actual = 'EN_REPARACION', fecha_ultimo_evento = NEW.timestamp_evento, actualizado_en = now(), actualizado_por = NEW.usuario_id WHERE id = NEW.neumatico_id;
         WHEN 'REPARACION_SALIDA' THEN UPDATE public.neumaticos SET estado_actual = 'EN_STOCK', fecha_ultimo_evento = NEW.timestamp_evento, actualizado_en = now(), actualizado_por = NEW.usuario_id WHERE id = NEW.neumatico_id;
         WHEN 'REENCAUCHE_ENTRADA' THEN IF v_neumatico_record.reencauches_realizados >= v_modelo_record.reencauches_maximos THEN RAISE WARNING '[TRIGGER FN_ACT_ESTADO] Neumático ID % enviado a reencauche pero ya alcanzó/superó el límite de % reencauches.', NEW.neumatico_id, v_modelo_record.reencauches_maximos; END IF; UPDATE public.neumaticos SET estado_actual = 'EN_REENCAUCHE', fecha_ultimo_evento = NEW.timestamp_evento, actualizado_en = now(), actualizado_por = NEW.usuario_id WHERE id = NEW.neumatico_id;
-        WHEN 'REENCAUCHE_SALIDA' THEN IF v_neumatico_record.reencauches_realizados >= v_modelo_record.reencauches_maximos THEN RAISE EXCEPTION '[TRIGGER FN_ACT_ESTADO] Neumático ID % no puede salir de reencauche. Ya alcanzó/superó el límite de % reencauches.', NEW.neumatico_id, v_modelo_record.reencauches_maximos; END IF; UPDATE public.neumaticos SET reencauches_realizados = v_neumatico_record.reencauches_realizados + 1, vida_actual = v_neumatico_record.vida_actual + 1, estado_actual = 'EN_STOCK', fecha_ultimo_evento = NEW.timestamp_evento, kilometraje_acumulado = 0, profundidad_inicial_mm = NEW.profundidad_post_reencauche_mm, es_reencauchado = true, actualizado_en = now(), actualizado_por = NEW.usuario_id WHERE id = NEW.neumatico_id;
         WHEN 'DESECHO' THEN IF v_neumatico_record.estado_actual != 'DESECHADO' THEN UPDATE public.neumaticos SET estado_actual = 'DESECHADO', fecha_desecho = NEW.timestamp_evento::date, motivo_desecho_id = NEW.motivo_desecho_id_evento, fecha_ultimo_evento = NEW.timestamp_evento, kilometraje_acumulado = v_neumatico_record.kilometraje_acumulado + v_kilometros_recorridos, ubicacion_actual_vehiculo_id = NULL, ubicacion_actual_posicion_id = NULL, actualizado_en = now(), actualizado_por = NEW.usuario_id WHERE id = NEW.neumatico_id; END IF;
         WHEN 'AJUSTE_INVENTARIO' THEN UPDATE public.neumaticos SET fecha_ultimo_evento = NEW.timestamp_evento, actualizado_en = now(), actualizado_por = NEW.usuario_id WHERE id = NEW.neumatico_id;
-        ELSE UPDATE public.neumaticos SET fecha_ultimo_evento = NEW.timestamp_evento, actualizado_en = now(), actualizado_por = NEW.usuario_id WHERE id = NEW.neumatico_id;
+        -- Nota: ROTACION y TRANSFERENCIA caen en el ELSE
+
+        -- Bloque WHEN 'REENCAUCHE_SALIDA' con debugging detallado:
+        WHEN 'REENCAUCHE_SALIDA' THEN
+            RAISE NOTICE '[TRIG REEN_SALIDA - DEBUG] Iniciando bloque.';
+            RAISE NOTICE '[TRIG REEN_SALIDA - DEBUG] Valores leídos: Reencauches=%, Vida=%, Límite=%, Usuario=%, ProfPost=%, NeumID=%',
+                         COALESCE(v_neumatico_record.reencauches_realizados, -1), COALESCE(v_neumatico_record.vida_actual, -1), v_modelo_record.reencauches_maximos, NEW.usuario_id, NEW.profundidad_post_reencauche_mm, NEW.neumatico_id;
+            v_neumatico_record.reencauches_realizados := COALESCE(v_neumatico_record.reencauches_realizados, 0);
+            v_neumatico_record.vida_actual := COALESCE(v_neumatico_record.vida_actual, 1);
+            IF v_modelo_record.reencauches_maximos IS NULL THEN v_modelo_record.reencauches_maximos := 99; END IF;
+            RAISE NOTICE '[TRIG REEN_SALIDA - DEBUG] Evaluando IF: % >= % ?', v_neumatico_record.reencauches_realizados, v_modelo_record.reencauches_maximos;
+            IF v_neumatico_record.reencauches_realizados >= v_modelo_record.reencauches_maximos THEN
+                RAISE NOTICE '[TRIG REEN_SALIDA - DEBUG] Condición IF fue TRUE. Lanzando EXCEPTION.';
+                RAISE EXCEPTION '[TRIG REEN_SALIDA] Límite de reencauches % alcanzado/superado (max %).', v_neumatico_record.reencauches_realizados, v_modelo_record.reencauches_maximos;
+            END IF;
+            RAISE NOTICE '[TRIG REEN_SALIDA - DEBUG] Condición IF fue FALSE. Continuando...';
+            v_reencauches_new := v_neumatico_record.reencauches_realizados + 1;
+            v_vida_new := v_neumatico_record.vida_actual + 1;
+            v_profundidad_new := NEW.profundidad_post_reencauche_mm;
+            RAISE NOTICE '[TRIG REEN_SALIDA - DEBUG] Valores calculados -> Reenc: %, Vida: %, Prof: %', v_reencauches_new, v_vida_new, v_profundidad_new;
+            RAISE NOTICE '[TRIG REEN_SALIDA - DEBUG] Ejecutando UPDATE completo...';
+            UPDATE public.neumaticos SET
+                reencauches_realizados = v_reencauches_new,
+                vida_actual = v_vida_new,
+                estado_actual = 'EN_STOCK',
+                fecha_ultimo_evento = NEW.timestamp_evento,
+                kilometraje_acumulado = 0,
+                profundidad_inicial_mm = v_profundidad_new,
+                es_reencauchado = true,
+                actualizado_en = now(),
+                actualizado_por = NEW.usuario_id
+            WHERE id = NEW.neumatico_id;
+            RAISE NOTICE '[TRIG REEN_SALIDA - DEBUG] UPDATE ejecutado (supuestamente).';
+
+        -- Bloque ELSE original para otros eventos (ROTACION, TRANSFERENCIA, etc.)
+        ELSE
+            RAISE NOTICE '[TRIG ELSE] Evento tipo % no manejado explícitamente. Actualizando solo fecha.', NEW.tipo_evento;
+            UPDATE public.neumaticos SET fecha_ultimo_evento = NEW.timestamp_evento, actualizado_en = now(), actualizado_por = NEW.usuario_id WHERE id = NEW.neumatico_id;
+
     END CASE;
 
-    -- RAISE NOTICE '[TRIGGER FN_ACT_ESTADO] Finalizando...';
     RETURN NEW;
 END;
 $$;
@@ -656,6 +703,7 @@ CREATE TABLE public.eventos_neumaticos (
     datos_evento jsonb,
     relacion_evento_anterior uuid,
     creado_en timestamp with time zone DEFAULT now() NOT NULL,
+    almacen_destino_id uuid,
     CONSTRAINT chk_destino_desmontaje CHECK (((tipo_evento <> 'DESMONTAJE'::public.tipo_evento_neumatico_enum) OR (destino_desmontaje IS NOT NULL))),
     CONSTRAINT chk_motivo_desecho CHECK ((((tipo_evento <> 'DESECHO'::public.tipo_evento_neumatico_enum) AND ((tipo_evento <> 'DESMONTAJE'::public.tipo_evento_neumatico_enum) OR (destino_desmontaje <> 'DESECHADO'::public.estado_neumatico_enum))) OR (motivo_desecho_id_evento IS NOT NULL))),
     CONSTRAINT chk_profundidad_reencauche CHECK (((tipo_evento <> 'REENCAUCHE_SALIDA'::public.tipo_evento_neumatico_enum) OR (profundidad_post_reencauche_mm IS NOT NULL))),
@@ -1442,6 +1490,9 @@ COPY public.auditoria_log (id, timestamp_log, esquema_tabla, nombre_tabla, opera
 191	2025-05-01 18:33:40.763648-05	public	alertas	INSERT	postgres	a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11	operador01_test	192.168.1.100	\N	4a22565f-2c91-44c4-91fa-e40e1edd7cf3	\N	{"id": "4a22565f-2c91-44c4-91fa-e40e1edd7cf3", "mensaje": "Profundidad crítica detectada en neumático", "modelo_id": null, "almacen_id": null, "tipo_alerta": "PROFUNDIDAD_BAJA", "vehiculo_id": null, "neumatico_id": "22222222-2222-2222-2222-222222222222", "parametro_id": null, "estado_alerta": "NUEVA", "datos_contexto": {"posicion": "1LI", "umbral_minimo_mm": 5.0, "profundidad_medida_mm": 4.5}, "nivel_severidad": "WARN", "timestamp_gestion": null, "usuario_gestion_id": null, "timestamp_generacion": "2025-05-01T18:33:40.763648-05:00"}	{"id": "4a22565f-2c91-44c4-91fa-e40e1edd7cf3", "mensaje": "Profundidad crítica detectada en neumático", "modelo_id": null, "almacen_id": null, "tipo_alerta": "PROFUNDIDAD_BAJA", "vehiculo_id": null, "neumatico_id": "22222222-2222-2222-2222-222222222222", "parametro_id": null, "estado_alerta": "NUEVA", "datos_contexto": {"posicion": "1LI", "umbral_minimo_mm": 5.0, "profundidad_medida_mm": 4.5}, "nivel_severidad": "WARN", "timestamp_gestion": null, "usuario_gestion_id": null, "timestamp_generacion": "2025-05-01T18:33:40.763648-05:00"}	{"ip": "192.168.1.100", "metodo": "POST", "endpoint": "/test/crear_alerta"}	INSERT INTO public.alertas (tipo_alerta, mensaje, nivel_severidad, estado_alerta, neumatico_id, datos_contexto)\nVALUES (\n    'PROFUNDIDAD_BAJA',\n    'Profundidad crítica detectada en neumático',\n    'WARN',\n    'NUEVA',\n    '22222222-2222-2222-2222-222222222222', -- ID Neumático de prueba\n    '{"profundidad_medida_mm": 4.5, "umbral_minimo_mm": 5.0, "posicion": "1LI"}'::jsonb\n) RETURNING id;
 192	2025-05-01 18:36:55.390831-05	public	alertas	UPDATE	postgres	a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a13	supervisor01_test	192.168.1.101	\N	4a22565f-2c91-44c4-91fa-e40e1edd7cf3	{"id": "4a22565f-2c91-44c4-91fa-e40e1edd7cf3", "mensaje": "Profundidad crítica detectada en neumático", "modelo_id": null, "almacen_id": null, "tipo_alerta": "PROFUNDIDAD_BAJA", "vehiculo_id": null, "neumatico_id": "22222222-2222-2222-2222-222222222222", "parametro_id": null, "estado_alerta": "NUEVA", "datos_contexto": {"posicion": "1LI", "umbral_minimo_mm": 5.0, "profundidad_medida_mm": 4.5}, "nivel_severidad": "WARN", "timestamp_gestion": null, "usuario_gestion_id": null, "timestamp_generacion": "2025-05-01T18:33:40.763648-05:00"}	{"id": "4a22565f-2c91-44c4-91fa-e40e1edd7cf3", "mensaje": "Profundidad crítica detectada en neumático", "modelo_id": null, "almacen_id": null, "tipo_alerta": "PROFUNDIDAD_BAJA", "vehiculo_id": null, "neumatico_id": "22222222-2222-2222-2222-222222222222", "parametro_id": null, "estado_alerta": "VISTA", "datos_contexto": {"posicion": "1LI", "umbral_minimo_mm": 5.0, "profundidad_medida_mm": 4.5}, "nivel_severidad": "WARN", "timestamp_gestion": "2025-05-01T18:36:55.390831-05:00", "usuario_gestion_id": "a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a13", "timestamp_generacion": "2025-05-01T18:33:40.763648-05:00"}	{"estado_alerta": "VISTA", "timestamp_gestion": "2025-05-01T18:36:55.390831-05:00", "usuario_gestion_id": "a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a13"}	{"ip": "192.168.1.101", "metodo": "PUT", "endpoint": "/test/gestionar_alerta"}	UPDATE public.alertas\nSET\n    estado_alerta = 'VISTA',\n    timestamp_gestion = NOW(),\n    usuario_gestion_id = 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a13' -- ID del supervisor\nWHERE id = '4a22565f-2c91-44c4-91fa-e40e1edd7cf3';
 193	2025-05-01 18:39:58.688239-05	public	alertas	DELETE	postgres	a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a12	admin_test	192.168.1.102	\N	4a22565f-2c91-44c4-91fa-e40e1edd7cf3	{"id": "4a22565f-2c91-44c4-91fa-e40e1edd7cf3", "mensaje": "Profundidad crítica detectada en neumático", "modelo_id": null, "almacen_id": null, "tipo_alerta": "PROFUNDIDAD_BAJA", "vehiculo_id": null, "neumatico_id": "22222222-2222-2222-2222-222222222222", "parametro_id": null, "estado_alerta": "VISTA", "datos_contexto": {"posicion": "1LI", "umbral_minimo_mm": 5.0, "profundidad_medida_mm": 4.5}, "nivel_severidad": "WARN", "timestamp_gestion": "2025-05-01T18:36:55.390831-05:00", "usuario_gestion_id": "a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a13", "timestamp_generacion": "2025-05-01T18:33:40.763648-05:00"}	\N	{"id": "4a22565f-2c91-44c4-91fa-e40e1edd7cf3", "mensaje": "Profundidad crítica detectada en neumático", "modelo_id": null, "almacen_id": null, "tipo_alerta": "PROFUNDIDAD_BAJA", "vehiculo_id": null, "neumatico_id": "22222222-2222-2222-2222-222222222222", "parametro_id": null, "estado_alerta": "VISTA", "datos_contexto": {"posicion": "1LI", "umbral_minimo_mm": 5.0, "profundidad_medida_mm": 4.5}, "nivel_severidad": "WARN", "timestamp_gestion": "2025-05-01T18:36:55.390831-05:00", "usuario_gestion_id": "a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a13", "timestamp_generacion": "2025-05-01T18:33:40.763648-05:00"}	{"ip": "192.168.1.102", "metodo": "DELETE", "endpoint": "/test/eliminar_alerta"}	DELETE FROM public.alertas WHERE id = '4a22565f-2c91-44c4-91fa-e40e1edd7cf3';
+194	2025-05-02 17:10:06.00723-05	public	neumaticos	UPDATE	postgres	a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11	operador01	\N	\N	22222222-2222-2222-2222-222222222222	{"id": "22222222-2222-2222-2222-222222222222", "dot": "CDCD3024", "creado_en": "2025-04-20T15:43:03.533994-05:00", "modelo_id": "e0eebc99-9c0b-4ef8-bb6d-6bb9bd380a52", "sensor_id": "SENSOR_XYZ_123", "creado_por": "a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a12", "garantia_km": 80000, "vida_actual": 1, "costo_compra": 610.00, "fecha_compra": "2025-04-20", "numero_serie": "SERIE456TEST", "estado_actual": "EN_STOCK", "fecha_desecho": null, "moneda_compra": "PEN", "actualizado_en": "2025-04-23T09:29:24.072018-05:00", "garantia_meses": 24, "actualizado_por": "a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11", "es_reencauchado": false, "fecha_fabricacion": null, "motivo_desecho_id": null, "fecha_ultimo_evento": "2025-04-23T09:29:24.072018-05:00", "proveedor_compra_id": "b0eebc99-9c0b-4ef8-bb6d-6bb9bd380a21", "ubicacion_almacen_id": null, "garantia_fecha_inicio": "2025-04-01", "garantia_proveedor_id": "b0eebc99-9c0b-4ef8-bb6d-6bb9bd380a21", "kilometraje_acumulado": 12000, "profundidad_inicial_mm": 22.00, "reencauches_realizados": 0, "garantia_condiciones_url": "http://example.com/garantia/llantas-sur", "ubicacion_actual_posicion_id": null, "ubicacion_actual_vehiculo_id": null}	{"id": "22222222-2222-2222-2222-222222222222", "dot": "CDCD3024", "creado_en": "2025-04-20T15:43:03.533994-05:00", "modelo_id": "e0eebc99-9c0b-4ef8-bb6d-6bb9bd380a52", "sensor_id": "SENSOR_XYZ_123", "creado_por": "a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a12", "garantia_km": 80000, "vida_actual": 1, "costo_compra": 610.00, "fecha_compra": "2025-04-20", "numero_serie": "SERIE456TEST", "estado_actual": "EN_REENCAUCHE", "fecha_desecho": null, "moneda_compra": "PEN", "actualizado_en": "2025-04-23T09:29:24.072018-05:00", "garantia_meses": 24, "actualizado_por": "a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11", "es_reencauchado": false, "fecha_fabricacion": null, "motivo_desecho_id": null, "fecha_ultimo_evento": "2025-04-23T09:29:24.072018-05:00", "proveedor_compra_id": "b0eebc99-9c0b-4ef8-bb6d-6bb9bd380a21", "ubicacion_almacen_id": null, "garantia_fecha_inicio": "2025-04-01", "garantia_proveedor_id": "b0eebc99-9c0b-4ef8-bb6d-6bb9bd380a21", "kilometraje_acumulado": 12000, "profundidad_inicial_mm": 22.00, "reencauches_realizados": 0, "garantia_condiciones_url": "http://example.com/garantia/llantas-sur", "ubicacion_actual_posicion_id": null, "ubicacion_actual_vehiculo_id": null}	{"estado_actual": "EN_REENCAUCHE"}	{"ip": null, "metodo": null, "endpoint": null}	UPDATE neumaticos SET estado_actual = 'EN_REENCAUCHE' WHERE id = '22222222-2222-2222-2222-222222222222';
+195	2025-05-02 18:01:15.027812-05	public	neumaticos	UPDATE	postgres	a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11	operador01	\N	\N	22222222-2222-2222-2222-222222222222	{"id": "22222222-2222-2222-2222-222222222222", "dot": "CDCD3024", "creado_en": "2025-04-20T15:43:03.533994-05:00", "modelo_id": "e0eebc99-9c0b-4ef8-bb6d-6bb9bd380a52", "sensor_id": "SENSOR_XYZ_123", "creado_por": "a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a12", "garantia_km": 80000, "vida_actual": 1, "costo_compra": 610.00, "fecha_compra": "2025-04-20", "numero_serie": "SERIE456TEST", "estado_actual": "EN_REENCAUCHE", "fecha_desecho": null, "moneda_compra": "PEN", "actualizado_en": "2025-04-23T09:29:24.072018-05:00", "garantia_meses": 24, "actualizado_por": "a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11", "es_reencauchado": false, "fecha_fabricacion": null, "motivo_desecho_id": null, "fecha_ultimo_evento": "2025-04-23T09:29:24.072018-05:00", "proveedor_compra_id": "b0eebc99-9c0b-4ef8-bb6d-6bb9bd380a21", "ubicacion_almacen_id": null, "garantia_fecha_inicio": "2025-04-01", "garantia_proveedor_id": "b0eebc99-9c0b-4ef8-bb6d-6bb9bd380a21", "kilometraje_acumulado": 12000, "profundidad_inicial_mm": 22.00, "reencauches_realizados": 0, "garantia_condiciones_url": "http://example.com/garantia/llantas-sur", "ubicacion_actual_posicion_id": null, "ubicacion_actual_vehiculo_id": null}	{"id": "22222222-2222-2222-2222-222222222222", "dot": "CDCD3024", "creado_en": "2025-04-20T15:43:03.533994-05:00", "modelo_id": "e0eebc99-9c0b-4ef8-bb6d-6bb9bd380a52", "sensor_id": "SENSOR_XYZ_123", "creado_por": "a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a12", "garantia_km": 80000, "vida_actual": 1, "costo_compra": 610.00, "fecha_compra": "2025-04-20", "numero_serie": "SERIE456TEST", "estado_actual": "EN_REENCAUCHE", "fecha_desecho": null, "moneda_compra": "PEN", "actualizado_en": "2025-04-23T09:29:24.072018-05:00", "garantia_meses": 24, "actualizado_por": "a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11", "es_reencauchado": false, "fecha_fabricacion": null, "motivo_desecho_id": null, "fecha_ultimo_evento": "2025-04-23T09:29:24.072018-05:00", "proveedor_compra_id": "b0eebc99-9c0b-4ef8-bb6d-6bb9bd380a21", "ubicacion_almacen_id": null, "garantia_fecha_inicio": "2025-04-01", "garantia_proveedor_id": "b0eebc99-9c0b-4ef8-bb6d-6bb9bd380a21", "kilometraje_acumulado": 500, "profundidad_inicial_mm": null, "reencauches_realizados": 0, "garantia_condiciones_url": "http://example.com/garantia/llantas-sur", "ubicacion_actual_posicion_id": null, "ubicacion_actual_vehiculo_id": null}	{"kilometraje_acumulado": 500, "profundidad_inicial_mm": null}	{"ip": null, "metodo": null, "endpoint": null}	UPDATE neumaticos SET estado_actual = 'EN_REENCAUCHE', reencauches_realizados = 0, vida_actual = 1, es_reencauchado = false, kilometraje_acumulado = 500, profundidad_inicial_mm = null WHERE id = '22222222-2222-2222-2222-222222222222';
+196	2025-05-02 18:30:31.832717-05	public	neumaticos	UPDATE	postgres	a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11	operador01	\N	\N	22222222-2222-2222-2222-222222222222	{"id": "22222222-2222-2222-2222-222222222222", "dot": "CDCD3024", "creado_en": "2025-04-20T15:43:03.533994-05:00", "modelo_id": "e0eebc99-9c0b-4ef8-bb6d-6bb9bd380a52", "sensor_id": "SENSOR_XYZ_123", "creado_por": "a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a12", "garantia_km": 80000, "vida_actual": 1, "costo_compra": 610.00, "fecha_compra": "2025-04-20", "numero_serie": "SERIE456TEST", "estado_actual": "EN_STOCK", "fecha_desecho": null, "moneda_compra": "PEN", "actualizado_en": "2025-04-23T09:29:24.072018-05:00", "garantia_meses": 24, "actualizado_por": "a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11", "es_reencauchado": false, "fecha_fabricacion": null, "motivo_desecho_id": null, "fecha_ultimo_evento": "2025-05-02T18:01:24.520952-05:00", "proveedor_compra_id": "b0eebc99-9c0b-4ef8-bb6d-6bb9bd380a21", "ubicacion_almacen_id": null, "garantia_fecha_inicio": "2025-04-01", "garantia_proveedor_id": "b0eebc99-9c0b-4ef8-bb6d-6bb9bd380a21", "kilometraje_acumulado": 500, "profundidad_inicial_mm": null, "reencauches_realizados": 0, "garantia_condiciones_url": "http://example.com/garantia/llantas-sur", "ubicacion_actual_posicion_id": null, "ubicacion_actual_vehiculo_id": null}	{"id": "22222222-2222-2222-2222-222222222222", "dot": "CDCD3024", "creado_en": "2025-04-20T15:43:03.533994-05:00", "modelo_id": "e0eebc99-9c0b-4ef8-bb6d-6bb9bd380a52", "sensor_id": "SENSOR_XYZ_123", "creado_por": "a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a12", "garantia_km": 80000, "vida_actual": 1, "costo_compra": 610.00, "fecha_compra": "2025-04-20", "numero_serie": "SERIE456TEST", "estado_actual": "EN_REENCAUCHE", "fecha_desecho": null, "moneda_compra": "PEN", "actualizado_en": "2025-04-23T09:29:24.072018-05:00", "garantia_meses": 24, "actualizado_por": "a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11", "es_reencauchado": false, "fecha_fabricacion": null, "motivo_desecho_id": null, "fecha_ultimo_evento": "2025-05-02T18:01:24.520952-05:00", "proveedor_compra_id": "b0eebc99-9c0b-4ef8-bb6d-6bb9bd380a21", "ubicacion_almacen_id": null, "garantia_fecha_inicio": "2025-04-01", "garantia_proveedor_id": "b0eebc99-9c0b-4ef8-bb6d-6bb9bd380a21", "kilometraje_acumulado": 500, "profundidad_inicial_mm": null, "reencauches_realizados": 0, "garantia_condiciones_url": "http://example.com/garantia/llantas-sur", "ubicacion_actual_posicion_id": null, "ubicacion_actual_vehiculo_id": null}	{"estado_actual": "EN_REENCAUCHE"}	{"ip": null, "metodo": null, "endpoint": null}	UPDATE neumaticos SET estado_actual = 'EN_REENCAUCHE', reencauches_realizados = 0, vida_actual = 1, es_reencauchado = false WHERE id = '22222222-2222-2222-2222-222222222222';
 148	2025-04-20 01:42:55.552318-05	public	registros_odometro	DELETE	postgres	\N	\N	\N	\N	be59c166-5f21-43e2-b8d6-c93e6ab2872c	{"id": "be59c166-5f21-43e2-b8d6-c93e6ab2872c", "notas": null, "fuente": "MANUAL_INCORRECTO", "odometro": 71000, "creado_por": "a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11", "vehiculo_id": "f0eebc99-9c0b-4ef8-bb6d-6bb9bd380a91", "fecha_medicion": "2025-04-20T00:50:00-05:00"}	\N	{"id": "be59c166-5f21-43e2-b8d6-c93e6ab2872c", "notas": null, "fuente": "MANUAL_INCORRECTO", "odometro": 71000, "vehiculo_id": "f0eebc99-9c0b-4ef8-bb6d-6bb9bd380a91", "fecha_medicion": "2025-04-20T00:50:00-05:00"}	{"ip": null, "metodo": null, "endpoint": null}	DELETE FROM public.registros_odometro;
 143	2025-04-20 01:42:55.552318-05	public	registros_odometro	DELETE	postgres	\N	\N	\N	\N	d10b3c60-cadc-493b-aed0-e9c1ed2b7dbd	{"id": "d10b3c60-cadc-493b-aed0-e9c1ed2b7dbd", "notas": null, "fuente": "EVENTO_NEUMATICO", "odometro": 65000, "creado_por": "a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11", "vehiculo_id": "f0eebc99-9c0b-4ef8-bb6d-6bb9bd380a91", "fecha_medicion": "2025-04-20T00:36:25-05:00"}	\N	{"id": "d10b3c60-cadc-493b-aed0-e9c1ed2b7dbd", "notas": null, "fuente": "EVENTO_NEUMATICO", "odometro": 65000, "vehiculo_id": "f0eebc99-9c0b-4ef8-bb6d-6bb9bd380a91", "fecha_medicion": "2025-04-20T00:36:25-05:00"}	{"ip": null, "metodo": null, "endpoint": null}	DELETE FROM public.registros_odometro;
 144	2025-04-20 01:42:55.552318-05	public	registros_odometro	DELETE	postgres	\N	\N	\N	\N	70c96147-b0d0-4593-91b4-dae660debea5	{"id": "70c96147-b0d0-4593-91b4-dae660debea5", "notas": null, "fuente": "MANUAL", "odometro": 70000, "creado_por": "a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11", "vehiculo_id": "f0eebc99-9c0b-4ef8-bb6d-6bb9bd380a91", "fecha_medicion": "2025-04-20T01:00:00-05:00"}	\N	{"id": "70c96147-b0d0-4593-91b4-dae660debea5", "notas": null, "fuente": "MANUAL", "odometro": 70000, "vehiculo_id": "f0eebc99-9c0b-4ef8-bb6d-6bb9bd380a91", "fecha_medicion": "2025-04-20T01:00:00-05:00"}	{"ip": null, "metodo": null, "endpoint": null}	DELETE FROM public.registros_odometro;
@@ -1502,14 +1553,16 @@ bbcce00c-5861-45db-9531-96277ae8e5e2	f0eebc99-9c0b-4ef8-bb6d-6bb9bd380a63	1	Eje 
 -- Data for Name: eventos_neumaticos; Type: TABLE DATA; Schema: public; Owner: postgres
 --
 
-COPY public.eventos_neumaticos (id, neumatico_id, tipo_evento, timestamp_evento, usuario_id, vehiculo_id, posicion_id, odometro_vehiculo_en_evento, profundidad_remanente_mm, presion_psi, costo_evento, moneda_costo, proveedor_servicio_id, notas, destino_desmontaje, motivo_desecho_id_evento, profundidad_post_reencauche_mm, datos_evento, relacion_evento_anterior, creado_en) FROM stdin;
-6ca32135-adbc-4db8-bf80-f3f0b434050f	22222222-2222-2222-2222-222222222222	INSTALACION	2025-04-20 22:34:17.514742-05	a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11	f0eebc99-9c0b-4ef8-bb6d-6bb9bd380a92	f2eebc99-9c0b-4ef8-bb6d-6bb9bd380a81	40000	\N	\N	\N	PEN	\N	Instalacion de neumatico nuevo 222 via API	\N	\N	\N	null	\N	2025-04-20 22:34:17.535471-05
-635f3b81-066e-4ddc-858e-198dee57f678	22222222-2222-2222-2222-222222222222	INSPECCION	2025-04-21 08:52:03.910273-05	a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11	f0eebc99-9c0b-4ef8-bb6d-6bb9bd380a92	f2eebc99-9c0b-4ef8-bb6d-6bb9bd380a81	45000	21.50	118.00	\N	PEN	\N	Primera inspeccion neumatico 222 via API	\N	\N	\N	null	\N	2025-04-21 08:52:03.933375-05
-f7111ffe-04c3-4bee-bec4-f19ab7658284	22222222-2222-2222-2222-222222222222	INSTALACION	2025-04-21 10:10:48.182741-05	a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11	f0eebc99-9c0b-4ef8-bb6d-6bb9bd380a92	f2eebc99-9c0b-4ef8-bb6d-6bb9bd380a81	40000	\N	\N	\N	PEN	\N	Instalacion de neumatico nuevo 222 via API	\N	\N	\N	null	\N	2025-04-21 10:10:48.202982-05
-7603a649-d645-46ef-a8ed-fda5548c9251	22222222-2222-2222-2222-222222222222	INSPECCION	2025-04-21 10:20:23.258147-05	a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11	f0eebc99-9c0b-4ef8-bb6d-6bb9bd380a92	f2eebc99-9c0b-4ef8-bb6d-6bb9bd380a81	45000	21.50	118.00	\N	PEN	\N	Primera inspeccion neumatico 222 via API	\N	\N	\N	null	\N	2025-04-21 10:20:23.261491-05
-0a265063-607a-4a49-addf-d180bf56de84	22222222-2222-2222-2222-222222222222	DESMONTAJE	2025-04-21 10:29:59.183632-05	a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11	f0eebc99-9c0b-4ef8-bb6d-6bb9bd380a92	f2eebc99-9c0b-4ef8-bb6d-6bb9bd380a81	52000	\N	\N	\N	PEN	\N	Desmontaje via API para devolver a stock	EN_STOCK	\N	\N	null	\N	2025-04-21 10:29:59.186366-05
-e6cb379a-d5f7-4b32-8c20-c3ea574e7a0d	22222222-2222-2222-2222-222222222222	INSTALACION	2025-04-22 14:18:58.685492-05	a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11	f0eebc99-9c0b-4ef8-bb6d-6bb9bd380a92	f2eebc99-9c0b-4ef8-bb6d-6bb9bd380a81	40000	\N	\N	\N	PEN	\N	Instalacion de neumatico nuevo 222 via API	\N	\N	\N	null	\N	2025-04-22 14:18:58.706519-05
-e81ed129-6ab9-407c-ab04-a0f055561823	22222222-2222-2222-2222-222222222222	DESMONTAJE	2025-04-23 09:29:24.072018-05	a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11	f0eebc99-9c0b-4ef8-bb6d-6bb9bd380a92	f2eebc99-9c0b-4ef8-bb6d-6bb9bd380a81	52000	\N	\N	\N	PEN	\N	Desmontaje via API para devolver a stock (Prueba)	EN_STOCK	\N	\N	null	\N	2025-04-23 09:29:24.07778-05
+COPY public.eventos_neumaticos (id, neumatico_id, tipo_evento, timestamp_evento, usuario_id, vehiculo_id, posicion_id, odometro_vehiculo_en_evento, profundidad_remanente_mm, presion_psi, costo_evento, moneda_costo, proveedor_servicio_id, notas, destino_desmontaje, motivo_desecho_id_evento, profundidad_post_reencauche_mm, datos_evento, relacion_evento_anterior, creado_en, almacen_destino_id) FROM stdin;
+6ca32135-adbc-4db8-bf80-f3f0b434050f	22222222-2222-2222-2222-222222222222	INSTALACION	2025-04-20 22:34:17.514742-05	a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11	f0eebc99-9c0b-4ef8-bb6d-6bb9bd380a92	f2eebc99-9c0b-4ef8-bb6d-6bb9bd380a81	40000	\N	\N	\N	PEN	\N	Instalacion de neumatico nuevo 222 via API	\N	\N	\N	null	\N	2025-04-20 22:34:17.535471-05	\N
+635f3b81-066e-4ddc-858e-198dee57f678	22222222-2222-2222-2222-222222222222	INSPECCION	2025-04-21 08:52:03.910273-05	a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11	f0eebc99-9c0b-4ef8-bb6d-6bb9bd380a92	f2eebc99-9c0b-4ef8-bb6d-6bb9bd380a81	45000	21.50	118.00	\N	PEN	\N	Primera inspeccion neumatico 222 via API	\N	\N	\N	null	\N	2025-04-21 08:52:03.933375-05	\N
+f7111ffe-04c3-4bee-bec4-f19ab7658284	22222222-2222-2222-2222-222222222222	INSTALACION	2025-04-21 10:10:48.182741-05	a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11	f0eebc99-9c0b-4ef8-bb6d-6bb9bd380a92	f2eebc99-9c0b-4ef8-bb6d-6bb9bd380a81	40000	\N	\N	\N	PEN	\N	Instalacion de neumatico nuevo 222 via API	\N	\N	\N	null	\N	2025-04-21 10:10:48.202982-05	\N
+7603a649-d645-46ef-a8ed-fda5548c9251	22222222-2222-2222-2222-222222222222	INSPECCION	2025-04-21 10:20:23.258147-05	a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11	f0eebc99-9c0b-4ef8-bb6d-6bb9bd380a92	f2eebc99-9c0b-4ef8-bb6d-6bb9bd380a81	45000	21.50	118.00	\N	PEN	\N	Primera inspeccion neumatico 222 via API	\N	\N	\N	null	\N	2025-04-21 10:20:23.261491-05	\N
+0a265063-607a-4a49-addf-d180bf56de84	22222222-2222-2222-2222-222222222222	DESMONTAJE	2025-04-21 10:29:59.183632-05	a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11	f0eebc99-9c0b-4ef8-bb6d-6bb9bd380a92	f2eebc99-9c0b-4ef8-bb6d-6bb9bd380a81	52000	\N	\N	\N	PEN	\N	Desmontaje via API para devolver a stock	EN_STOCK	\N	\N	null	\N	2025-04-21 10:29:59.186366-05	\N
+e6cb379a-d5f7-4b32-8c20-c3ea574e7a0d	22222222-2222-2222-2222-222222222222	INSTALACION	2025-04-22 14:18:58.685492-05	a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11	f0eebc99-9c0b-4ef8-bb6d-6bb9bd380a92	f2eebc99-9c0b-4ef8-bb6d-6bb9bd380a81	40000	\N	\N	\N	PEN	\N	Instalacion de neumatico nuevo 222 via API	\N	\N	\N	null	\N	2025-04-22 14:18:58.706519-05	\N
+e81ed129-6ab9-407c-ab04-a0f055561823	22222222-2222-2222-2222-222222222222	DESMONTAJE	2025-04-23 09:29:24.072018-05	a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11	f0eebc99-9c0b-4ef8-bb6d-6bb9bd380a92	f2eebc99-9c0b-4ef8-bb6d-6bb9bd380a81	52000	\N	\N	\N	PEN	\N	Desmontaje via API para devolver a stock (Prueba)	EN_STOCK	\N	\N	null	\N	2025-04-23 09:29:24.07778-05	\N
+513d2237-bf88-4c80-b207-ecb5608d1a01	22222222-2222-2222-2222-222222222222	REENCAUCHE_SALIDA	2025-05-02 18:01:24.520952-05	a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a12	\N	\N	\N	\N	\N	\N	PEN	b0eebc99-9c0b-4ef8-bb6d-6bb9bd380a22	\N	\N	\N	16.00	\N	\N	2025-05-02 18:01:24.520952-05	a1a1a1a1-a1a1-a1a1-a1a1-a1a1a1a1a1a1
+1eabbf57-4bc6-4156-8797-06d7e6352516	22222222-2222-2222-2222-222222222222	REENCAUCHE_SALIDA	2025-05-02 18:30:37.225902-05	a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a12	\N	\N	\N	\N	\N	\N	PEN	b0eebc99-9c0b-4ef8-bb6d-6bb9bd380a22	\N	\N	\N	16.00	\N	\N	2025-05-02 18:30:37.225902-05	a1a1a1a1-a1a1-a1a1-a1a1-a1a1a1a1a1a1
 \.
 
 
@@ -1561,7 +1614,7 @@ c0eebc99-9c0b-4ef8-bb6d-6bb9bd380a34	VEJEZ	Envejecimiento / Cristalización	f	t	
 --
 
 COPY public.neumaticos (id, numero_serie, dot, modelo_id, fecha_compra, fecha_fabricacion, costo_compra, moneda_compra, proveedor_compra_id, es_reencauchado, vida_actual, estado_actual, ubicacion_actual_vehiculo_id, ubicacion_actual_posicion_id, fecha_ultimo_evento, profundidad_inicial_mm, kilometraje_acumulado, reencauches_realizados, fecha_desecho, motivo_desecho_id, creado_en, creado_por, actualizado_en, actualizado_por, ubicacion_almacen_id, sensor_id, garantia_proveedor_id, garantia_fecha_inicio, garantia_km, garantia_meses, garantia_condiciones_url) FROM stdin;
-22222222-2222-2222-2222-222222222222	SERIE456TEST	CDCD3024	e0eebc99-9c0b-4ef8-bb6d-6bb9bd380a52	2025-04-20	\N	610.00	PEN	b0eebc99-9c0b-4ef8-bb6d-6bb9bd380a21	f	1	EN_STOCK	\N	\N	2025-04-23 09:29:24.072018-05	22.00	12000	0	\N	\N	2025-04-20 15:43:03.533994-05	a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a12	2025-04-23 09:29:24.072018-05	a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11	\N	SENSOR_XYZ_123	b0eebc99-9c0b-4ef8-bb6d-6bb9bd380a21	2025-04-01	80000	24	http://example.com/garantia/llantas-sur
+22222222-2222-2222-2222-222222222222	SERIE456TEST	CDCD3024	e0eebc99-9c0b-4ef8-bb6d-6bb9bd380a52	2025-04-20	\N	610.00	PEN	b0eebc99-9c0b-4ef8-bb6d-6bb9bd380a21	f	1	EN_STOCK	\N	\N	2025-05-02 18:30:37.225902-05	\N	500	0	\N	\N	2025-04-20 15:43:03.533994-05	a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a12	2025-04-23 09:29:24.072018-05	a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11	\N	SENSOR_XYZ_123	b0eebc99-9c0b-4ef8-bb6d-6bb9bd380a21	2025-04-01	80000	24	http://example.com/garantia/llantas-sur
 \.
 
 
@@ -1649,7 +1702,7 @@ acd03201-8723-4718-8edb-840eadd3d13f	f0eebc99-9c0b-4ef8-bb6d-6bb9bd380a63	XYZ-78
 -- Name: auditoria_log_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
 --
 
-SELECT pg_catalog.setval('public.auditoria_log_id_seq', 193, true);
+SELECT pg_catalog.setval('public.auditoria_log_id_seq', 196, true);
 
 
 --
@@ -2339,6 +2392,14 @@ COMMENT ON CONSTRAINT fk_auditlog_usuario_app ON public.auditoria_log IS 'FK a u
 
 ALTER TABLE ONLY public.configuraciones_eje
     ADD CONSTRAINT fk_configuraciones_tipo_vehiculo FOREIGN KEY (tipo_vehiculo_id) REFERENCES public.tipos_vehiculo(id) ON DELETE RESTRICT;
+
+
+--
+-- Name: eventos_neumaticos fk_eventos_almacen_destino; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.eventos_neumaticos
+    ADD CONSTRAINT fk_eventos_almacen_destino FOREIGN KEY (almacen_destino_id) REFERENCES public.almacenes(id) ON DELETE SET NULL;
 
 
 --

@@ -1,7 +1,7 @@
 # services/alert_service.py
 import uuid
 import logging
-from decimal import Decimal # Importar Decimal
+from decimal import Decimal
 from typing import Dict, Any, Optional
 from sqlmodel import select
 from sqlalchemy.sql import func
@@ -28,7 +28,6 @@ def _convert_context_for_json(context: Optional[Dict[str, Any]]) -> Optional[Dic
     for k, v in context.items():
         if isinstance(v, Decimal):
             new_context[k] = float(v) # Convertir a float
-        # Podrías añadir aquí conversiones para otros tipos si es necesario
         else:
             new_context[k] = v
     return new_context
@@ -60,14 +59,12 @@ async def crear_alerta_en_db(
             mensaje=mensaje,
             nivel_severidad=nivel_severidad,
             estado_alerta='NUEVA', # Estado inicial
-            # --- Usar los argumentos recibidos ---
             neumatico_id=neumatico_id,
             modelo_id=modelo_id,
             almacen_id=almacen_id,
             vehiculo_id=vehiculo_id,
             parametro_id=parametro_id,
-            # --------------------------------------
-            datos_contexto=datos_contexto_serializable # Contexto convertido
+            datos_contexto=datos_contexto_serializable
         )
         session.add(nueva_alerta)
         await session.commit()
@@ -77,7 +74,7 @@ async def crear_alerta_en_db(
     except Exception as e:
         await session.rollback()
         logger.error(f"Error al crear alerta '{tipo_alerta}' en DB: {e}", exc_info=True)
-        raise # Re-lanza la excepción
+        raise
 
 
 async def check_profundidad_baja(session: AsyncSession, evento: EventoNeumatico):
@@ -111,8 +108,8 @@ async def check_profundidad_baja(session: AsyncSession, evento: EventoNeumatico)
                 f"({profundidad_medida:.1f}mm < {umbral_minimo:.1f}mm)."
             )
             contexto = {
-                "profundidad_medida_mm": profundidad_medida, # Pasa Decimal
-                "umbral_minimo_mm": umbral_minimo,          # Pasa Decimal
+                "profundidad_medida_mm": profundidad_medida,
+                "umbral_minimo_mm": umbral_minimo,
                 "modelo_id": str(modelo_id),
                 "neumatico_id": str(neumatico.id),
                 "evento_id": str(evento.id)
@@ -128,9 +125,10 @@ async def check_profundidad_baja(session: AsyncSession, evento: EventoNeumatico)
                 datos_contexto=contexto
             )
     except Exception as e:
-        logger.error(f"Error en check_profundidad_baja para evento {evento.id}: {e}", exc_info=True)
+        logger.error(f"Error no crítico en check_profundidad_baja para evento {evento.id}: {e}", exc_info=True)
 
-# --- REEMPLAZA LA FUNCIÓN ANTIGUA CON ESTA ---
+
+# --- FUNCIÓN check_stock_minimo CON CORRECCIÓN ---
 async def check_stock_minimo(session: AsyncSession, modelo_id: uuid.UUID, almacen_id: uuid.UUID):
     """Verifica si el stock de un modelo en un almacén está bajo el mínimo."""
     try:
@@ -140,10 +138,11 @@ async def check_stock_minimo(session: AsyncSession, modelo_id: uuid.UUID, almace
             Neumatico.modelo_id == modelo_id,
             Neumatico.ubicacion_almacen_id == almacen_id
         )
-        # --- Código Corregido ---
-        result_stock = await session.exec(stmt_stock)             # Paso 1: Ejecutar
-        stock_actual = result_stock.scalar_one_or_none() or 0     # Paso 2: Obtener escalar del resultado
-        # -----------------------
+        # --- Usando .first() y acceso por índice ---
+        result_stock = await session.exec(stmt_stock)
+        stock_row = result_stock.first()
+        stock_actual = stock_row[0] if stock_row else 0
+        # ------------------------------------------
 
         # 2. Obtener nivel mínimo
         stmt_param = select(ParametroInventario).where(
@@ -190,6 +189,6 @@ async def check_stock_minimo(session: AsyncSession, modelo_id: uuid.UUID, almace
             )
     except Exception as e:
          logger.error(f"Error no crítico en check_stock_minimo para modelo {modelo_id}, almacén {almacen_id}: {e}", exc_info=True)
-         # No relanzar el error aquí
+         # NO re-lanzar el error aquí
 
-# ... (resto del archivo services/alert_service.py) ...
+# --- Fin del archivo ---

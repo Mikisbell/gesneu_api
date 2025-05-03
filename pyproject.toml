@@ -1,5 +1,12 @@
 # pyproject.toml
+
 [tool.pytest.ini_options]
+# Mantén otras opciones que ya tengas (minversion, etc.)
+# Añade o modifica la línea 'markers':
+markers = [
+    "integration: mark test as integration test (requires PostgreSQL test DB)",
+    "asyncio", # Si ya tenías otros, mantenlos
+    # Agrega aquí otros marcadores si los usas
+]
+# Añade asyncio_mode si no lo tienes, para consistencia
 asyncio_mode = "auto"
-asyncio_default_fixture_loop_scope = "function"
-# ... otras opciones de pytest si las tienes

@@ -1,4 +1,4 @@
-version: '3.8'
+# Ya no se necesita la línea 'version:'
 
 services:
   app:
@@ -7,6 +7,10 @@ services:
       - "8000:8000"
     environment:
       - DATABASE_URL=postgresql+asyncpg://user:password@db/appdb
+      # URLs para pruebas (usaremos una de estas más tarde)
+      - DATABASE_TEST_URL_DOCKER=postgresql+asyncpg://test_user:test_password@db_test/test_db
+      - DATABASE_TEST_URL_HOST=postgresql+asyncpg://test_user:test_password@localhost:5433/test_db
+      # - SECRET_KEY=... # Otras variables si las necesitas
     depends_on:
       - db
 
@@ -21,5 +25,18 @@ services:
     volumes:
       - postgres_data:/var/lib/postgresql/data
 
+  # --- Servicio de BD para Pruebas ---
+  db_test: # <--- Asegúrate que este nombre esté correcto y la indentación sea igual a 'app' y 'db'
+    image: postgres:15-alpine # Indentación de 2 espacios aquí
+    environment: # Indentación de 2 espacios aquí
+      POSTGRES_USER: test_user # Indentación de 4 espacios aquí
+      POSTGRES_PASSWORD: test_password
+      POSTGRES_DB: test_db
+    ports: # Indentación de 2 espacios aquí
+      - "5433:5432" # Indentación de 4 espacios aquí
+    volumes: # Indentación de 2 espacios aquí
+      - postgres_test_data:/var/lib/postgresql/data # Indentación de 4 espacios aquí
+
 volumes:
   postgres_data:
+  postgres_test_data: # <--- Asegúrate que este esté definido
