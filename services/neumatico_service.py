@@ -1,352 +1,506 @@
-# services/neumatico_service.py
-import uuid
+# services/neumatico_service.py (Completo - v9 Diagnóstico)
+
 import logging
-from datetime import datetime, timezone
-from typing import Optional, Tuple
+from datetime import date, datetime, timezone
+from typing import Optional, Tuple, cast
+from uuid import UUID
+from decimal import Decimal
 
 from sqlmodel import select
-from sqlmodel.ext.asyncio.session import AsyncSession # Usar AsyncSession
-from sqlalchemy.exc import IntegrityError, NoResultFound # Importar excepciones específicas
+from sqlmodel.ext.asyncio.session import AsyncSession
 from sqlalchemy.orm import selectinload
+from sqlalchemy.exc import IntegrityError, SQLAlchemyError
 
-# --- Modelos y Schemas necesarios ---
-from models.neumatico import Neumatico
-from models.evento_neumatico import EventoNeumatico
+# --- Modelos y Schemas ---
+from models.evento_neumatico import EventoNeumatico, TipoEventoNeumaticoEnum
+from models.neumatico import EstadoNeumaticoEnum, Neumatico
+from models.posicion_neumatico import PosicionNeumatico
+from models.vehiculo import Vehiculo
 from models.almacen import Almacen
 from models.motivo_desecho import MotivoDesecho
-from models.usuario import Usuario # Para tipo de usuario
-from models.vehiculo import Vehiculo # Necesario para obtener odómetro previo? (Opcional)
-from models.posicion_neumatico import PosicionNeumatico # Necesario para validación ROTACION
-from schemas.evento_neumatico import EventoNeumaticoCreate # Schema de entrada
-from schemas.common import EstadoNeumaticoEnum, TipoEventoNeumaticoEnum
+from models.usuario import Usuario
+from models.proveedor import Proveedor
+from models.modelo import ModeloNeumatico
+from models.configuracion_eje import ConfiguracionEje
+from models.tipo_vehiculo import TipoVehiculo
+from schemas.evento_neumatico import EventoNeumaticoCreate
+from services.alert_service import AlertService
 
 logger = logging.getLogger(__name__)
 
-# --- Clases de Excepciones Personalizadas para el Servicio ---
+# --- Excepciones ---
 class ServiceError(Exception):
-    """Clase base para excepciones de la capa de servicio."""
-    def __init__(self, message: str, status_code: int = 500):
-        self.message = message
-        self.status_code = status_code
-        super().__init__(self.message)
-
+    def __init__(self, message="Error en el servicio"): self.message = message; super().__init__(self.message)
 class NeumaticoNotFoundError(ServiceError):
-    """Excepción cuando no se encuentra el neumático."""
-    def __init__(self, neumatico_id: uuid.UUID):
-        super().__init__(f"Neumático ID {neumatico_id} no encontrado.", status_code=404)
-
+    def __init__(self, message="Neumático no encontrado"): super().__init__(message)
 class ValidationError(ServiceError):
-    """Excepción para errores de validación de datos o reglas de negocio."""
-    def __init__(self, message: str):
-        super().__init__(message, status_code=422) # 422 Unprocessable Entity
-
+    def __init__(self, message="Error de validación"): super().__init__(message)
 class ConflictError(ServiceError):
-    """Excepción para conflictos de estado."""
-    def __init__(self, message: str):
-        super().__init__(message, status_code=409) # 409 Conflict
-
+    def __init__(self, message="Conflicto detectado"): super().__init__(message)
+# --- Fin Excepciones ---
 
 class NeumaticoService:
-    """
-    Encapsula la lógica de negocio relacionada con neumáticos y sus eventos.
-    """
+    def __init__(self, session: AsyncSession):
+        self.session = session
+        self.alert_service = AlertService(session)
 
-    async def _get_ultimo_odometro_instalacion(
-        self, neumatico_id: uuid.UUID, db: AsyncSession
-    ) -> Optional[int]:
-        """Helper para obtener el odómetro del último evento de instalación."""
-        stmt_install = select(EventoNeumatico).where(
-            EventoNeumatico.neumatico_id == neumatico_id,
-            EventoNeumatico.tipo_evento == TipoEventoNeumaticoEnum.INSTALACION
-        ).order_by(EventoNeumatico.timestamp_evento.desc()).limit(1)
-        # Usamos await db.exec() con SQLModel/SQLAlchemy 2.0+
-        result = await db.exec(stmt_install)
-        last_install_event = result.first()
-        if last_install_event and last_install_event.odometro_vehiculo_en_evento is not None:
-            return last_install_event.odometro_vehiculo_en_evento
-        logger.warning(f"Servicio: No se encontró evento de instalación o su odómetro para neumático {neumatico_id}")
-        return None
+    # ... (_get..., _validate..., _check_posicion_ocupada sin cambios desde v7) ...
+    async def _get_neumatico_by_id(self, neumatico_id: UUID) -> Optional[Neumatico]:
+        return await self.session.get(Neumatico, neumatico_id)
 
-    async def crear_evento_y_actualizar_neumatico(
-        self,
-        evento_in: EventoNeumaticoCreate,
-        current_user: Usuario,
-        db: AsyncSession
-    ) -> Tuple[EventoNeumatico, Optional[uuid.UUID], Optional[uuid.UUID]]:
-        """
-        Crea un EventoNeumatico y actualiza el Neumatico asociado en la misma sesión.
-        NO HACE COMMIT. Lanza excepciones del servicio en caso de error.
-        Devuelve: El objeto EventoNeumatico creado (sin commit),
-                 ID del almacén de salida (si aplica), ID del almacén de entrada (si aplica).
-        """
-        logger.info(f"Servicio: Procesando evento {evento_in.tipo_evento.value} para neumático ID {evento_in.neumatico_id}")
+    async def _get_neumatico_by_serie(self, numero_serie: str) -> Optional[Neumatico]:
+        statement = select(Neumatico).where(Neumatico.numero_serie == numero_serie)
+        return (await self.session.exec(statement)).first()
 
-        # 1. Obtener neumático
-        neumatico = await db.get(Neumatico, evento_in.neumatico_id)
-        if not neumatico:
-            raise NeumaticoNotFoundError(evento_in.neumatico_id)
+    async def _get_neumatico_for_update(self, neumatico_id: UUID) -> Neumatico:
+        result = await self.session.get(Neumatico, neumatico_id, with_for_update=True)
+        if not result: raise NeumaticoNotFoundError(f"Neumático con ID {neumatico_id} no encontrado.")
+        return result
 
-        logger.debug(f"Servicio: Neumático {neumatico.id} encontrado. Estado ANTES: {neumatico.estado_actual.value if neumatico.estado_actual else 'None'}")
-        estado_original = neumatico.estado_actual
-        nuevo_estado_asignado: Optional[EstadoNeumaticoEnum] = None
-        neumatico_modificado = False
+    async def _validate_and_get_almacen(self, almacen_id: Optional[UUID], required: bool = True) -> Optional[Almacen]:
+        if required and not almacen_id: raise ValidationError("ID de Almacén es requerido.")
+        if not almacen_id: return None
+        almacen = await self.session.get(Almacen, almacen_id)
+        if not almacen: raise ValidationError(f"Almacén con ID {almacen_id} no encontrado.")
+        if not almacen.activo: raise ValidationError(f"Almacén con ID {almacen_id} no está activo.")
+        return almacen
 
-        # Variables del payload
-        vehiculo_id_evento = evento_in.vehiculo_id
-        posicion_id_evento = evento_in.posicion_id
-        destino_desmontaje_evento = evento_in.destino_desmontaje
-        almacen_destino_id_evento = evento_in.almacen_destino_id
-        motivo_desecho_id_evento = evento_in.motivo_desecho_id_evento
-        odometro_evento = evento_in.odometro_vehiculo_en_evento
-        profundidad_post_reencauche = evento_in.profundidad_post_reencauche_mm
+    async def _validate_and_get_proveedor(self, proveedor_id: Optional[UUID], required: bool = True) -> Optional[Proveedor]:
+        if required and not proveedor_id: raise ValidationError("ID de Proveedor es requerido.")
+        if not proveedor_id: return None
+        proveedor = await self.session.get(Proveedor, proveedor_id)
+        if not proveedor: raise ValidationError(f"Proveedor con ID {proveedor_id} no encontrado.")
+        if not proveedor.activo: raise ValidationError(f"Proveedor con ID {proveedor_id} no está activo.")
+        return proveedor
 
-        # Variables para seguimiento de stock (para alertas post-commit)
-        almacen_afectado_stock_entrada: Optional[uuid.UUID] = None
-        almacen_afectado_stock_salida: Optional[uuid.UUID] = neumatico.ubicacion_almacen_id # El almacén actual es potencial salida
 
-        # 2. Crear instancia base del evento (se añadirá al final)
-        evento_data = evento_in.model_dump(exclude_unset=True)
-        evento_data['usuario_id'] = current_user.id 
-        evento_data['timestamp_evento'] = datetime.now(timezone.utc)
-        db_evento = EventoNeumatico.model_validate(evento_data)
-        db_evento.usuario_id = current_user.id
-        db_evento.timestamp_evento = datetime.now(timezone.utc)
 
-        # 3. Lógica principal por tipo de evento
-        match evento_in.tipo_evento:
-            case TipoEventoNeumaticoEnum.INSTALACION:
-                if not vehiculo_id_evento or not posicion_id_evento:
-                    raise ValidationError("Vehiculo ID y Posicion ID requeridos para INSTALACION.")
-                if estado_original != EstadoNeumaticoEnum.EN_STOCK:
-                    raise ConflictError(f"Neumático debe estar EN_STOCK (estado actual: {estado_original.value if estado_original else 'None'}).")
-                # TODO: Validar si la posición está ocupada, vehículo existe/activo, compatibilidad, etc. (RF16)
-                logger.debug("Servicio: Validaciones de instalación OK (simplificado).")
 
-                nuevo_estado_asignado = EstadoNeumaticoEnum.INSTALADO
-                neumatico.ubicacion_actual_vehiculo_id = vehiculo_id_evento
-                neumatico.ubicacion_actual_posicion_id = posicion_id_evento
-                neumatico.ubicacion_almacen_id = None # Sale del almacén
-                neumatico.kilometraje_acumulado = 0
+    async def _validate_and_get_vehiculo_posicion(self, event_data: EventoNeumaticoCreate) -> Tuple[Vehiculo, PosicionNeumatico]:
+        """Valida y obtiene vehículo y posición activos, y verifica relación (CORREGIDO v10)."""
+        if not event_data.vehiculo_id or not event_data.posicion_id:
+            raise ValidationError("vehiculo_id y posicion_id requeridos.")
 
-            case TipoEventoNeumaticoEnum.DESMONTAJE:
-                if estado_original != EstadoNeumaticoEnum.INSTALADO:
-                    raise ConflictError("Solo se pueden desmontar neumáticos INSTALADOS.")
-                if not destino_desmontaje_evento:
-                    raise ValidationError("destino_desmontaje es requerido para DESMONTAJE.")
-                if destino_desmontaje_evento == EstadoNeumaticoEnum.INSTALADO:
-                     raise ValidationError("Destino de desmontaje no puede ser INSTALADO.")
+        vehiculo = await self.session.get(Vehiculo, event_data.vehiculo_id)
+        if not vehiculo: raise ValidationError(f"Vehículo ID {event_data.vehiculo_id} no encontrado.")
+        if not vehiculo.activo: raise ValidationError(f"Vehículo ID {event_data.vehiculo_id} inactivo.")
 
-                nuevo_estado_asignado = destino_desmontaje_evento
+        posicion = await self.session.get(PosicionNeumatico, event_data.posicion_id)
+        if not posicion: raise ValidationError(f"Posición ID {event_data.posicion_id} no encontrada.")
 
-                if nuevo_estado_asignado != EstadoNeumaticoEnum.DESECHADO:
-                    if not almacen_destino_id_evento:
-                         raise ValidationError("ID de almacén destino requerido si destino no es DESECHADO.")
-                    almacen_destino_db = await db.get(Almacen, almacen_destino_id_evento)
-                    if not almacen_destino_db or not almacen_destino_db.activo:
-                         raise ValidationError(f"Almacén destino ID {almacen_destino_id_evento} no encontrado o inactivo.")
-                    neumatico.ubicacion_almacen_id = almacen_destino_id_evento
-                    almacen_afectado_stock_entrada = almacen_destino_id_evento
-                    almacen_afectado_stock_salida = None # No sale de stock, entra a uno nuevo
-                else: # Destino es DESECHADO
-                    if not motivo_desecho_id_evento:
-                         raise ValidationError("motivo_desecho_id_evento es requerido para DESMONTAJE a DESECHADO.")
-                    motivo = await db.get(MotivoDesecho, motivo_desecho_id_evento)
-                    if not motivo:
-                         raise ValidationError(f"Motivo desecho ID {motivo_desecho_id_evento} no encontrado.")
-                    neumatico.motivo_desecho_id = motivo_desecho_id_evento
-                    neumatico.fecha_desecho = db_evento.timestamp_evento.date()
-                    neumatico.ubicacion_almacen_id = None # No va a almacén
-                    almacen_afectado_stock_entrada = None
+        # --- Inicio Corrección: Quitar refresh y cargar config_eje con session.get ---
+        # Ya no se usa refresh aquí para las relaciones
 
-                # Calcular KM acumulado
-                if odometro_evento is not None:
-                    odometro_instalacion = await self._get_ultimo_odometro_instalacion(neumatico.id, db)
-                    if odometro_instalacion is not None:
-                        km_recorridos = odometro_evento - odometro_instalacion
-                        if km_recorridos >= 0:
-                            neumatico.kilometraje_acumulado = (neumatico.kilometraje_acumulado or 0) + km_recorridos
-                            logger.debug(f"Servicio: KM acumulados actualizados a: {neumatico.kilometraje_acumulado}")
-                        else:
-                            logger.warning(f"Servicio: Odómetro de desmontaje {odometro_evento} menor que el de instalación {odometro_instalacion}, no se actualiza KM.")
+        # Validar si la posición pertenece al tipo de vehículo (comparando IDs)
+        if posicion.configuracion_eje_id and vehiculo.tipo_vehiculo_id:
+            # Obtener explícitamente el objeto ConfiguracionEje usando su ID
+            config_eje = await self.session.get(ConfiguracionEje, posicion.configuracion_eje_id)
+            if not config_eje:
+                # Error si el ID existe en 'posicion' pero el Eje no (problema de integridad)
+                logger.error(f"Error Crítico: ConfiguracionEje ID {posicion.configuracion_eje_id} no encontrado, referenciado por Posicion {posicion.id}")
+                raise ServiceError(f"No se pudo encontrar la configuración del eje para la posición {posicion.id}.")
 
-                # Limpiar ubicación vehículo/posición (siempre al desmontar)
-                neumatico.ubicacion_actual_vehiculo_id = None
-                neumatico.ubicacion_actual_posicion_id = None
+            # Ahora sí, comparar el tipo_vehiculo_id del eje con el del vehículo
+            if config_eje.tipo_vehiculo_id != vehiculo.tipo_vehiculo_id:
+                logger.error(f"Discrepancia Tipo Vehículo: Vehiculo {vehiculo.id}({vehiculo.tipo_vehiculo_id}) vs Posicion {posicion.id} en Eje {posicion.configuracion_eje_id}({config_eje.tipo_vehiculo_id})")
+                raise ValidationError(f"La posición {posicion.id} ({posicion.codigo_posicion}) no pertenece al tipo de vehículo del vehículo {vehiculo.numero_economico} (Tipo ID: {vehiculo.tipo_vehiculo_id}).")
+        # --- Fin Corrección ---
+        elif not posicion.configuracion_eje_id:
+             logger.warning(f"Posición {posicion.id} ({posicion.codigo_posicion}) no tiene configuracion_eje_id asignado.")
+             # Considerar si esto debe ser un ValidationError
 
-            case TipoEventoNeumaticoEnum.DESECHO:
-                if estado_original == EstadoNeumaticoEnum.INSTALADO:
-                    raise ConflictError("No se puede desechar un neumático INSTALADO. Realiza DESMONTAJE primero.")
-                if not motivo_desecho_id_evento:
-                    raise ValidationError("motivo_desecho_id_evento es requerido para DESECHO.")
-                motivo = await db.get(MotivoDesecho, motivo_desecho_id_evento)
-                if not motivo:
-                    raise ValidationError(f"Motivo desecho ID {motivo_desecho_id_evento} no encontrado.")
+        # Si todo está bien, devolver los objetos obtenidos
+        return vehiculo, posicion
 
-                nuevo_estado_asignado = EstadoNeumaticoEnum.DESECHADO
-                neumatico.motivo_desecho_id = motivo_desecho_id_evento
-                neumatico.fecha_desecho = db_evento.timestamp_evento.date()
-                neumatico.ubicacion_actual_vehiculo_id = None
-                neumatico.ubicacion_actual_posicion_id = None
-                neumatico.ubicacion_almacen_id = None # Sale de donde estuviera
-                almacen_afectado_stock_entrada = None # No entra a stock
 
-            case TipoEventoNeumaticoEnum.ROTACION:
-                if estado_original != EstadoNeumaticoEnum.INSTALADO:
-                    raise ConflictError("Solo se pueden rotar neumáticos INSTALADOS.")
-                if not vehiculo_id_evento or not posicion_id_evento:
-                    raise ValidationError("Vehiculo ID y Posicion ID de destino requeridos para ROTACION.")
-                posicion_destino = await db.get(PosicionNeumatico, posicion_id_evento)
-                if not posicion_destino:
-                    raise ValidationError(f"Posición destino ID {posicion_id_evento} no encontrada.")
-                # TODO: Validar compatibilidad vehículo/posición
+    async def _check_posicion_ocupada(self, vehiculo_id: UUID, posicion_id: UUID, current_neumatico_id: Optional[UUID] = None):
+        statement = select(Neumatico.id).where(Neumatico.ubicacion_actual_vehiculo_id == vehiculo_id, Neumatico.ubicacion_actual_posicion_id == posicion_id, Neumatico.estado_actual == EstadoNeumaticoEnum.INSTALADO)
+        if current_neumatico_id: statement = statement.where(Neumatico.id != current_neumatico_id)
+        ocupante_id = await self.session.scalar(statement) # Usar session.scalar()
+        if ocupante_id: raise ConflictError(f"Posición {posicion_id} en vehículo {vehiculo_id} ocupada por neumático {ocupante_id}.")
 
-                nuevo_estado_asignado = EstadoNeumaticoEnum.INSTALADO # Estado no cambia
-                neumatico.ubicacion_actual_vehiculo_id = vehiculo_id_evento
-                neumatico.ubicacion_actual_posicion_id = posicion_id_evento
-                almacen_afectado_stock_entrada = None # No afecta stock
-                almacen_afectado_stock_salida = None
+    async def _handle_compra(self, event_data: EventoNeumaticoCreate, current_user: Usuario) -> Neumatico:
+        logger.info(f"Procesando evento COMPRA para serie {event_data.numero_serie}")
+        if not event_data.numero_serie: raise ValidationError("numero_serie requerido.")
+        if not event_data.modelo_id: raise ValidationError("modelo_id requerido.")
+        if event_data.costo_compra is None: raise ValidationError("costo_compra requerido.")
+        if not event_data.proveedor_compra_id: raise ValidationError("proveedor_compra_id requerido.")
+        if not event_data.destino_almacen_id: raise ValidationError("destino_almacen_id requerido.")
+        await self._validate_and_get_proveedor(event_data.proveedor_compra_id)
+        almacen_destino = await self._validate_and_get_almacen(event_data.destino_almacen_id)
+        modelo = await self.session.get(ModeloNeumatico, event_data.modelo_id)
+        if not modelo: raise ValidationError(f"Modelo ID {event_data.modelo_id} no encontrado.")
+        if await self._get_neumatico_by_serie(event_data.numero_serie):
+            raise ConflictError(f"Neumático serie {event_data.numero_serie} ya existe.")
+        fecha_compra_real = event_data.fecha_compra or getattr(event_data, 'fecha_evento', None) or date.today()
+        new_neumatico = Neumatico(
+            numero_serie=event_data.numero_serie, modelo_id=event_data.modelo_id,
+            fecha_compra=fecha_compra_real, costo_compra=event_data.costo_compra,
+            proveedor_compra_id=event_data.proveedor_compra_id, estado_actual=EstadoNeumaticoEnum.EN_STOCK,
+            ubicacion_almacen_id=almacen_destino.id, # type: ignore
+            # --- CORRECCIÓN AQUÍ ---
+            kilometraje_acumulado=0, # Usar el nombre correcto del modelo
+            # -----------------------
+            reencauches_realizados=0, es_reencauchado=False, creado_por=current_user.id,
+            profundidad_inicial_mm=modelo.profundidad_original_mm
+            # Asegúrate que los campos km_instalacion y fecha_instalacion NO se inicializan aquí
+        )
+        self.session.add(new_neumatico); await self.session.flush(); await self.session.refresh(new_neumatico)
+        logger.info(f"Neumático {new_neumatico.id} creado por evento COMPRA.")
+        return new_neumatico
 
-            case TipoEventoNeumaticoEnum.REPARACION_ENTRADA:
-                if estado_original == EstadoNeumaticoEnum.INSTALADO:
-                    raise ConflictError("Desmonta el neumático antes de enviarlo a reparar.")
-                if not almacen_destino_id_evento:
-                     raise ValidationError("ID de almacén/taller destino requerido para REPARACION_ENTRADA.")
-                taller = await db.get(Almacen, almacen_destino_id_evento)
-                if not taller: raise ValidationError(f"Taller/Almacén destino {almacen_destino_id_evento} no encontrado.")
 
-                nuevo_estado_asignado = EstadoNeumaticoEnum.EN_REPARACION
-                neumatico.ubicacion_almacen_id = almacen_destino_id_evento
-                neumatico.ubicacion_actual_vehiculo_id = None
-                neumatico.ubicacion_actual_posicion_id = None
-                almacen_afectado_stock_entrada = None # No entra a stock usable
-
-            case TipoEventoNeumaticoEnum.REPARACION_SALIDA:
-                if estado_original != EstadoNeumaticoEnum.EN_REPARACION:
-                    raise ConflictError("El neumático debe estar EN_REPARACION.")
-                if not almacen_destino_id_evento:
-                    raise ValidationError("ID de almacén destino requerido para REPARACION_SALIDA.")
-                almacen_destino_db = await db.get(Almacen, almacen_destino_id_evento)
-                if not almacen_destino_db or not almacen_destino_db.activo:
-                    raise ValidationError(f"Almacén destino ID {almacen_destino_id_evento} no encontrado o inactivo.")
-
-                nuevo_estado_asignado = EstadoNeumaticoEnum.EN_STOCK
-                neumatico.ubicacion_almacen_id = almacen_destino_id_evento
-                almacen_afectado_stock_entrada = almacen_destino_id_evento # Entra a stock usable
-                almacen_afectado_stock_salida = None # Sale de reparación, no de stock usable
-
-            case TipoEventoNeumaticoEnum.REENCAUCHE_ENTRADA:
-                if estado_original == EstadoNeumaticoEnum.INSTALADO:
-                    raise ConflictError("Desmonta el neumático antes de enviarlo a reencauche.")
-                if not almacen_destino_id_evento:
-                     raise ValidationError("ID de almacén/reencauchadora destino requerido para REENCAUCHE_ENTRADA.")
-                reencauchadora = await db.get(Almacen, almacen_destino_id_evento)
-                if not reencauchadora: raise ValidationError(f"Reencauchadora/Almacén destino {almacen_destino_id_evento} no encontrado.")
-
-                nuevo_estado_asignado = EstadoNeumaticoEnum.EN_REENCAUCHE
-                neumatico.ubicacion_almacen_id = almacen_destino_id_evento
-                neumatico.ubicacion_actual_vehiculo_id = None
-                neumatico.ubicacion_actual_posicion_id = None
-                almacen_afectado_stock_entrada = None # No entra a stock usable
-
-            case TipoEventoNeumaticoEnum.REENCAUCHE_SALIDA:
-                if estado_original != EstadoNeumaticoEnum.EN_REENCAUCHE:
-                    raise ConflictError("El neumático debe estar EN_REENCAUCHE.")
-                if profundidad_post_reencauche is None:
-                    raise ValidationError("profundidad_post_reencauche_mm es requerida para REENCAUCHE_SALIDA.")
-                if not almacen_destino_id_evento:
-                    raise ValidationError("ID de almacén destino requerido para REENCAUCHE_SALIDA.")
-                almacen_destino_db = await db.get(Almacen, almacen_destino_id_evento)
-                if not almacen_destino_db or not almacen_destino_db.activo:
-                    raise ValidationError(f"Almacén destino ID {almacen_destino_id_evento} no encontrado o inactivo.")
-
-                nuevo_estado_asignado = EstadoNeumaticoEnum.EN_STOCK
-                neumatico.reencauches_realizados = (neumatico.reencauches_realizados or 0) + 1
-                neumatico.vida_actual = (neumatico.vida_actual or 0) + 1
-                neumatico.es_reencauchado = True
-                neumatico.profundidad_inicial_mm = profundidad_post_reencauche # Actualizar profundidad
-                neumatico.kilometraje_acumulado = 0 # Resetear KM
-                neumatico.ubicacion_almacen_id = almacen_destino_id_evento
-                almacen_afectado_stock_entrada = almacen_destino_id_evento # Entra a stock usable
-                almacen_afectado_stock_salida = None # Sale de reencauche, no de stock usable
-                logger.info(f"Servicio: Reencauche Salida para neumático {neumatico.id}")
-
-            case TipoEventoNeumaticoEnum.TRANSFERENCIA_UBICACION:
-                if estado_original == EstadoNeumaticoEnum.INSTALADO:
-                    raise ConflictError("No se puede transferir un neumático INSTALADO. Realiza DESMONTAJE.")
-                if neumatico.ubicacion_almacen_id is None:
-                    raise ConflictError("El neumático no está actualmente en un almacén de origen para transferir.")
-                if not almacen_destino_id_evento:
-                    raise ValidationError("ID de almacén destino requerido para TRANSFERENCIA.")
-                if almacen_destino_id_evento == neumatico.ubicacion_almacen_id:
-                    raise ValidationError("Almacén de origen y destino son iguales.")
-                almacen_destino_db = await db.get(Almacen, almacen_destino_id_evento)
-                if not almacen_destino_db or not almacen_destino_db.activo:
-                    raise ValidationError(f"Almacén destino ID {almacen_destino_id_evento} no encontrado o inactivo.")
-
-                # El estado no cambia (asumimos que sigue EN_STOCK, EN_REPARACION, etc.)
-                nuevo_estado_asignado = estado_original
-                # Se actualiza ubicación
-                neumatico.ubicacion_almacen_id = almacen_destino_id_evento
-                # Se registra entrada y salida para alertas
-                almacen_afectado_stock_entrada = almacen_destino_id_evento
-                # almacen_afectado_stock_salida ya tiene el valor original al inicio
-
-            case TipoEventoNeumaticoEnum.COMPRA:
-                logger.warning("Servicio: Evento COMPRA no debería actualizar un neumático existente vía este endpoint.")
-                # No hacer cambios aquí, la compra debe crear el neumático
-                pass
-            case TipoEventoNeumaticoEnum.INSPECCION | TipoEventoNeumaticoEnum.AJUSTE_INVENTARIO:
-                 logger.debug(f"Servicio: Evento {evento_in.tipo_evento.value} no modifica estado/ubicación principal.")
-                 # Podrías actualizar profundidad aquí si es INSPECCION
-                 if evento_in.tipo_evento == TipoEventoNeumaticoEnum.INSPECCION and evento_in.profundidad_remanente_mm is not None:
-                      # Aquí hay una decisión de diseño: ¿Actualizamos profundidad_inicial_mm o creamos un nuevo campo profundidad_actual_mm?
-                      # Asumiendo que queremos un campo separado para la profundidad actual medida:
-                      # neumatico.profundidad_actual_medida_mm = evento_in.profundidad_remanente_mm
-                      # neumatico.fecha_ultima_medicion = db_evento.timestamp_evento
-                      # Esto requiere añadir esos campos al modelo Neumatico
-                      logger.warning("Servicio: Actualización de profundidad en INSPECCION no implementada (requiere campo adicional en modelo Neumatico).")
-                      neumatico_modificado = True # Marcar como modificado si actualizas algo
-                 pass
-            case _:
-                logger.warning(f"Servicio: Tipo de evento {evento_in.tipo_evento.value} no manejado explícitamente.")
-                pass
-
-        # 4. Aplicar cambios finales al neumático
-        if nuevo_estado_asignado is not None and neumatico.estado_actual != nuevo_estado_asignado:
-            logger.info(f"Servicio: Cambiando estado neumático {neumatico.id} de {estado_original.value if estado_original else 'None'} a {nuevo_estado_asignado.value}")
-            neumatico.estado_actual = nuevo_estado_asignado
-            neumatico_modificado = True
-
-        # Si hubo alguna modificación, actualizar timestamp
-        if neumatico_modificado:
-            # Siempre actualizar fecha_ultimo_evento si procesamos lógicamente el evento
-            neumatico.fecha_ultimo_evento = db_evento.timestamp_evento
-            neumatico.actualizado_en = db_evento.timestamp_evento # Usar timestamp del evento
-            neumatico.actualizado_por = current_user.id
-            logger.info(f"Servicio: Neumático {neumatico.id} modificado. Nuevo estado: {neumatico.estado_actual.value if neumatico.estado_actual else 'None'}")
+    async def registrar_evento(self, evento_in: EventoNeumaticoCreate, current_user: Usuario) -> Tuple[Neumatico, EventoNeumatico]:
+        # ... (sin cambios en la estructura principal) ...
+        tipo_evento = evento_in.tipo_evento
+        event_data_dict = evento_in.model_dump(exclude_unset=True)
+        timestamp_evento = datetime.now(timezone.utc)
+        fecha_evento = evento_in.fecha_evento or timestamp_evento.date()
+        event_data_dict['usuario_id'] = current_user.id
+        event_data_dict['timestamp_evento'] = timestamp_evento
+        event_data_dict['fecha_evento'] = fecha_evento
+        db_neumatico: Optional[Neumatico] = None
+        if tipo_evento == TipoEventoNeumaticoEnum.COMPRA:
+            db_neumatico = await self._handle_compra(evento_in, current_user)
+            event_data_dict['neumatico_id'] = db_neumatico.id
         else:
-            # Aunque no haya modificación de estado/ubicación principal,
-            # el evento ocurrió, así que actualizamos fecha_ultimo_evento.
-            # No actualizamos 'actualizado_en'/'actualizado_por' si no hubo cambios lógicos en el neumático.
-             if neumatico.fecha_ultimo_evento != db_evento.timestamp_evento:
-                 neumatico.fecha_ultimo_evento = db_evento.timestamp_evento
-                 neumatico_modificado = True # Considerar si actualizar fecha_ultimo_evento cuenta como modificación auditable
-                 # Si cuenta, también actualizar 'actualizado_en' y 'actualizado_por'
-                 neumatico.actualizado_en = db_evento.timestamp_evento
-                 neumatico.actualizado_por = current_user.id
+            if not evento_in.neumatico_id: raise ValidationError("neumatico_id requerido.")
+            db_neumatico = await self._get_neumatico_for_update(evento_in.neumatico_id)
+            event_data_dict['neumatico_id'] = db_neumatico.id
+            neumatico_modificado = False
+            match tipo_evento:
+                case TipoEventoNeumaticoEnum.INSTALACION: neumatico_modificado = await self._handle_instalacion(evento_in, db_neumatico, fecha_evento)
+                case TipoEventoNeumaticoEnum.DESMONTAJE: neumatico_modificado = await self._handle_desmontaje(evento_in, db_neumatico, fecha_evento)
+                case TipoEventoNeumaticoEnum.INSPECCION: neumatico_modificado = await self._handle_inspeccion(evento_in, db_neumatico)
+                case TipoEventoNeumaticoEnum.ROTACION: neumatico_modificado = await self._handle_rotacion(evento_in, db_neumatico, fecha_evento)
+                case TipoEventoNeumaticoEnum.REPARACION_ENTRADA: neumatico_modificado = await self._handle_reparacion_entrada(evento_in, db_neumatico)
+                case TipoEventoNeumaticoEnum.REPARACION_SALIDA: neumatico_modificado = await self._handle_reparacion_salida(evento_in, db_neumatico)
+                case TipoEventoNeumaticoEnum.REENCAUCHE_ENTRADA: neumatico_modificado = await self._handle_reencauche_entrada(evento_in, db_neumatico)
+                case TipoEventoNeumaticoEnum.REENCAUCHE_SALIDA: neumatico_modificado = await self._handle_reencauche_salida(evento_in, db_neumatico)
+                case TipoEventoNeumaticoEnum.AJUSTE_INVENTARIO: neumatico_modificado = await self._handle_ajuste_inventario(evento_in, db_neumatico)
+                case TipoEventoNeumaticoEnum.DESECHO: neumatico_modificado = await self._handle_desecho(evento_in, db_neumatico, fecha_evento)
+                case _: raise ValidationError(f"Tipo de evento no soportado: {tipo_evento.value}")
+            if neumatico_modificado:
+                db_neumatico.actualizado_en = timestamp_evento
+                db_neumatico.actualizado_por = current_user.id
+            db_neumatico.fecha_ultimo_evento = timestamp_evento
+            self.session.add(db_neumatico)
+        db_evento = EventoNeumatico.model_validate(event_data_dict)
+        self.session.add(db_evento)
+        logger.info(f"Evento {tipo_evento.value} para neumático {db_neumatico.id} añadido a sesión.")
+        await self.alert_service.check_and_create_alerts(db_neumatico, db_evento)
+        return db_neumatico, db_evento
+
+    # --- Métodos Helper ---
+    def _calculate_km_recorridos(self, event_data: EventoNeumaticoCreate, db_neumatico: Neumatico) -> int:
+        """Calcula KM recorridos desde la última instalación/rotación."""
+        odometro_evento = event_data.odometro_vehiculo_en_evento
+        # Usar el campo correcto que añadimos al modelo Neumatico
+        km_instalacion_neum = db_neumatico.km_instalacion
+
+        # --- Lógica reactivada y validaciones ---
+        if odometro_evento is None:
+            logger.warning(f"No se proporcionó odómetro para evento en neumático {db_neumatico.id}. No se calcularán KM para este ciclo.")
+            return 0
+        if km_instalacion_neum is None:
+            # Esto no debería pasar si el neumático está INSTALADO, pero es una buena guarda
+            logger.warning(f"km_instalacion es None para neumático {db_neumatico.id} (estado: {db_neumatico.estado_actual}). No se pueden calcular KM para este ciclo.")
+            return 0
+        if odometro_evento < km_instalacion_neum:
+            # Situación anómala (ej. cambio de odómetro del vehículo, error de digitación)
+            logger.error(f"Odómetro del evento ({odometro_evento}) es menor que km_instalacion ({km_instalacion_neum}) para neumático {db_neumatico.id}. KM calculados para este ciclo serán 0.")
+            return 0
+
+        km_calculados = odometro_evento - km_instalacion_neum
+        logger.info(f"KM Calculados para neumático {db_neumatico.id} en este ciclo: {odometro_evento} - {km_instalacion_neum} = {km_calculados}")
+        return km_calculados
+        # --- Fin lógica reactivada ---
+
+    async def _handle_instalacion(self, event_data: EventoNeumaticoCreate, db_neumatico: Neumatico, fecha_evento: date) -> bool:
+            """Maneja la lógica de instalación."""
+            logger.info(f"Procesando INSTALACION para neumático {db_neumatico.id}")
+            estado_previo = db_neumatico.estado_actual
+            # Permitir instalar solo desde EN_STOCK según la lógica original v9
+            allowed_states = [EstadoNeumaticoEnum.EN_STOCK]
+            if estado_previo not in allowed_states:
+                raise ConflictError(f"Neumático {db_neumatico.id} no en estado válido ({allowed_states}) para instalación. Estado: {estado_previo.value if estado_previo else 'None'}")
+            if event_data.odometro_vehiculo_en_evento is None:
+                raise ValidationError("odometro_vehiculo_en_evento requerido para INSTALACION.")
+
+            _, _ = await self._validate_and_get_vehiculo_posicion(event_data)
+            await self._check_posicion_ocupada(cast(UUID, event_data.vehiculo_id), cast(UUID, event_data.posicion_id))
+
+            # --- Asignaciones Corregidas ---
+            db_neumatico.estado_actual = EstadoNeumaticoEnum.INSTALADO
+            db_neumatico.ubicacion_actual_vehiculo_id = event_data.vehiculo_id
+            db_neumatico.ubicacion_actual_posicion_id = event_data.posicion_id
+            db_neumatico.ubicacion_almacen_id = None
+            # Asignar a los campos correctos que ahora existen en el modelo
+            db_neumatico.km_instalacion = event_data.odometro_vehiculo_en_evento
+            db_neumatico.fecha_instalacion = fecha_evento
+
+            # La lógica original v9 tenía 'db_neumatico.km_actuales = 0'.
+            # Esto es incorrecto. El kilometraje acumulado NO se resetea al instalar.
+            # Se mantiene el valor que tuviera 'kilometraje_acumulado'.
+            # Simplemente se registra el 'km_instalacion' para saber dónde empezó este ciclo.
+            if estado_previo == EstadoNeumaticoEnum.EN_STOCK:
+                logger.info(f"Detectada instalación desde EN_STOCK. KM acumulados actuales: {db_neumatico.kilometraje_acumulado}. Se inicia nuevo ciclo de uso.")
+            # --- Fin Correcciones ---
+
+            # Remover el bloque de DEBUGGING si aún existe
+            # Remover los bloques try/except para setattr que estaban en v9
+
+            logger.info(f"Neumático {db_neumatico.id} actualizado a INSTALADO.")
+            return True # Indicar que hubo modificación
 
 
-        # 5. Añadir objetos a la sesión
-        db.add(db_evento)
-        if neumatico_modificado:
-            db.add(neumatico) # Añadir explícitamente si fue modificado
+    async def _handle_desmontaje(self, event_data: EventoNeumaticoCreate, db_neumatico: Neumatico, fecha_evento: date) -> bool:
+        logger.info(f"Procesando DESMONTAJE para neumático {db_neumatico.id}")
+        if db_neumatico.estado_actual != EstadoNeumaticoEnum.INSTALADO:
+             raise ConflictError(f"Neumático {db_neumatico.id} no está INSTALADO.")
+        if not event_data.motivo_desmontaje_destino:
+             raise ValidationError("motivo_desmontaje_destino requerido.")
 
-        logger.debug(f"Servicio: Evento y Neumático (si aplica) añadidos a la sesión para neumático {neumatico.id}.")
+        # --- CORRECCIÓN AQUÍ: Calcular y sumar KM al campo correcto ---
+        # Ahora llamamos a la función reactivada y corregida
+        km_recorridos_ciclo = self._calculate_km_recorridos(event_data, db_neumatico)
+        # Sumar los KM de este ciclo al total acumulado
+        db_neumatico.kilometraje_acumulado = (db_neumatico.kilometraje_acumulado or 0) + km_recorridos_ciclo
+        logger.info(f"Sumando {km_recorridos_ciclo} KM por desmontaje al neumático {db_neumatico.id}. Total acumulado: {db_neumatico.kilometraje_acumulado}")
+        # -------------------------------------------------------------
 
-        # 6. Devolver el evento creado y los almacenes afectados
-        return db_evento, almacen_afectado_stock_salida, almacen_afectado_stock_entrada
+        nuevo_estado = event_data.motivo_desmontaje_destino
+        db_neumatico.estado_actual = nuevo_estado
+        db_neumatico.ubicacion_actual_vehiculo_id = None
+        db_neumatico.ubicacion_actual_posicion_id = None
 
-    # --- Otros métodos potenciales del servicio ---
-    # async def obtener_historial(...)
-    # async def obtener_instalados(...)
-    # async def crear_neumatico(...)
+        # --- CORRECCIÓN AQUÍ: Limpiar campos de instalación ---
+        # Estos campos ahora existen y deben limpiarse al desmontar
+        db_neumatico.km_instalacion = None
+        db_neumatico.fecha_instalacion = None
+        # ----------------------------------------------------
+
+        # Lógica de asignación de ubicación/desecho (sin cambios respecto a v9)
+        if nuevo_estado == EstadoNeumaticoEnum.EN_STOCK:
+            almacen_destino = await self._validate_and_get_almacen(event_data.destino_almacen_id, required=True)
+            db_neumatico.ubicacion_almacen_id = almacen_destino.id # type: ignore
+        elif nuevo_estado == EstadoNeumaticoEnum.DESECHADO:
+             if not event_data.motivo_desecho_id_evento: raise ValidationError("motivo_desecho_id_evento requerido.")
+             motivo = await self.session.get(MotivoDesecho, event_data.motivo_desecho_id_evento)
+             if not motivo: raise ValidationError(f"Motivo desecho ID {event_data.motivo_desecho_id_evento} no encontrado.")
+             db_neumatico.motivo_desecho_id = event_data.motivo_desecho_id_evento
+             db_neumatico.fecha_desecho = fecha_evento
+             db_neumatico.ubicacion_almacen_id = None # Asegurar que no quede en almacén
+        elif nuevo_estado in [EstadoNeumaticoEnum.EN_REPARACION, EstadoNeumaticoEnum.EN_REENCAUCHE]:
+            db_neumatico.ubicacion_almacen_id = None # No va a almacén si va directo a taller
+            # Validar proveedor si es necesario según reglas de negocio
+            await self._validate_and_get_proveedor(event_data.proveedor_servicio_id, required=False) # O True si es mandatorio
+        else:
+            db_neumatico.ubicacion_almacen_id = None # Por defecto, limpiar ubicación almacén
+
+        logger.info(f"Neumático {db_neumatico.id} actualizado a {nuevo_estado.value}.")
+        return True
+
+
+
+    async def _handle_inspeccion(self, event_data: EventoNeumaticoCreate, db_neumatico: Neumatico) -> bool:
+        logger.info(f"Procesando INSPECCION para neumático {db_neumatico.id}")
+        if db_neumatico.estado_actual != EstadoNeumaticoEnum.INSTALADO:
+             raise ValidationError(f"Neumático {db_neumatico.id} debe estar INSTALADO para inspección.")
+
+        # --- CORRECCIÓN AQUÍ ---
+        # La inspección es un registro puntual. No modifica el KM acumulado.
+        # Tampoco actualizaremos campos directos en Neumatico como 'profundidad_remanente_actual_mm'
+        # o 'presion_actual_psi' porque no existen en el modelo.
+        # La información de profundidad/presión de esta inspección se guarda en el EventoNeumatico.
+        # Si se necesita mostrar la "última" medición en algún lado, se debería consultar el último evento.
+
+        modificado = False # Indica que no se modificaron campos directos en el objeto Neumatico
+
+        # Loguear los datos recibidos en la inspección (si existen)
+        if event_data.profundidad_remanente_mm is not None:
+            logger.info(f"Inspección neumático {db_neumatico.id}: Profundidad registrada {event_data.profundidad_remanente_mm} mm.")
+        if event_data.presion_psi is not None:
+            logger.info(f"Inspección neumático {db_neumatico.id}: Presión registrada {event_data.presion_psi} PSI.")
+        # -----------------------
+
+        logger.info(f"Neumático {db_neumatico.id} inspeccionado. ¿Modificado directamente?: {modificado}")
+        # Devuelve False porque no cambiamos atributos directos del objeto db_neumatico
+        # El cambio principal es la creación del registro de evento asociado.
+        return modificado
+    
+
+    async def _handle_rotacion(self, event_data: EventoNeumaticoCreate, db_neumatico: Neumatico, fecha_evento: date) -> bool:
+        logger.info(f"Procesando ROTACION para neumático {db_neumatico.id}")
+        if db_neumatico.estado_actual != EstadoNeumaticoEnum.INSTALADO:
+             raise ConflictError(f"Neumático {db_neumatico.id} debe estar INSTALADO para rotar.")
+        if event_data.odometro_vehiculo_en_evento is None:
+             raise ValidationError("odometro_vehiculo_en_evento requerido para ROTACION.")
+
+        _, nueva_posicion = await self._validate_and_get_vehiculo_posicion(event_data)
+        # Validar que el vehículo sea el mismo (si no, sería un error de lógica o un 'traslado')
+        if event_data.vehiculo_id != db_neumatico.ubicacion_actual_vehiculo_id:
+             raise ValidationError(f"Rotación solo permitida dentro del mismo vehículo ({db_neumatico.ubicacion_actual_vehiculo_id}).")
+        # Validar que la posición sea diferente
+        if event_data.posicion_id == db_neumatico.ubicacion_actual_posicion_id:
+             raise ValidationError(f"Rotación a la misma posición ({db_neumatico.ubicacion_actual_posicion_id}) no permitida.")
+
+        # Revisar si la nueva posición está ocupada (excepto por el neumático actual si se está intercambiando)
+        await self._check_posicion_ocupada(cast(UUID, event_data.vehiculo_id), cast(UUID, event_data.posicion_id), db_neumatico.id) # Permitir rotar a una posición si el ocupante es el mismo neumático? No, eso se valida arriba.
+
+        # --- CORRECCIÓN AQUÍ: Calcular y sumar KM ---
+        # Calcular y sumar KM del ciclo actual ANTES de actualizar la posición/km_instalacion
+        km_recorridos_ciclo = self._calculate_km_recorridos(event_data, db_neumatico)
+        db_neumatico.kilometraje_acumulado = (db_neumatico.kilometraje_acumulado or 0) + km_recorridos_ciclo
+        logger.info(f"Sumando {km_recorridos_ciclo} KM por rotación al neumático {db_neumatico.id}. Total acumulado: {db_neumatico.kilometraje_acumulado}")
+        # -------------------------------------------
+
+        # Actualizar a la nueva posición y reiniciar datos de instalación para el nuevo ciclo
+        db_neumatico.ubicacion_actual_posicion_id = event_data.posicion_id
+        db_neumatico.ubicacion_almacen_id = None # Sigue instalado
+
+        # --- CORRECCIÓN AQUÍ: Asignar directamente km/fecha instalación ---
+        db_neumatico.km_instalacion = event_data.odometro_vehiculo_en_evento # Nuevo inicio de ciclo
+        db_neumatico.fecha_instalacion = fecha_evento # Fecha de inicio del nuevo ciclo
+        # -----------------------------------------------------------------
+
+        logger.info(f"Neumático {db_neumatico.id} rotado a posición {db_neumatico.ubicacion_actual_posicion_id}.")
+        return True
+
+
+
+
+    async def _handle_reparacion_entrada(self, event_data: EventoNeumaticoCreate, db_neumatico: Neumatico) -> bool:
+        # ... (sin cambios) ...
+        logger.info(f"Procesando REPARACION_ENTRADA para neumático {db_neumatico.id}")
+        if db_neumatico.estado_actual == EstadoNeumaticoEnum.INSTALADO: raise ConflictError("Desmontar antes de reparar.")
+        await self._validate_and_get_proveedor(event_data.proveedor_servicio_id, required=False)
+        db_neumatico.estado_actual = EstadoNeumaticoEnum.EN_REPARACION
+        db_neumatico.ubicacion_actual_vehiculo_id = None; db_neumatico.ubicacion_actual_posicion_id = None; db_neumatico.ubicacion_almacen_id = None
+        logger.info(f"Neumático {db_neumatico.id} actualizado a EN_REPARACION.")
+        return True
+
+    async def _handle_reparacion_salida(self, event_data: EventoNeumaticoCreate, db_neumatico: Neumatico) -> bool:
+        # ... (sin cambios) ...
+        logger.info(f"Procesando REPARACION_SALIDA para neumático {db_neumatico.id}")
+        if db_neumatico.estado_actual != EstadoNeumaticoEnum.EN_REPARACION: raise ConflictError(f"Neumático {db_neumatico.id} no está EN_REPARACION.")
+        almacen_destino = await self._validate_and_get_almacen(event_data.destino_almacen_id)
+        await self._validate_and_get_proveedor(event_data.proveedor_servicio_id, required=False)
+        db_neumatico.estado_actual = EstadoNeumaticoEnum.EN_STOCK
+        db_neumatico.ubicacion_almacen_id = almacen_destino.id # type: ignore
+        db_neumatico.ubicacion_actual_vehiculo_id = None; db_neumatico.ubicacion_actual_posicion_id = None
+        logger.info(f"Neumático {db_neumatico.id} actualizado a EN_STOCK post-reparación.")
+        return True
+
+    async def _handle_reencauche_entrada(self, event_data: EventoNeumaticoCreate, db_neumatico: Neumatico) -> bool:
+        logger.info(f"Procesando REENCAUCHE_ENTRADA para neumático {db_neumatico.id}")
+        if db_neumatico.estado_actual == EstadoNeumaticoEnum.INSTALADO: raise ConflictError("Desmontar antes de reencauchar.")
+        await self._validate_and_get_proveedor(event_data.proveedor_servicio_id)
+
+        # --- CORRECCIÓN v8: Validación límite (usando nombre correcto y carga explícita) ---
+        modelo_neum = None
+        if db_neumatico.modelo_id:
+            modelo_neum = await self.session.get(ModeloNeumatico, db_neumatico.modelo_id)
+
+        if modelo_neum and modelo_neum.reencauches_maximos is not None:
+             reencauches_previos = db_neumatico.reencauches_realizados or 0 # <-- Usar nombre correcto
+             if reencauches_previos >= modelo_neum.reencauches_maximos:
+                 raise ValidationError(f"Neumático {db_neumatico.id} alcanzó límite de {modelo_neum.reencauches_maximos} reencauches.")
+        elif not modelo_neum and db_neumatico.modelo_id:
+             logger.warning(f"Modelo ID {db_neumatico.modelo_id} no encontrado para validar límite.")
+        # --- FIN CORRECCIÓN v8 ---
+
+        db_neumatico.estado_actual = EstadoNeumaticoEnum.EN_REENCAUCHE
+        db_neumatico.ubicacion_actual_vehiculo_id = None; db_neumatico.ubicacion_actual_posicion_id = None; db_neumatico.ubicacion_almacen_id = None
+        logger.info(f"Neumático {db_neumatico.id} actualizado a EN_REENCAUCHE.")
+        return True
+
+
+    async def _handle_reencauche_salida(self, event_data: EventoNeumaticoCreate, db_neumatico: Neumatico) -> bool:
+        logger.info(f"Procesando REENCAUCHE_SALIDA para neumático {db_neumatico.id}")
+        if db_neumatico.estado_actual != EstadoNeumaticoEnum.EN_REENCAUCHE: raise ConflictError(f"Neumático {db_neumatico.id} no está EN_REENCAUCHE.")
+        if event_data.profundidad_post_reencauche_mm is None: raise ValidationError("profundidad_post_reencauche_mm requerida.")
+        almacen_destino = await self._validate_and_get_almacen(event_data.destino_almacen_id, required=True) # Asegurar que es requerido
+        await self._validate_and_get_proveedor(event_data.proveedor_servicio_id, required=False) # Proveedor es opcional aquí?
+
+        # Validación de límite (ya presente en v9 y parece correcta)
+        modelo_neum = None
+        if db_neumatico.modelo_id:
+            modelo_neum = await self.session.get(ModeloNeumatico, db_neumatico.modelo_id)
+
+        # Añadir manejo si el modelo no se encuentra
+        if not modelo_neum:
+             logger.error(f"No se pudo cargar ModeloNeumatico con ID {db_neumatico.modelo_id} para neumático {db_neumatico.id}")
+             raise ServiceError("No se pudo obtener la información del modelo del neumático.")
+
+        # Verificar si permite reencauche (importante)
+        if not modelo_neum.permite_reencauche:
+             raise ConflictError(f"Modelo {modelo_neum.nombre_modelo} no permite reencauche.")
+
+        if modelo_neum.reencauches_maximos is not None:
+             reencauches_previos = db_neumatico.reencauches_realizados or 0
+             # Esta validación aquí es una segunda capa, la principal está en _handle_reencauche_entrada
+             if reencauches_previos >= modelo_neum.reencauches_maximos:
+                 logger.error(f"REENCAUCHE_SALIDA: Neumático {db_neumatico.id} ya alcanzó límite (Error lógico si entró a reencauche).")
+                 raise ConflictError(f"Neumático {db_neumatico.id} alcanzó límite de reencauches.")
+
+
+        if db_neumatico.reencauches_realizados is None:
+            db_neumatico.reencauches_realizados = 0
+
+        db_neumatico.estado_actual = EstadoNeumaticoEnum.EN_STOCK
+        db_neumatico.ubicacion_almacen_id = almacen_destino.id # type: ignore
+        db_neumatico.ubicacion_actual_vehiculo_id = None; db_neumatico.ubicacion_actual_posicion_id = None
+        db_neumatico.reencauches_realizados += 1
+        # --- CORRECCIÓN AQUÍ ---
+        db_neumatico.kilometraje_acumulado = 0 # Resetear KM acumulados
+        # -----------------------
+        db_neumatico.es_reencauchado = True
+        db_neumatico.profundidad_inicial_mm = event_data.profundidad_post_reencauche_mm # Actualizar profundidad inicial
+        # Limpiar datos de instalación si los hubiera
+        db_neumatico.km_instalacion = None
+        db_neumatico.fecha_instalacion = None
+
+        logger.info(f"Neumático {db_neumatico.id} actualizado post-reencauche. Reencauche #{db_neumatico.reencauches_realizados}. KM reseteados.")
+        return True
+
+
+    async def _handle_ajuste_inventario(self, event_data: EventoNeumaticoCreate, db_neumatico: Neumatico) -> bool:
+        # ... (Sin cambios) ...
+        logger.info(f"Procesando AJUSTE_INVENTARIO para neumático {db_neumatico.id}")
+        estado_ajuste_enum = event_data.estado_ajuste
+        if estado_ajuste_enum is None: raise ValidationError("estado_ajuste requerido.")
+        if not isinstance(estado_ajuste_enum, EstadoNeumaticoEnum): raise ValidationError(f"Valor inválido para estado_ajuste: {estado_ajuste_enum}")
+        almacen_destino = await self._validate_and_get_almacen(event_data.destino_almacen_id)
+        db_neumatico.estado_actual = estado_ajuste_enum
+        db_neumatico.ubicacion_almacen_id = almacen_destino.id # type: ignore
+        db_neumatico.ubicacion_actual_vehiculo_id = None; db_neumatico.ubicacion_actual_posicion_id = None
+        logger.info(f"Neumático {db_neumatico.id} ajustado a {estado_ajuste_enum.value} en {almacen_destino.id}.") # type: ignore
+        return True
+
+    async def _handle_desecho(self, event_data: EventoNeumaticoCreate, db_neumatico: Neumatico, fecha_evento: date) -> bool:
+        logger.info(f"Procesando DESECHO para neumático {db_neumatico.id}")
+        # Estados desde los que se permite desechar (cualquiera menos INSTALADO)
+        forbidden_states = [EstadoNeumaticoEnum.INSTALADO]
+        if db_neumatico.estado_actual in forbidden_states:
+            raise ConflictError(f"No se puede desechar neumático {db_neumatico.id} mientras está {db_neumatico.estado_actual.value}. Desmontar primero.")
+
+        if not event_data.motivo_desecho_id_evento:
+             raise ValidationError("motivo_desecho_id_evento requerido para DESECHO.")
+        motivo = await self.session.get(MotivoDesecho, event_data.motivo_desecho_id_evento)
+        if not motivo: raise ValidationError(f"Motivo desecho ID {event_data.motivo_desecho_id_evento} no encontrado.")
+
+        db_neumatico.estado_actual = EstadoNeumaticoEnum.DESECHADO
+        db_neumatico.motivo_desecho_id = event_data.motivo_desecho_id_evento
+        db_neumatico.fecha_desecho = fecha_evento
+        # Limpiar todas las ubicaciones y datos de ciclo de uso
+        db_neumatico.ubicacion_actual_vehiculo_id = None
+        db_neumatico.ubicacion_actual_posicion_id = None
+        db_neumatico.ubicacion_almacen_id = None
+        # --- CORRECCIÓN AQUÍ: Limpieza directa de campos ---
+        db_neumatico.km_instalacion = None
+        db_neumatico.fecha_instalacion = None
+        # ----------------------------------------------------
+
+        logger.info(f"Neumático {db_neumatico.id} actualizado a DESECHADO.")
+        return True

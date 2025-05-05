@@ -1,36 +1,44 @@
-# routers/neumaticos.py
+# routers/neumaticos.py (Completo y Corregido v2)
 import uuid
 import logging
-from typing import List, Annotated, Optional
+from typing import List, Annotated, Optional # Asegúrate que Annotated esté importado
 
 from fastapi import APIRouter, Depends, HTTPException, status, Path, Query
-from sqlmodel import select  # Necesario para consultas en leer_historial_neumatico
+from sqlmodel import select
 from sqlmodel.ext.asyncio.session import AsyncSession
 from sqlalchemy.exc import IntegrityError, SQLAlchemyError
+from sqlalchemy import func # Para usar func.lower si refinas el check
 from sqlalchemy.sql import text # Solo para vistas
 
 # --- Dependencias de BD y Autenticación ---
-from database import get_session # Nombre correcto de tu función get_session
-import auth
-from models.usuario import Usuario
+from database import get_session # Tu función para obtener sesión
+import auth # Tu módulo de autenticación
+from models.usuario import Usuario # Modelo de Usuario
 
-# --- Modelos y Schemas (Solo los necesarios para tipos y respuestas del router) ---
-from models.neumatico import Neumatico # Para obtener neumático en GET historial
-from models.evento_neumatico import EventoNeumatico # Para obtener eventos en GET historial
+# --- Modelos y Schemas ---
+from models.neumatico import Neumatico
+from models.evento_neumatico import EventoNeumatico
+# Importa los schemas necesarios
 from schemas.evento_neumatico import EventoNeumaticoCreate, EventoNeumaticoRead
 from schemas.neumatico import HistorialNeumaticoItem, NeumaticoInstaladoItem
-from schemas.common import TipoEventoNeumaticoEnum # Necesario para lógica de alertas
-from pydantic import ValidationError
+# Importar Enums desde su ubicación correcta
+from models.evento_neumatico import TipoEventoNeumaticoEnum
+from pydantic import ValidationError as PydanticValidationError
 
 # --- Servicios ---
 # Importar el servicio y sus excepciones personalizadas
-from services.neumatico_service import NeumaticoService, NeumaticoNotFoundError, ValidationError as ServiceValidationError, ConflictError as ServiceConflictError
-# Importar solo las funciones existentes del servicio de alertas
-from services.alert_service import check_profundidad_baja, check_stock_minimo
+from services.neumatico_service import (
+    NeumaticoService,
+    NeumaticoNotFoundError,
+    ValidationError as ServiceValidationError, # Renombrar para evitar conflicto
+    ConflictError as ServiceConflictError     # Renombrar para evitar conflicto
+)
+# !! Ya NO se importan check_profundidad_baja, check_stock_minimo aquí !!
+
 # --- Configuración del Router ---
 router = APIRouter(
-    # prefix="/neumaticos", # Sin prefijo si se incluye en main.py con prefijo
     tags=["Neumáticos y Eventos"],
+    # Aplicar autenticación a todos los endpoints de este router
     dependencies=[Depends(auth.get_current_active_user)]
 )
 logger = logging.getLogger(__name__)
@@ -38,150 +46,153 @@ logger = logging.getLogger(__name__)
 # --- Endpoint PING ---
 @router.get("/ping", status_code=status.HTTP_200_OK, summary="Ping de prueba para el router")
 async def ping_neumaticos():
+    """Endpoint simple para verificar que el router de neumáticos está respondiendo."""
     return {"message": "pong desde neumaticos"}
 
 # --- Endpoint CREAR EVENTO (Llama al Servicio) ---
+# ... (importaciones y definición del router van antes) ...
+
 @router.post(
     "/eventos",
-    response_model=EventoNeumaticoRead,
+    response_model=EventoNeumaticoRead, # Schema de respuesta
     status_code=status.HTTP_201_CREATED,
     summary="Registrar nuevo evento para un neumático (vía Servicio)",
     description="Crea un evento y desencadena la actualización del neumático asociado en la capa de servicio."
 )
 async def crear_evento_neumatico(
-    evento_in: EventoNeumaticoCreate,
-    session: Annotated[AsyncSession, Depends(get_session)],
-    current_user: Annotated[Usuario, Depends(auth.get_current_active_user)]
+    evento_in: EventoNeumaticoCreate, # Schema de entrada
+    session: Annotated[AsyncSession, Depends(get_session)], # Dependencia de Sesión
+    current_user: Annotated[Usuario, Depends(auth.get_current_active_user)] # Dependencia de Usuario
 ):
     """
-    Endpoint para registrar un nuevo evento.
-    Delega la lógica de creación y actualización al NeumaticoService.
-    Maneja la transacción y las alertas posteriores.
+    Endpoint para registrar un nuevo evento de neumático.
+    Delega toda la lógica de negocio y actualizaciones al NeumaticoService.
+    Maneja la transacción y las excepciones.
     """
-    neumatico_service = NeumaticoService()
-    
+    neumatico_service = NeumaticoService(session=session) # Correcto
+
+    # Asignar usuario actual si es necesario
+    # (El servicio también lo usa ahora)
+    if evento_in.usuario_id is None:
+        evento_in.usuario_id = current_user.id
+    if hasattr(evento_in, 'creado_por') and evento_in.creado_por is None:
+         evento_in.creado_por = current_user.id
+
     try:
-        # 1. Llamar al servicio para procesar y añadir a la sesión
-        logger.debug(f"Router: Llamando a NeumaticoService para evento {evento_in.tipo_evento.value}, neumático {evento_in.neumatico_id}")
-        db_evento, alm_salida, alm_entrada = await neumatico_service.crear_evento_y_actualizar_neumatico(
+        # --- *** CORRECCIÓN EN LA LLAMADA AL SERVICIO *** ---
+        logger.info(f"Router: Iniciando procesamiento de evento {evento_in.tipo_evento.value} para neumático {evento_in.neumatico_id or evento_in.numero_serie}")
+        neumatico_actualizado, evento_creado = await neumatico_service.registrar_evento(
             evento_in=evento_in,
-            current_user=current_user,
-            db=session
+            current_user=current_user # <-- Pasar el usuario actual aquí
         )
-        logger.debug(f"Router: NeumaticoService retornó evento (pre-commit).")
+        # --- *** FIN CORRECCIÓN *** ---
+        logger.info(f"Router: Servicio completado para evento ID (pre-commit): {evento_creado.id}")
 
-        # 2. Intentar confirmar la transacción (guarda evento y cambios en neumático)
-        logger.debug("Router: Intentando commit...")
+        # Commit de la transacción principal aquí (si no usas un middleware de sesión)
         await session.commit()
-        logger.debug("Router: Commit exitoso.")
+        logger.info(f"Router: Commit exitoso para evento ID (pre-refresh): {evento_creado.id}")
 
-        # 3. Refrescar el objeto evento (importante para obtener IDs/defaults generados por DB)
-        try:
-             await session.refresh(db_evento)
-             logger.debug(f"Router: Evento {db_evento.id} refrescado post-commit.")
-             # Podrías refrescar el neumático también si necesitas info actualizada post-commit
-             # await session.refresh(await session.get(Neumatico, db_evento.neumatico_id))
-        except Exception as refresh_exc:
-             logger.error(f"Router: Error al refrescar evento {getattr(db_evento,'id','N/A')} post-commit: {refresh_exc}", exc_info=True)
+        # Refrescar para obtener datos generados por DB
+        await session.refresh(evento_creado)
+        # await session.refresh(neumatico_actualizado) # Opcional
 
-        # 4. Llamar servicios de alerta (POST-COMMIT)
-# 4. Llamar servicios de alerta (POST-COMMIT) - Directamente a las funciones importadas
-        try:
-            logger.debug(f"Router: Verificando alertas para evento {db_evento.id} tipo {db_evento.tipo_evento.value}")
-            # Alerta de Profundidad Baja
-            if db_evento.tipo_evento == TipoEventoNeumaticoEnum.INSPECCION and db_evento.profundidad_remanente_mm is not None:
-                 logger.debug(f"Router: Llamando check_profundidad_baja para evento {db_evento.id}")
-                 await check_profundidad_baja(session, db_evento) # Llama a la función directamente
+        logger.info(f"Router: Evento {evento_creado.id} ({evento_creado.tipo_evento.value}) registrado exitosamente.")
+        # Devolver respuesta validada por el schema Read
+        return EventoNeumaticoRead.model_validate(evento_creado)
 
-            # Alertas de Stock Mínimo
-            neumatico_afectado = await session.get(Neumatico, db_evento.neumatico_id)
-            if neumatico_afectado and neumatico_afectado.modelo_id:
-                # ... (lógica para determinar alm_salida, alm_entrada) ...
-                if alm_salida:
-                    logger.debug(f"Router: Llamando check_stock_minimo (salida) para modelo {neumatico_afectado.modelo_id}, almacén {alm_salida}")
-                    await check_stock_minimo(session, neumatico_afectado.modelo_id, alm_salida) # Llama a la función directamente
-                if alm_entrada and alm_entrada != alm_salida:
-                    logger.debug(f"Router: Llamando check_stock_minimo (entrada) para modelo {neumatico_afectado.modelo_id}, almacén {alm_entrada}")
-                    await check_stock_minimo(session, neumatico_afectado.modelo_id, alm_entrada) # Llama a la función directamente
-            else:
-                 logger.warning(f"Router: No se pudo obtener modelo_id para neumático {db_evento.neumatico_id} post-commit para verificar stock.")
-
-        except Exception as alert_exc:
-             logger.error(f"Router: Error no crítico al generar alertas post-evento {db_evento.id}: {alert_exc}", exc_info=True)
-
-        # 5. Devolver respuesta exitosa validada
-        logger.info(f"Router: Evento {db_evento.tipo_evento.value} para neumático {db_evento.neumatico_id} procesado exitosamente.")
-        return EventoNeumaticoRead.model_validate(db_evento)
-
-    # --- Manejo de Excepciones (Captura excepciones del servicio y de DB) ---
     except (NeumaticoNotFoundError, ServiceValidationError, ServiceConflictError) as service_exc:
         await session.rollback()
-        logger.warning(f"Error de servicio capturado en router: {service_exc.message} (Status: {service_exc.status_code})")
-        raise HTTPException(status_code=service_exc.status_code, detail=service_exc.message)
+        status_code = status.HTTP_500_INTERNAL_SERVER_ERROR
+        if isinstance(service_exc, NeumaticoNotFoundError):
+            status_code = status.HTTP_404_NOT_FOUND
+        elif isinstance(service_exc, ServiceValidationError):
+             status_code = status.HTTP_422_UNPROCESSABLE_ENTITY
+        elif isinstance(service_exc, ServiceConflictError):
+            status_code = status.HTTP_409_CONFLICT
+        logger.warning(f"Error de servicio manejado en router /eventos: {service_exc.message} (Status Code: {status_code})")
+        raise HTTPException(status_code=status_code, detail=service_exc.message)
     except IntegrityError as e:
         await session.rollback()
-        logger.error(f"Error de integridad en router: {str(e)}", exc_info=True)
-        detail = "Conflicto de datos. ¿Intentando duplicar información única?"
-        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=detail)
+        logger.error(f"Error de integridad BD en router /eventos: {e}", exc_info=True)
+        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Conflicto de datos al guardar.")
     except SQLAlchemyError as e:
         await session.rollback()
-        pgcode = getattr(e, 'pgcode', 'Genérico')
-        logger.error(f"Error SQLAlchemy en router: {str(e)} (Code: {pgcode})", exc_info=True)
-        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Error de base de datos.")
+        logger.error(f"Error SQLAlchemy en router /eventos: {e}", exc_info=True)
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Error inesperado en BD.")
     except Exception as e:
         await session.rollback()
-        logger.error(f"Error inesperado en router /eventos: {str(e)}", exc_info=True)
+        logger.error(f"Error inesperado en router /eventos: {e}", exc_info=True)
         raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Error interno del servidor.")
 
+# ... (resto del router) ...
 
-# --- Endpoints de Lectura (Sin cambios) ---
-@router.get("/{neumatico_id}/historial", response_model=List[EventoNeumaticoRead], summary="Obtener historial de neumático")
+
+# --- Endpoints de Lectura ---
+@router.get(
+    "/{neumatico_id}/historial",
+    response_model=List[HistorialNeumaticoItem], # Usa el schema correcto para el historial
+    summary="Obtener historial de eventos para un neumático"
+)
 async def leer_historial_neumatico(
-    neumatico_id: uuid.UUID = Path(..., description="ID del neumático"),
-    session: AsyncSession = Depends(get_session),
-    current_user: Usuario = Depends(auth.get_current_active_user)
+    # --- PARÁMETROS REORDENADOS PARA EVITAR WARNING PYLANCE ---
+    session: Annotated[AsyncSession, Depends(get_session)], # Primero la sesión
+    neumatico_id: uuid.UUID = Path(..., description="ID del neumático") # Luego el ID de la ruta
+    # --- FIN REORDENAMIENTO ---
 ):
-    # ... (código original sin cambios) ...
+    """Obtiene la lista de eventos históricos para un neumático específico, ordenados por fecha descendente."""
     logger.info(f"Solicitando historial para neumático ID: {neumatico_id}")
+    # Verificar si el neumático existe
     neumatico = await session.get(Neumatico, neumatico_id)
     if not neumatico:
          raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"Neumático con ID {neumatico_id} no encontrado.")
+
+    # Consultar eventos
     try:
         stmt = select(EventoNeumatico).where(EventoNeumatico.neumatico_id == neumatico_id).order_by(EventoNeumatico.timestamp_evento.desc())
         result = await session.exec(stmt)
         eventos = result.all()
         logger.info(f"Encontrados {len(eventos)} eventos para neumático {neumatico_id}")
-        return [EventoNeumaticoRead.model_validate(evento) for evento in eventos]
+        # Validar con el schema de respuesta
+        return [HistorialNeumaticoItem.model_validate(evento) for evento in eventos]
+    except PydanticValidationError as e:
+         logger.error(f"Error validando eventos del historial para neumático {neumatico_id}: {e}", exc_info=True)
+         raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Error al procesar datos del historial.")
     except Exception as e:
-        logger.error(f"Error al leer/validar historial neumático {neumatico_id}: {str(e)}", exc_info=True)
-        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Error al procesar el historial.")
+        logger.error(f"Error inesperado al leer historial neumático {neumatico_id}: {e}", exc_info=True)
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Error interno al obtener historial.")
 
+# ... (el resto de las funciones del router van aquí) ...
 
-@router.get("/instalados", response_model=List[NeumaticoInstaladoItem], summary="Listar neumáticos instalados")
+@router.get(
+    "/instalados",
+    response_model=List[NeumaticoInstaladoItem], # Usa el schema correcto para instalados
+    summary="Listar todos los neumáticos actualmente instalados"
+)
 async def leer_neumaticos_instalados(
     session: Annotated[AsyncSession, Depends(get_session)],
-    current_user: Annotated[Usuario, Depends(auth.get_current_active_user)]
+    # current_user: Usuario = Depends(auth.get_current_active_user) # Ya está en dependencies
 ):
-    # ... (código original sin cambios usando la vista) ...
-    logger.info(f"Usuario {current_user.username} solicitando lista de neumáticos instalados.")
+    """Obtiene la lista de neumáticos instalados desde la vista optimizada `vw_neumaticos_instalados_optimizada`."""
+    logger.info(f"Solicitando lista de neumáticos instalados.")
+    # Asegúrate que la vista 'vw_neumaticos_instalados_optimizada' existe en tu BD
+    view_query = text("SELECT * FROM vw_neumaticos_instalados_optimizada")
     try:
-        from sqlalchemy.sql import text
-        query = text("""
-            SELECT
-                id, neumatico_id, numero_serie, dot, nombre_modelo, medida, fabricante,
-                placa, numero_economico, tipo_vehiculo, codigo_posicion,
-                profundidad_actual_mm, presion_actual_psi,
-                kilometraje_neumatico_acumulado, vida_actual, reencauches_realizados
-            FROM vw_neumaticos_instalados_optimizada
-        """)
-        result = await session.execute(query)
+        result = await session.execute(view_query)
+        # Obtener como lista de diccionarios (o RowMapping)
         instalados_data = result.mappings().all()
         logger.info(f"Encontrados {len(instalados_data)} neumáticos instalados desde la vista.")
+        # Validar cada fila contra el schema Pydantic
         validated_items = [NeumaticoInstaladoItem.model_validate(item_data) for item_data in instalados_data]
         return validated_items
-    except ValidationError as e:
-        logger.error(f"Error validando datos de la vista 'vw_neumaticos_instalados_optimizada' contra el schema: {e}", exc_info=True)
-        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Inconsistencia entre la vista de BD y el schema esperado.")
+    except PydanticValidationError as e:
+        logger.error(f"Error validando datos de la vista 'vw_neumaticos_instalados_optimizada': {e}", exc_info=True)
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Inconsistencia entre la vista de BD y el schema esperado para neumáticos instalados."
+        )
     except Exception as e:
-        logger.error(f"Error inesperado al leer/validar neumáticos instalados desde la vista: {str(e)}", exc_info=True)
-        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Error interno al procesar neumáticos instalados.")
+        logger.error(f"Error inesperado al leer neumáticos instalados desde la vista: {e}", exc_info=True)
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Error interno al procesar neumáticos instalados."
+        )
