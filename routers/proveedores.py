@@ -1,4 +1,4 @@
-# routers/proveedores.py
+# routers/proveedores.py (Corregido - Sin Prefijo Interno)
 import uuid
 import logging
 from datetime import datetime, timezone
@@ -17,13 +17,17 @@ from models.usuario import Usuario # Para obtener el current_user
 from schemas.proveedor import ProveedorCreate, ProveedorRead, ProveedorUpdate
 
 # Crear el router específico para proveedores
+# --- CORRECCIÓN: Eliminar el argumento prefix ---
 router = APIRouter(
-    prefix="/proveedores", # Prefijo base para todas las rutas de este router
     tags=["Proveedores"], # Etiqueta para la documentación de Swagger UI
     dependencies=[Depends(auth.get_current_active_user)] # Proteger todos los endpoints
 )
+# --- FIN CORRECCIÓN ---
 
 logger = logging.getLogger(__name__)
+
+# El resto del código (endpoints @router.post, @router.get, etc.) permanece igual
+# ... (pega aquí el resto de tu código original para este archivo) ...
 
 @router.post(
     "/", # Ruta relativa: POST /proveedores/

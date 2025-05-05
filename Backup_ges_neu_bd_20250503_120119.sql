@@ -266,41 +266,46 @@ DECLARE
     v_odometro_anterior integer;
     v_neumatico_record record;
     v_modelo_record record;
-    v_reencauches_new smallint;
-    v_vida_new smallint;
-    v_profundidad_new numeric;
+    -- Quitamos variables que ya no se usan en el trigger para REENCAUCHE_SALIDA
+    -- v_reencauches_new smallint;
+    -- v_vida_new smallint;
+    -- v_profundidad_new numeric;
 BEGIN
-    RAISE NOTICE '[TRIGGER FN_ACT_ESTADO] Iniciando para evento tipo: %, neumatico ID: %', NEW.tipo_evento, NEW.neumatico_id; -- DEBUG INICIO
+    -- Añadimos un NOTICE inicial para debugging
+    RAISE NOTICE '[TRIGGER FN_ACT_ESTADO] Iniciando para evento tipo: %, neumatico ID: %', NEW.tipo_evento, NEW.neumatico_id;
 
+    -- Obtener estado actual del neumático (igual que antes)
     SELECT * INTO v_neumatico_record FROM public.neumaticos WHERE id = NEW.neumatico_id FOR UPDATE;
-    IF NOT FOUND THEN RAISE WARNING '[...] Neumático ID % no encontrado.', NEW.neumatico_id; RETURN NEW; END IF;
-    RAISE NOTICE '[TRIGGER FN_ACT_ESTADO] Estado PREVIO: %, Reencauches PREV: %, Vida PREV: %',
-                 v_neumatico_record.estado_actual, v_neumatico_record.reencauches_realizados, v_neumatico_record.vida_actual; -- DEBUG ESTADO PREVIO
+    IF NOT FOUND THEN
+        RAISE WARNING '[TRIGGER FN_ACT_ESTADO] Neumático ID % no encontrado.', NEW.neumatico_id;
+        RETURN NEW; -- Salir si no se encuentra el neumático
+    END IF;
 
+    -- Obtener max_reencauches del modelo (solo si es relevante para otros casos o validaciones)
     SELECT reencauches_maximos INTO v_modelo_record FROM public.modelos_neumatico WHERE id = v_neumatico_record.modelo_id;
-    IF NOT FOUND THEN RAISE WARNING '[...] Modelo ID % no encontrado.', v_neumatico_record.modelo_id; v_modelo_record.reencauches_maximos := 99; END IF;
-    RAISE NOTICE '[TRIGGER FN_ACT_ESTADO] Max reencauches: %', v_modelo_record.reencauches_maximos; -- DEBUG MAX REENCAUCHES
+    IF NOT FOUND THEN
+        RAISE WARNING '[TRIGGER FN_ACT_ESTADO] Modelo ID % no encontrado.', v_neumatico_record.modelo_id;
+        -- Asignar un valor por defecto o manejar el error según tu lógica
+        v_modelo_record.reencauches_maximos := 99;
+    END IF;
 
-    -- Cálculo de Kilometraje (igual que tu original)
+    -- Cálculo de Kilometraje (lógica sin cambios, asegúrate que sea correcta para tus necesidades)
     IF v_neumatico_record.estado_actual = 'INSTALADO' AND NEW.tipo_evento IN ('DESMONTAJE', 'INSPECCION', 'DESECHO') AND NEW.odometro_vehiculo_en_evento IS NOT NULL THEN
-        -- *** CORRECCIÓN AQUÍ: Quitar "AND vehiculo_id = v_neumatico_record.ubicacion_actual_vehiculo_id" ***
         SELECT odometro_vehiculo_en_evento INTO v_odometro_anterior
         FROM public.eventos_neumaticos
         WHERE neumatico_id = NEW.neumatico_id
-          -- AND vehiculo_id = v_neumatico_record.ubicacion_actual_vehiculo_id -- Condición eliminada
-          AND tipo_evento IN ('INSTALACION', 'INSPECCION')
+          AND tipo_evento IN ('INSTALACION', 'INSPECCION') -- Buscar último odómetro de instalación o inspección
           AND odometro_vehiculo_en_evento IS NOT NULL
           AND timestamp_evento < NEW.timestamp_evento
         ORDER BY timestamp_evento DESC
         LIMIT 1;
-        RAISE NOTICE '[TRIGGER FN_ACT_ESTADO] Odómetro Anterior Encontrado (Corregido): %', v_odometro_anterior; -- Podrías dejar este si quieres verificar
 
         IF v_odometro_anterior IS NOT NULL AND NEW.odometro_vehiculo_en_evento > v_odometro_anterior THEN
             v_kilometros_recorridos := NEW.odometro_vehiculo_en_evento - v_odometro_anterior;
         ELSE
              v_kilometros_recorridos := 0;
         END IF;
-        RAISE NOTICE '[TRIGGER FN_ACT_ESTADO] KM Recorridos calculados: %', v_kilometros_recorridos; -- DEBUG KM
+        RAISE NOTICE '[TRIGGER FN_ACT_ESTADO] KM Recorridos calculados: %', v_kilometros_recorridos;
     ELSE
          v_kilometros_recorridos := 0;
     END IF;
@@ -308,56 +313,86 @@ BEGIN
     -- Actualización del Neumático
     CASE NEW.tipo_evento
 
-        -- Bloques WHEN originales extraídos de tu backup:
-        WHEN 'INSTALACION' THEN UPDATE public.neumaticos SET estado_actual = 'INSTALADO', ubicacion_actual_vehiculo_id = NEW.vehiculo_id, ubicacion_actual_posicion_id = NEW.posicion_id, fecha_ultimo_evento = NEW.timestamp_evento, kilometraje_acumulado = 0, actualizado_en = now(), actualizado_por = NEW.usuario_id WHERE id = NEW.neumatico_id;
-        WHEN 'DESMONTAJE' THEN UPDATE public.neumaticos SET estado_actual = NEW.destino_desmontaje, ubicacion_actual_vehiculo_id = NULL, ubicacion_actual_posicion_id = NULL, fecha_ultimo_evento = NEW.timestamp_evento, kilometraje_acumulado = v_neumatico_record.kilometraje_acumulado + v_kilometros_recorridos, fecha_desecho = CASE WHEN NEW.destino_desmontaje = 'DESECHADO' THEN NEW.timestamp_evento::date ELSE fecha_desecho END, motivo_desecho_id = CASE WHEN NEW.destino_desmontaje = 'DESECHADO' THEN NEW.motivo_desecho_id_evento ELSE motivo_desecho_id END, actualizado_en = now(), actualizado_por = NEW.usuario_id WHERE id = NEW.neumatico_id;
-        WHEN 'INSPECCION' THEN IF v_kilometros_recorridos > 0 THEN UPDATE public.neumaticos SET kilometraje_acumulado = v_neumatico_record.kilometraje_acumulado + v_kilometros_recorridos, fecha_ultimo_evento = NEW.timestamp_evento, actualizado_en = now(), actualizado_por = NEW.usuario_id WHERE id = NEW.neumatico_id; ELSE UPDATE public.neumaticos SET fecha_ultimo_evento = NEW.timestamp_evento, actualizado_en = now(), actualizado_por = NEW.usuario_id WHERE id = NEW.neumatico_id; END IF;
-        WHEN 'REPARACION_ENTRADA' THEN UPDATE public.neumaticos SET estado_actual = 'EN_REPARACION', fecha_ultimo_evento = NEW.timestamp_evento, actualizado_en = now(), actualizado_por = NEW.usuario_id WHERE id = NEW.neumatico_id;
-        WHEN 'REPARACION_SALIDA' THEN UPDATE public.neumaticos SET estado_actual = 'EN_STOCK', fecha_ultimo_evento = NEW.timestamp_evento, actualizado_en = now(), actualizado_por = NEW.usuario_id WHERE id = NEW.neumatico_id;
-        WHEN 'REENCAUCHE_ENTRADA' THEN IF v_neumatico_record.reencauches_realizados >= v_modelo_record.reencauches_maximos THEN RAISE WARNING '[TRIGGER FN_ACT_ESTADO] Neumático ID % enviado a reencauche pero ya alcanzó/superó el límite de % reencauches.', NEW.neumatico_id, v_modelo_record.reencauches_maximos; END IF; UPDATE public.neumaticos SET estado_actual = 'EN_REENCAUCHE', fecha_ultimo_evento = NEW.timestamp_evento, actualizado_en = now(), actualizado_por = NEW.usuario_id WHERE id = NEW.neumatico_id;
-        WHEN 'DESECHO' THEN IF v_neumatico_record.estado_actual != 'DESECHADO' THEN UPDATE public.neumaticos SET estado_actual = 'DESECHADO', fecha_desecho = NEW.timestamp_evento::date, motivo_desecho_id = NEW.motivo_desecho_id_evento, fecha_ultimo_evento = NEW.timestamp_evento, kilometraje_acumulado = v_neumatico_record.kilometraje_acumulado + v_kilometros_recorridos, ubicacion_actual_vehiculo_id = NULL, ubicacion_actual_posicion_id = NULL, actualizado_en = now(), actualizado_por = NEW.usuario_id WHERE id = NEW.neumatico_id; END IF;
-        WHEN 'AJUSTE_INVENTARIO' THEN UPDATE public.neumaticos SET fecha_ultimo_evento = NEW.timestamp_evento, actualizado_en = now(), actualizado_por = NEW.usuario_id WHERE id = NEW.neumatico_id;
-        -- Nota: ROTACION y TRANSFERENCIA caen en el ELSE
+        -- Casos existentes (copiados de tu backup, revisa si necesitan ajustes)
+        WHEN 'INSTALACION' THEN
+            RAISE NOTICE '[TRIGGER FN_ACT_ESTADO] Procesando INSTALACION.';
+            -- La API ya debería manejar esto, pero si quieres redundancia:
+            -- UPDATE public.neumaticos SET estado_actual = 'INSTALADO', ubicacion_actual_vehiculo_id = NEW.vehiculo_id, ubicacion_actual_posicion_id = NEW.posicion_id, fecha_ultimo_evento = NEW.timestamp_evento, kilometraje_acumulado = 0, actualizado_en = now(), actualizado_por = NEW.usuario_id, ubicacion_almacen_id = NULL WHERE id = NEW.neumatico_id;
+            -- O solo actualizar campos comunes si la API no lo hace:
+            UPDATE public.neumaticos SET fecha_ultimo_evento = NEW.timestamp_evento, actualizado_en = now(), actualizado_por = NEW.usuario_id WHERE id = NEW.neumatico_id;
 
-        -- Bloque WHEN 'REENCAUCHE_SALIDA' con debugging detallado:
+        WHEN 'DESMONTAJE' THEN
+            RAISE NOTICE '[TRIGGER FN_ACT_ESTADO] Procesando DESMONTAJE.';
+            -- La API ya debería manejar esto, pero si quieres redundancia:
+            -- UPDATE public.neumaticos SET estado_actual = NEW.destino_desmontaje, ubicacion_actual_vehiculo_id = NULL, ubicacion_actual_posicion_id = NULL, fecha_ultimo_evento = NEW.timestamp_evento, kilometraje_acumulado = v_neumatico_record.kilometraje_acumulado + v_kilometros_recorridos, fecha_desecho = CASE WHEN NEW.destino_desmontaje = 'DESECHADO' THEN NEW.timestamp_evento::date ELSE fecha_desecho END, motivo_desecho_id = CASE WHEN NEW.destino_desmontaje = 'DESECHADO' THEN NEW.motivo_desecho_id_evento ELSE motivo_desecho_id END, actualizado_en = now(), actualizado_por = NEW.usuario_id, ubicacion_almacen_id = CASE WHEN NEW.destino_desmontaje <> 'DESECHADO' THEN NEW.almacen_destino_id ELSE NULL END WHERE id = NEW.neumatico_id;
+            -- O solo actualizar campos comunes:
+             UPDATE public.neumaticos SET kilometraje_acumulado = v_neumatico_record.kilometraje_acumulado + v_kilometros_recorridos, fecha_ultimo_evento = NEW.timestamp_evento, actualizado_en = now(), actualizado_por = NEW.usuario_id WHERE id = NEW.neumatico_id;
+
+        WHEN 'INSPECCION' THEN
+             RAISE NOTICE '[TRIGGER FN_ACT_ESTADO] Procesando INSPECCION.';
+            -- Actualizar KM si aplica
+             IF v_kilometros_recorridos > 0 THEN
+                  UPDATE public.neumaticos SET kilometraje_acumulado = v_neumatico_record.kilometraje_acumulado + v_kilometros_recorridos, fecha_ultimo_evento = NEW.timestamp_evento, actualizado_en = now(), actualizado_por = NEW.usuario_id WHERE id = NEW.neumatico_id;
+             ELSE
+                  UPDATE public.neumaticos SET fecha_ultimo_evento = NEW.timestamp_evento, actualizado_en = now(), actualizado_por = NEW.usuario_id WHERE id = NEW.neumatico_id;
+             END IF;
+
+        WHEN 'REPARACION_ENTRADA' THEN
+            RAISE NOTICE '[TRIGGER FN_ACT_ESTADO] Procesando REPARACION_ENTRADA.';
+            -- La API ya debería manejar esto, pero si quieres redundancia:
+            -- UPDATE public.neumaticos SET estado_actual = 'EN_REPARACION', fecha_ultimo_evento = NEW.timestamp_evento, actualizado_en = now(), actualizado_por = NEW.usuario_id, ubicacion_almacen_id = NEW.almacen_destino_id, ubicacion_actual_vehiculo_id = NULL, ubicacion_actual_posicion_id = NULL WHERE id = NEW.neumatico_id;
+            UPDATE public.neumaticos SET fecha_ultimo_evento = NEW.timestamp_evento, actualizado_en = now(), actualizado_por = NEW.usuario_id WHERE id = NEW.neumatico_id;
+
+
+        WHEN 'REPARACION_SALIDA' THEN
+            RAISE NOTICE '[TRIGGER FN_ACT_ESTADO] Procesando REPARACION_SALIDA.';
+            -- La API ya debería manejar esto, pero si quieres redundancia:
+            -- UPDATE public.neumaticos SET estado_actual = 'EN_STOCK', fecha_ultimo_evento = NEW.timestamp_evento, actualizado_en = now(), actualizado_por = NEW.usuario_id, ubicacion_almacen_id = NEW.almacen_destino_id WHERE id = NEW.neumatico_id;
+            UPDATE public.neumaticos SET fecha_ultimo_evento = NEW.timestamp_evento, actualizado_en = now(), actualizado_por = NEW.usuario_id WHERE id = NEW.neumatico_id;
+
+        WHEN 'REENCAUCHE_ENTRADA' THEN
+             RAISE NOTICE '[TRIGGER FN_ACT_ESTADO] Procesando REENCAUCHE_ENTRADA.';
+             -- Advertencia sobre límite (se mantiene, es útil)
+             IF v_neumatico_record.reencauches_realizados >= v_modelo_record.reencauches_maximos THEN
+                 RAISE WARNING '[TRIGGER FN_ACT_ESTADO] Neumático ID % enviado a reencauche pero ya alcanzó/superó el límite de % reencauches.', NEW.neumatico_id, v_modelo_record.reencauches_maximos;
+             END IF;
+             -- Actualizar solo campos comunes
+             UPDATE public.neumaticos SET fecha_ultimo_evento = NEW.timestamp_evento, actualizado_en = now(), actualizado_por = NEW.usuario_id WHERE id = NEW.neumatico_id;
+             -- La API se encarga del estado y ubicación
+
+        WHEN 'DESECHO' THEN
+             RAISE NOTICE '[TRIGGER FN_ACT_ESTADO] Procesando DESECHO.';
+            -- La API ya debería manejar esto, pero si quieres redundancia:
+             -- IF v_neumatico_record.estado_actual != 'DESECHADO' THEN
+             --     UPDATE public.neumaticos SET estado_actual = 'DESECHADO', fecha_desecho = NEW.timestamp_evento::date, motivo_desecho_id = NEW.motivo_desecho_id_evento, fecha_ultimo_evento = NEW.timestamp_evento, kilometraje_acumulado = v_neumatico_record.kilometraje_acumulado + v_kilometros_recorridos, ubicacion_actual_vehiculo_id = NULL, ubicacion_actual_posicion_id = NULL, ubicacion_almacen_id = NULL, actualizado_en = now(), actualizado_por = NEW.usuario_id WHERE id = NEW.neumatico_id;
+             -- END IF;
+              UPDATE public.neumaticos SET kilometraje_acumulado = v_neumatico_record.kilometraje_acumulado + v_kilometros_recorridos, fecha_ultimo_evento = NEW.timestamp_evento, actualizado_en = now(), actualizado_por = NEW.usuario_id WHERE id = NEW.neumatico_id;
+
+
+        WHEN 'AJUSTE_INVENTARIO' THEN
+             RAISE NOTICE '[TRIGGER FN_ACT_ESTADO] Procesando AJUSTE_INVENTARIO.';
+             UPDATE public.neumaticos SET fecha_ultimo_evento = NEW.timestamp_evento, actualizado_en = now(), actualizado_por = NEW.usuario_id WHERE id = NEW.neumatico_id;
+
+        -- *** CASO REENCAUCHE_SALIDA SIMPLIFICADO ***
         WHEN 'REENCAUCHE_SALIDA' THEN
-            RAISE NOTICE '[TRIG REEN_SALIDA - DEBUG] Iniciando bloque.';
-            RAISE NOTICE '[TRIG REEN_SALIDA - DEBUG] Valores leídos: Reencauches=%, Vida=%, Límite=%, Usuario=%, ProfPost=%, NeumID=%',
-                         COALESCE(v_neumatico_record.reencauches_realizados, -1), COALESCE(v_neumatico_record.vida_actual, -1), v_modelo_record.reencauches_maximos, NEW.usuario_id, NEW.profundidad_post_reencauche_mm, NEW.neumatico_id;
-            v_neumatico_record.reencauches_realizados := COALESCE(v_neumatico_record.reencauches_realizados, 0);
-            v_neumatico_record.vida_actual := COALESCE(v_neumatico_record.vida_actual, 1);
-            IF v_modelo_record.reencauches_maximos IS NULL THEN v_modelo_record.reencauches_maximos := 99; END IF;
-            RAISE NOTICE '[TRIG REEN_SALIDA - DEBUG] Evaluando IF: % >= % ?', v_neumatico_record.reencauches_realizados, v_modelo_record.reencauches_maximos;
-            IF v_neumatico_record.reencauches_realizados >= v_modelo_record.reencauches_maximos THEN
-                RAISE NOTICE '[TRIG REEN_SALIDA - DEBUG] Condición IF fue TRUE. Lanzando EXCEPTION.';
-                RAISE EXCEPTION '[TRIG REEN_SALIDA] Límite de reencauches % alcanzado/superado (max %).', v_neumatico_record.reencauches_realizados, v_modelo_record.reencauches_maximos;
-            END IF;
-            RAISE NOTICE '[TRIG REEN_SALIDA - DEBUG] Condición IF fue FALSE. Continuando...';
-            v_reencauches_new := v_neumatico_record.reencauches_realizados + 1;
-            v_vida_new := v_neumatico_record.vida_actual + 1;
-            v_profundidad_new := NEW.profundidad_post_reencauche_mm;
-            RAISE NOTICE '[TRIG REEN_SALIDA - DEBUG] Valores calculados -> Reenc: %, Vida: %, Prof: %', v_reencauches_new, v_vida_new, v_profundidad_new;
-            RAISE NOTICE '[TRIG REEN_SALIDA - DEBUG] Ejecutando UPDATE completo...';
-            UPDATE public.neumaticos SET
-                reencauches_realizados = v_reencauches_new,
-                vida_actual = v_vida_new,
-                estado_actual = 'EN_STOCK',
-                fecha_ultimo_evento = NEW.timestamp_evento,
-                kilometraje_acumulado = 0,
-                profundidad_inicial_mm = v_profundidad_new,
-                es_reencauchado = true,
-                actualizado_en = now(),
-                actualizado_por = NEW.usuario_id
-            WHERE id = NEW.neumatico_id;
-            RAISE NOTICE '[TRIG REEN_SALIDA - DEBUG] UPDATE ejecutado (supuestamente).';
+            -- La lógica principal de actualización (estado, contadores, es_reencauchado, etc.)
+            -- ahora se maneja en la capa de servicio Python.
+            -- El trigger solo necesita actualizar campos comunes si la API no lo hace,
+            -- o simplemente no hacer nada específico para este caso.
+            RAISE NOTICE '[TRIGGER FN_ACT_ESTADO] Evento REENCAUCHE_SALIDA recibido para neumático ID: %. Lógica de actualización manejada por API.', NEW.neumatico_id;
+            -- Actualizamos solo los campos comunes aquí si la API no lo hiciera (mejor que lo haga la API)
+            UPDATE public.neumaticos SET fecha_ultimo_evento = NEW.timestamp_evento, actualizado_en = now(), actualizado_por = NEW.usuario_id WHERE id = NEW.neumatico_id;
+            -- ¡Ya no hay UPDATE con la lógica de reencauche aquí!
 
-        -- Bloque ELSE original para otros eventos (ROTACION, TRANSFERENCIA, etc.)
+        -- Caso ELSE para otros eventos (ROTACION, TRANSFERENCIA si no se añaden explícitamente)
         ELSE
-            RAISE NOTICE '[TRIG ELSE] Evento tipo % no manejado explícitamente. Actualizando solo fecha.', NEW.tipo_evento;
+            RAISE NOTICE '[TRIGGER FN_ACT_ESTADO] Evento tipo % no manejado explícitamente por trigger (o manejado por API). Actualizando campos comunes.', NEW.tipo_evento;
+            -- Actualizar campos comunes si la API para estos eventos no lo hace
             UPDATE public.neumaticos SET fecha_ultimo_evento = NEW.timestamp_evento, actualizado_en = now(), actualizado_por = NEW.usuario_id WHERE id = NEW.neumatico_id;
 
     END CASE;
 
+    -- Siempre retornar NEW para triggers AFTER INSERT
     RETURN NEW;
 END;
 $$;

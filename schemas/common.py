@@ -26,3 +26,12 @@ class TipoEventoNeumaticoEnum(str, Enum):
 class TipoProveedorEnum(str, Enum):
     FABRICANTE = "FABRICANTE"; DISTRIBUIDOR = "DISTRIBUIDOR"; SERVICIO_REPARACION = "SERVICIO_REPARACION"; SERVICIO_REENCAUCHE = "SERVICIO_REENCAUCHE"; OTRO = "OTRO"
 
+# --- AÑADIR ESTE ENUM ---
+class TipoParametroEnum(str, Enum):
+    PROFUNDIDAD_MINIMA = "PROFUNDIDAD_MINIMA"
+    STOCK_MINIMO = "STOCK_MINIMO"
+    STOCK_MAXIMO = "STOCK_MAXIMO"
+    VIDA_UTIL_KM = "VIDA_UTIL_KM"
+    VIDA_UTIL_ANIOS = "VIDA_UTIL_ANIOS"
+    # Otros posibles parámetros...
+# ------------------------

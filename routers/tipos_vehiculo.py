@@ -1,4 +1,4 @@
-# routers/tipos_vehiculo.py
+# routers/tipos_vehiculo.py (Corregido - Sin Prefijo Interno)
 import uuid
 import logging
 from datetime import datetime, timezone
@@ -19,16 +19,20 @@ from models.usuario import Usuario
 from schemas.tipo_vehiculo import TipoVehiculoCreate, TipoVehiculoRead, TipoVehiculoUpdate
 
 # Crear el router específico
+# --- CORRECCIÓN: Eliminar el argumento prefix ---
 router = APIRouter(
-    prefix="/tipos_vehiculo",
-    tags=["Tipos de Vehículo"],
-    dependencies=[Depends(auth.get_current_active_user)] # Proteger endpoints
+    tags=["Tipos de Vehículo"], # Mantener tags
+    dependencies=[Depends(auth.get_current_active_user)] # Mantener dependencias globales
 )
+# --- FIN CORRECCIÓN ---
 
 logger = logging.getLogger(__name__)
 
+# El resto del código (endpoints @router.post, @router.get, etc.) permanece igual
+# ... (pega aquí el resto de tu código original para este archivo) ...
+
 @router.post(
-    "/",
+    "/", # Ruta relativa al prefijo: /tipos-vehiculo/
     response_model=TipoVehiculoRead,
     status_code=status.HTTP_201_CREATED,
     summary="Crear un nuevo tipo de vehículo"
@@ -39,9 +43,7 @@ async def crear_tipo_vehiculo(
     current_user: Usuario = Depends(auth.get_current_active_user)
 ):
     """Crea un nuevo registro de tipo de vehículo."""
-    # --- Verificación de Duplicado (Simple) ---
-    # NOTA: La BD tiene un índice UNIQUE más complejo (lower, unaccent, activo=true).
-    # Esta verificación simple ayuda pero la BD tiene la última palabra via IntegrityError.
+    # Verificación simple de duplicado
     stmt_nombre = select(TipoVehiculo).where(TipoVehiculo.nombre == tipo_vehiculo_in.nombre)
     result_nombre = await session.exec(stmt_nombre)
     if result_nombre.first():
@@ -49,7 +51,6 @@ async def crear_tipo_vehiculo(
             status_code=status.HTTP_409_CONFLICT,
             detail=f"Ya existe un tipo de vehículo con el nombre '{tipo_vehiculo_in.nombre}'"
         )
-    # --- Fin Verificación Simple ---
 
     # Crear instancia y asignar auditoría
     tipo_vehiculo_data = tipo_vehiculo_in.model_dump()
@@ -63,10 +64,9 @@ async def crear_tipo_vehiculo(
         await session.refresh(db_tipo_vehiculo)
         logger.info(f"Tipo de Vehículo '{db_tipo_vehiculo.nombre}' creado por {current_user.username}")
         return db_tipo_vehiculo
-    except IntegrityError as e: # Error de la BD (probablemente por el índice UNIQUE complejo)
+    except IntegrityError as e:
         await session.rollback()
         logger.warning(f"Error de integridad al crear tipo vehículo (posible duplicado BD): {str(e)}")
-        # Devolver 409 genérico porque la BD detectó el conflicto real
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT,
             detail=f"Conflicto al guardar. El nombre '{tipo_vehiculo_in.nombre}' ya podría existir (insensible a mayúsculas/acentos) o hubo otro problema."
@@ -80,7 +80,7 @@ async def crear_tipo_vehiculo(
          )
 
 @router.get(
-    "/",
+    "/", # Ruta relativa: /tipos-vehiculo/
     response_model=List[TipoVehiculoRead],
     summary="Listar tipos de vehículo"
 )
@@ -100,7 +100,7 @@ async def leer_tipos_vehiculo(
     return tipos_vehiculo
 
 @router.get(
-    "/{tipo_vehiculo_id}",
+    "/{tipo_vehiculo_id}", # Ruta relativa: /tipos-vehiculo/{id}
     response_model=TipoVehiculoRead,
     summary="Obtener tipo de vehículo por ID"
 )
@@ -118,7 +118,7 @@ async def leer_tipo_vehiculo_por_id(
     return db_tipo_vehiculo
 
 @router.put(
-    "/{tipo_vehiculo_id}",
+    "/{tipo_vehiculo_id}", # Ruta relativa: /tipos-vehiculo/{id}
     response_model=TipoVehiculoRead,
     summary="Actualizar un tipo de vehículo"
 )
@@ -138,7 +138,7 @@ async def actualizar_tipo_vehiculo(
 
     update_data = tipo_vehiculo_update.model_dump(exclude_unset=True)
 
-    # --- Verificación de Duplicado (Simple) ---
+    # Verificación simple de duplicado
     if "nombre" in update_data and update_data["nombre"] != db_tipo_vehiculo.nombre:
         stmt_nombre = select(TipoVehiculo).where(
             TipoVehiculo.nombre == update_data["nombre"],
@@ -150,7 +150,6 @@ async def actualizar_tipo_vehiculo(
                 status_code=status.HTTP_409_CONFLICT,
                 detail=f"Ya existe otro tipo de vehículo con el nombre '{update_data['nombre']}'"
             )
-    # --- Fin Verificación Simple ---
 
     # Aplicar actualizaciones
     for key, value in update_data.items():
@@ -166,7 +165,7 @@ async def actualizar_tipo_vehiculo(
         await session.refresh(db_tipo_vehiculo)
         logger.info(f"Tipo Vehículo {tipo_vehiculo_id} actualizado por {current_user.username}")
         return db_tipo_vehiculo
-    except IntegrityError as e: # Error de la BD (posible duplicado complejo u otro)
+    except IntegrityError as e:
         await session.rollback()
         logger.warning(f"Error de integridad al actualizar tipo vehículo {tipo_vehiculo_id}: {str(e)}")
         raise HTTPException(
@@ -182,7 +181,7 @@ async def actualizar_tipo_vehiculo(
         )
 
 @router.delete(
-    "/{tipo_vehiculo_id}",
+    "/{tipo_vehiculo_id}", # Ruta relativa: /tipos-vehiculo/{id}
     status_code=status.HTTP_204_NO_CONTENT,
     summary="Desactivar un tipo de vehículo (Eliminación lógica)"
 )
@@ -199,11 +198,6 @@ async def desactivar_tipo_vehiculo(
             detail=f"Tipo de vehículo con ID {tipo_vehiculo_id} no encontrado para desactivar."
         )
 
-    # Añadir verificación de dependencias antes de desactivar? (Opcional)
-    # Por ejemplo, verificar si hay vehículos activos usando este tipo.
-    # La FK tiene ON DELETE RESTRICT, así que la BD podría impedirlo si hay vehículos asociados.
-    # Por ahora, solo hacemos la desactivación lógica.
-
     if not db_tipo_vehiculo.activo:
         return # Idempotente
 
@@ -215,10 +209,9 @@ async def desactivar_tipo_vehiculo(
     try:
         await session.commit()
         logger.info(f"Tipo Vehículo {tipo_vehiculo_id} desactivado por {current_user.username}")
-    except Exception as e: # Podría fallar si hay FKs con RESTRICT
+    except Exception as e:
         await session.rollback()
         logger.error(f"Error al desactivar tipo vehículo {tipo_vehiculo_id}: {str(e)}", exc_info=True)
-        # Devolver un error más específico si es posible, si no un 500
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT, # O 500
             detail=f"No se pudo desactivar el tipo de vehículo. Puede estar en uso por vehículos existentes. Detalle DB: {str(e)}"

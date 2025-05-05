@@ -6,6 +6,7 @@ from typing import Dict, Any, Optional
 from sqlmodel import select
 from sqlalchemy.sql import func
 from sqlmodel.ext.asyncio.session import AsyncSession
+from datetime import datetime, timezone
 
 # Importar modelos y schemas necesarios
 from models.neumatico import Neumatico
@@ -15,7 +16,7 @@ from models.alerta import Alerta
 from models.modelo import ModeloNeumatico
 from models.almacen import Almacen
 # Importar Enums desde la ubicación correcta
-from schemas.common import EstadoNeumaticoEnum, TipoEventoNeumaticoEnum
+from schemas.common import EstadoNeumaticoEnum, TipoEventoNeumaticoEnum, TipoParametroEnum
 
 logger = logging.getLogger(__name__)
 
@@ -27,7 +28,7 @@ def _convert_context_for_json(context: Optional[Dict[str, Any]]) -> Optional[Dic
     new_context = {}
     for k, v in context.items():
         if isinstance(v, Decimal):
-            new_context[k] = float(v) # Convertir a float
+            new_context[k] = float(v)
         else:
             new_context[k] = v
     return new_context
@@ -38,27 +39,42 @@ async def crear_alerta_en_db(
     tipo_alerta: str,
     mensaje: str,
     nivel_severidad: str,
-    # --- Argumentos completos ---
     neumatico_id: Optional[uuid.UUID] = None,
     modelo_id: Optional[uuid.UUID] = None,
     almacen_id: Optional[uuid.UUID] = None,
     vehiculo_id: Optional[uuid.UUID] = None,
     parametro_id: Optional[uuid.UUID] = None,
-    # ----------------------------
     datos_contexto: Optional[Dict[str, Any]] = None
 ):
     """
     Función helper para insertar una nueva alerta en la BD.
-    Convierte datos_contexto para ser JSON serializable.
+    Verifica si ya existe una alerta similar no gestionada.
     """
     try:
         datos_contexto_serializable = _convert_context_for_json(datos_contexto)
+
+        # --- CORRECCIÓN v5: Usar estado_alerta ---
+        stmt_existente = select(Alerta).where(
+            Alerta.tipo_alerta == tipo_alerta,
+            Alerta.estado_alerta != 'GESTIONADA', # <-- Usar estado_alerta
+            Alerta.neumatico_id == neumatico_id,
+            Alerta.modelo_id == modelo_id,
+            Alerta.almacen_id == almacen_id,
+            Alerta.vehiculo_id == vehiculo_id
+        )
+        # --- FIN CORRECCIÓN v5 ---
+        result_existente = await session.exec(stmt_existente)
+        alerta_existente = result_existente.first()
+
+        if alerta_existente:
+            logger.info(f"Alerta '{tipo_alerta}' similar (ID: {alerta_existente.id}) ya existe y no está gestionada. No se crea una nueva.")
+            return alerta_existente
 
         nueva_alerta = Alerta(
             tipo_alerta=tipo_alerta,
             mensaje=mensaje,
             nivel_severidad=nivel_severidad,
-            estado_alerta='NUEVA', # Estado inicial
+            estado_alerta='NUEVA',
             neumatico_id=neumatico_id,
             modelo_id=modelo_id,
             almacen_id=almacen_id,
@@ -73,8 +89,8 @@ async def crear_alerta_en_db(
         return nueva_alerta
     except Exception as e:
         await session.rollback()
-        logger.error(f"Error al crear alerta '{tipo_alerta}' en DB: {e}", exc_info=True)
-        raise
+        logger.error(f"Error al crear/verificar alerta '{tipo_alerta}' en DB: {e}", exc_info=True)
+        return None
 
 
 async def check_profundidad_baja(session: AsyncSession, evento: EventoNeumatico):
@@ -90,19 +106,28 @@ async def check_profundidad_baja(session: AsyncSession, evento: EventoNeumatico)
 
         modelo_id = neumatico.modelo_id
 
+        # --- CORRECCIÓN EN LA CONSULTA (v5 - Usar Enum) ---
         stmt_umbral = select(ParametroInventario).where(
-            ParametroInventario.parametro_tipo == 'PROFUNDIDAD_MINIMA',
+            ParametroInventario.tipo_parametro == TipoParametroEnum.PROFUNDIDAD_MINIMA, # <-- Usar Enum
             ParametroInventario.modelo_id == modelo_id,
-            ParametroInventario.activo == True
-        ).order_by(ParametroInventario.ubicacion_almacen_id.desc().nulls_last())
+            ParametroInventario.activo == True,
+            (ParametroInventario.almacen_id == neumatico.ubicacion_almacen_id) | (ParametroInventario.almacen_id.is_(None))
+        ).order_by(
+            ParametroInventario.almacen_id.desc().nulls_last()
+        )
+        # --- FIN CORRECCIÓN EN LA CONSULTA (v5) ---
 
         resultado_umbral = await session.exec(stmt_umbral)
         parametro = resultado_umbral.first()
 
-        umbral_minimo = Decimal(str(parametro.valor_numerico)) if parametro and parametro.valor_numerico is not None else None
+        if not parametro or parametro.valor_numerico is None:
+            logger.debug(f"No se encontró umbral de profundidad mínima activo para modelo {modelo_id}.")
+            return
+
+        umbral_minimo = Decimal(str(parametro.valor_numerico))
         profundidad_medida = Decimal(str(evento.profundidad_remanente_mm))
 
-        if umbral_minimo is not None and profundidad_medida < umbral_minimo:
+        if profundidad_medida < umbral_minimo:
             mensaje = (
                 f"Profundidad baja detectada para neumático {neumatico.id} "
                 f"({profundidad_medida:.1f}mm < {umbral_minimo:.1f}mm)."
@@ -121,47 +146,66 @@ async def check_profundidad_baja(session: AsyncSession, evento: EventoNeumatico)
                 nivel_severidad='WARN',
                 neumatico_id=neumatico.id,
                 modelo_id=modelo_id,
-                parametro_id=parametro.id if parametro else None,
+                parametro_id=parametro.id,
                 datos_contexto=contexto
             )
+        else:
+             # --- CORRECCIÓN v5: Usar estado_alerta ---
+             stmt_resolver = select(Alerta).where(
+                 Alerta.tipo_alerta == 'PROFUNDIDAD_BAJA',
+                 Alerta.neumatico_id == neumatico.id,
+                 Alerta.estado_alerta != 'GESTIONADA' # <-- Usar estado_alerta
+             )
+             # --- FIN CORRECCIÓN v5 ---
+             res_resolver = await session.exec(stmt_resolver)
+             alertas_a_resolver = res_resolver.all()
+             for alerta in alertas_a_resolver:
+                 # --- CORRECCIÓN v5: Cambiar estado_alerta ---
+                 alerta.estado_alerta = 'GESTIONADA' # <-- Marcar como gestionada
+                 alerta.timestamp_gestion = datetime.now(timezone.utc) # <-- Usar timestamp_gestion
+                 # --- FIN CORRECCIÓN v5 ---
+                 alerta.notas_resolucion = f"Resuelta automáticamente por inspección con profundidad {profundidad_medida:.1f}mm >= umbral {umbral_minimo:.1f}mm."
+                 session.add(alerta)
+             if alertas_a_resolver:
+                 await session.commit()
+                 logger.info(f"Resueltas {len(alertas_a_resolver)} alertas de profundidad baja para neumático {neumatico.id}")
+
     except Exception as e:
         logger.error(f"Error no crítico en check_profundidad_baja para evento {evento.id}: {e}", exc_info=True)
 
 
-# --- FUNCIÓN check_stock_minimo CON CORRECCIÓN ---
 async def check_stock_minimo(session: AsyncSession, modelo_id: uuid.UUID, almacen_id: uuid.UUID):
     """Verifica si el stock de un modelo en un almacén está bajo el mínimo."""
     try:
-        # 1. Obtener stock actual
         stmt_stock = select(func.count(Neumatico.id)).where(
             Neumatico.estado_actual == EstadoNeumaticoEnum.EN_STOCK,
             Neumatico.modelo_id == modelo_id,
             Neumatico.ubicacion_almacen_id == almacen_id
         )
-        # --- Usando .first() y acceso por índice ---
         result_stock = await session.exec(stmt_stock)
-        stock_row = result_stock.first()
-        stock_actual = stock_row[0] if stock_row else 0
-        # ------------------------------------------
+        stock_actual = result_stock.scalar() or 0
 
-        # 2. Obtener nivel mínimo
+        # --- CORRECCIÓN EN LA CONSULTA (v5 - Usar Enum) ---
         stmt_param = select(ParametroInventario).where(
-            ParametroInventario.parametro_tipo == 'NIVEL_MINIMO',
+            ParametroInventario.tipo_parametro == TipoParametroEnum.NIVEL_MINIMO, # <-- Usar Enum
             ParametroInventario.modelo_id == modelo_id,
-            ParametroInventario.activo == True
-        ).order_by(ParametroInventario.ubicacion_almacen_id.desc().nulls_last())
+            ParametroInventario.activo == True,
+            (ParametroInventario.almacen_id == almacen_id) | (ParametroInventario.almacen_id.is_(None))
+        ).order_by(
+            ParametroInventario.almacen_id.desc().nulls_last()
+        )
+        # --- FIN CORRECCIÓN EN LA CONSULTA (v5) ---
 
-        resultado_param_esp = await session.exec(stmt_param.where(ParametroInventario.ubicacion_almacen_id == almacen_id))
-        parametro = resultado_param_esp.first()
+        resultado_param = await session.exec(stmt_param)
+        parametro = resultado_param.first()
 
-        if not parametro:
-             resultado_param_gen = await session.exec(stmt_param.where(ParametroInventario.ubicacion_almacen_id.is_(None)))
-             parametro = resultado_param_gen.first()
+        if not parametro or parametro.valor_numerico is None:
+            logger.debug(f"No se encontró nivel mínimo de stock activo para modelo {modelo_id} en almacén {almacen_id}.")
+            return
 
-        nivel_minimo = parametro.valor_numerico if parametro and parametro.valor_numerico is not None else None
+        nivel_minimo = parametro.valor_numerico
 
-        # 3. Comparar y crear alerta si es necesario
-        if nivel_minimo is not None and stock_actual < nivel_minimo:
+        if stock_actual < nivel_minimo:
             modelo = await session.get(ModeloNeumatico, modelo_id)
             almacen = await session.get(Almacen, almacen_id)
             nombre_modelo = modelo.nombre_modelo if modelo else str(modelo_id)
@@ -184,11 +228,32 @@ async def check_stock_minimo(session: AsyncSession, modelo_id: uuid.UUID, almace
                 nivel_severidad='WARN',
                 modelo_id=modelo_id,
                 almacen_id=almacen_id,
-                parametro_id=parametro.id if parametro else None,
+                parametro_id=parametro.id,
                 datos_contexto=contexto
             )
+        else:
+            # --- CORRECCIÓN v5: Usar estado_alerta ---
+            stmt_resolver = select(Alerta).where(
+                Alerta.tipo_alerta == 'STOCK_MINIMO',
+                Alerta.modelo_id == modelo_id,
+                Alerta.almacen_id == almacen_id,
+                Alerta.estado_alerta != 'GESTIONADA' # <-- Usar estado_alerta
+            )
+            # --- FIN CORRECCIÓN v5 ---
+            res_resolver = await session.exec(stmt_resolver)
+            alertas_a_resolver = res_resolver.all()
+            for alerta in alertas_a_resolver:
+                 # --- CORRECCIÓN v5: Cambiar estado_alerta ---
+                 alerta.estado_alerta = 'GESTIONADA' # <-- Marcar como gestionada
+                 alerta.timestamp_gestion = datetime.now(timezone.utc) # <-- Usar timestamp_gestion
+                 # --- FIN CORRECCIÓN v5 ---
+                 alerta.notas_resolucion = f"Resuelta automáticamente. Stock actual {stock_actual} >= mínimo {nivel_minimo:.0f}."
+                 session.add(alerta)
+            if alertas_a_resolver:
+                await session.commit()
+                logger.info(f"Resueltas {len(alertas_a_resolver)} alertas de stock mínimo para modelo {modelo_id} en almacén {almacen_id}")
+
     except Exception as e:
          logger.error(f"Error no crítico en check_stock_minimo para modelo {modelo_id}, almacén {almacen_id}: {e}", exc_info=True)
-         # NO re-lanzar el error aquí
 
 # --- Fin del archivo ---

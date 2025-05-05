@@ -1,4 +1,4 @@
-# routers/fabricantes_neumatico.py
+# routers/fabricantes_neumatico.py (FINAL - Sin Prefijo Interno)
 import uuid
 import logging
 from datetime import datetime, timezone
@@ -21,17 +21,17 @@ from schemas.fabricante import (
     FabricanteNeumaticoUpdate
 )
 
-# Crear el router específico
+# --- CORRECCIÓN FINAL: Eliminar el argumento prefix ---
 router = APIRouter(
-    prefix="/fabricantes", # Usamos un prefijo claro
-    tags=["Fabricantes de Neumáticos"],
-    dependencies=[Depends(auth.get_current_active_user)]
+    tags=["Fabricantes de Neumáticos"], # Mantener tags
+    dependencies=[Depends(auth.get_current_active_user)] # Mantener dependencias globales
 )
+# --- FIN CORRECCIÓN FINAL ---
 
 logger = logging.getLogger(__name__)
 
 @router.post(
-    "/",
+    "/", # La ruta relativa sigue siendo "/"
     response_model=FabricanteNeumaticoRead,
     status_code=status.HTTP_201_CREATED,
     summary="Crear un nuevo fabricante de neumáticos"
@@ -42,8 +42,6 @@ async def crear_fabricante(
     current_user: Usuario = Depends(auth.get_current_active_user)
 ):
     """Crea un nuevo registro de fabricante de neumáticos."""
-    # Verificación simple de duplicados (nombre y código)
-    # La BD puede tener índices más complejos (lower, unaccent, etc.)
     stmt_nombre = select(FabricanteNeumatico).where(FabricanteNeumatico.nombre == fabricante_in.nombre)
     result_nombre = await session.exec(stmt_nombre)
     if result_nombre.first():
@@ -61,12 +59,10 @@ async def crear_fabricante(
                  detail=f"Ya existe un fabricante con el código '{fabricante_in.codigo_abreviado}'"
              )
 
-    # Crear instancia y auditoría
     fabricante_data = fabricante_in.model_dump()
     db_fabricante = FabricanteNeumatico.model_validate(fabricante_data)
     db_fabricante.creado_por = current_user.id
 
-    # Guardar en BD
     session.add(db_fabricante)
     try:
         await session.commit()
@@ -147,7 +143,6 @@ async def actualizar_fabricante(
 
     update_data = fabricante_update.model_dump(exclude_unset=True)
 
-    # Verificación simple de duplicados si se cambian
     if "nombre" in update_data and update_data["nombre"] != db_fabricante.nombre:
         stmt_nombre = select(FabricanteNeumatico).where(
             FabricanteNeumatico.nombre == update_data["nombre"],
@@ -157,7 +152,7 @@ async def actualizar_fabricante(
             raise HTTPException(status.HTTP_409_CONFLICT, f"Nombre '{update_data['nombre']}' ya existe.")
 
     if "codigo_abreviado" in update_data and update_data["codigo_abreviado"] != db_fabricante.codigo_abreviado:
-        if update_data["codigo_abreviado"]: # Solo si no es None/vacío
+        if update_data["codigo_abreviado"]:
              stmt_codigo = select(FabricanteNeumatico).where(
                  FabricanteNeumatico.codigo_abreviado == update_data["codigo_abreviado"],
                  FabricanteNeumatico.id != fabricante_id
@@ -165,11 +160,9 @@ async def actualizar_fabricante(
              if (await session.exec(stmt_codigo)).first():
                   raise HTTPException(status.HTTP_409_CONFLICT, f"Código '{update_data['codigo_abreviado']}' ya existe.")
 
-    # Aplicar actualizaciones
     for key, value in update_data.items():
         setattr(db_fabricante, key, value)
 
-    # Auditoría
     db_fabricante.actualizado_en = datetime.now(timezone.utc)
     db_fabricante.actualizado_por = current_user.id
 
@@ -212,10 +205,8 @@ async def desactivar_fabricante(
             detail=f"Fabricante con ID {fabricante_id} no encontrado para desactivar."
         )
 
-    # Podríamos verificar si tiene modelos asociados antes de desactivar?
-    # Depende de las reglas de negocio. Por ahora, desactivamos.
     if not db_fabricante.activo:
-        return # Idempotente
+        return
 
     db_fabricante.activo = False
     db_fabricante.actualizado_en = datetime.now(timezone.utc)
@@ -228,8 +219,8 @@ async def desactivar_fabricante(
     except Exception as e:
         await session.rollback()
         logger.error(f"Error al desactivar fabricante {fabricante_id}: {str(e)}", exc_info=True)
-        # Asumiendo que errores aquí son del servidor, no por FKs (a menos que se añadan)
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Error interno al desactivar el fabricante."
         )
+

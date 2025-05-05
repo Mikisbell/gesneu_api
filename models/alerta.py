@@ -36,5 +36,5 @@ class Alerta(SQLModel, table=True):
 
     datos_contexto: Optional[Dict[str, Any]] = Field(default=None, sa_column=Column(JSON))
 
-    class Config:
-        orm_mode = True
+ #   class Config:
+ #      orm_mode = True
