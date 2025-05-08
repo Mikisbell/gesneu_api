@@ -1,4 +1,6 @@
 # tests/conftest.py
+import uuid # Importar el módulo uuid
+from datetime import datetime, date # Importar datetime y date
 import pytest
 import pytest_asyncio
 import os
@@ -10,10 +12,11 @@ from sqlmodel import SQLModel, select
 from sqlmodel.ext.asyncio.session import AsyncSession
 from sqlalchemy.ext.asyncio import create_async_engine, AsyncEngine
 from sqlalchemy.orm import sessionmaker
+from core.config import settings # <--- AÑADE ESTA LÍNEA
 
 # Importar tu aplicación FastAPI y la dependencia real
 from main import app # <-- Asegúrate que app se importa correctamente
-from database import get_session as get_real_session
+from core.dependencies import get_session as get_real_session # Importar desde core.dependencies
 
 # --- Model Imports (Asegúrate que estén todos) ---
 print("--- [conftest.py] Importando modelos... ---")
@@ -45,8 +48,57 @@ except ImportError as e:
 async def sqlite_session() -> AsyncIterator[AsyncSession]:
     """Proporciona una sesión SQLite en memoria y asegura creación de tablas."""
     print("\n--- [sqlite_session fixture v7] Iniciando ---")
+    import sqlite3 # Importar sqlite3 para las banderas de detección de tipos
+    import json # Para serializar/deserializar UUIDs como strings JSON
+
+    # --- Adaptadores para aiosqlite ---
+    def _adapt_uuid(val):
+        """Adapter for UUID to string."""
+        return str(val)
+
+    def _convert_uuid(val):
+        """Converter for string to UUID."""
+        if val is not None:
+            return uuid.UUID(val)
+        return None
+
+    def _adapt_datetime(val):
+        """Adapter for datetime to ISO 8601 string."""
+        return val.isoformat() if val is not None else None
+
+    def _convert_datetime(val):
+        """Converter for ISO 8601 string to datetime."""
+        if val is not None:
+            # Asegurarse de manejar posibles zonas horarias si se almacenan
+            return datetime.fromisoformat(val)
+        return None
+
+    def _adapt_date(val):
+        """Adapter for date to ISO 8601 string."""
+        return val.isoformat() if val is not None else None
+
+    def _convert_date(val):
+        """Converter for ISO 8601 string to date."""
+        if val is not None:
+            return date.fromisoformat(val)
+        return None
+
+    # Registrar adaptadores y convertidores
+    sqlite3.register_adapter(uuid.UUID, _adapt_uuid)
+    sqlite3.register_converter("UUID", _convert_uuid) # Usar el nombre del tipo de columna
+    sqlite3.register_adapter(datetime, _adapt_datetime)
+    sqlite3.register_converter("TIMESTAMP", _convert_datetime) # Usar el nombre del tipo de columna
+    sqlite3.register_adapter(date, _adapt_date)
+    sqlite3.register_converter("DATE", _convert_date) # Usar el nombre del tipo de columna
+    # --- Fin Adaptadores ---
+
     DATABASE_URL_TEST = "sqlite+aiosqlite:///:memory:"
-    engine_test = create_async_engine(DATABASE_URL_TEST, echo=False)
+    # Eliminar detect_types de connect_args ya que usamos adaptadores/convertidores
+    engine_test = create_async_engine(
+        DATABASE_URL_TEST,
+        echo=False,
+        connect_args={"check_same_thread": False} # Mantener solo check_same_thread
+    )
 
     try:
         async with engine_test.begin() as conn:

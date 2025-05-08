@@ -16,6 +16,7 @@ from schemas.proveedor import ProveedorRead, ProveedorUpdate
 # Importar Enum desde common
 from schemas.common import TipoProveedorEnum
 from core.security import get_password_hash, verify_password
+from tests.helpers import create_user_and_get_token # Importar desde helpers
 
 # --- Importar settings y definir prefijos ---
 from core.config import settings
@@ -23,47 +24,17 @@ API_PREFIX = settings.API_V1_STR
 AUTH_PREFIX = f"{API_PREFIX}/auth"
 PROVEEDORES_PREFIX = f"{API_PREFIX}/proveedores" # <-- Asegúrate que coincida con main.py
 
-# --- Helper para Usuario/Token (CORREGIDO TOKEN URL) ---
-async def create_user_and_get_token_for_prov_tests(
-    client: AsyncClient, db_session: AsyncSession, user_suffix: str
-) -> tuple[str, dict]:
-    """Crea un usuario único (ADMIN) y devuelve ID y headers."""
-    user_password = f"password_prov_{user_suffix}"
-    hashed_password = get_password_hash(user_password)
-    username = f"testuser_prov_{user_suffix}_{uuid.uuid4().hex[:4]}"
-    email = f"prov_{user_suffix}@example.com"
-    stmt_user = select(Usuario).where(Usuario.username == username)
-    existing_user = (await db_session.exec(stmt_user)).first()
-    user: Usuario; user_id: Optional[str] = None
-    if not existing_user:
-        user = Usuario(username=username, email=email, password_hash=hashed_password, activo=True, rol="ADMIN", creado_en=datetime.now(timezone.utc))
-        db_session.add(user); await db_session.commit(); await db_session.refresh(user)
-        user_id = str(user.id)
-    else:
-        if not verify_password(user_password, existing_user.password_hash or ""): existing_user.password_hash = hashed_password
-        existing_user.activo=True; existing_user.rol="ADMIN"; existing_user.actualizado_en=datetime.now(timezone.utc)
-        db_session.add(existing_user); await db_session.commit(); await db_session.refresh(existing_user)
-        user_id = str(existing_user.id); user = existing_user
-    if user_id is None: pytest.fail(f"No se pudo obtener/crear user_id para {username}")
-
-    login_data = {"username": user.username, "password": user_password}
-    # ==========================
-    # ===== RUTA TOKEN OK! =====
-    token_url = f"{AUTH_PREFIX}/token"
-    # ==========================
-    response_token = await client.post(token_url, data=login_data)
-    if response_token.status_code != status.HTTP_200_OK: pytest.fail(f"Fallo al obtener token: {response_token.status_code} {response_token.text}")
-    token = response_token.json()["access_token"]
-    headers = {"Authorization": f"Bearer {token}"}
-    return user_id, headers
-# --- Fin Helper ---
+# --- Helper para Usuario/Token (Usando helper genérico) ---
+# La función create_user_and_get_token_for_prov_tests ya no es necesaria aquí
+# ya que usaremos la versión genérica de tests.helpers
 
 # --- Pruebas (URLs Corregidas con PROVEEDORES_PREFIX) ---
 @pytest.mark.asyncio
 async def test_crear_leer_desactivar_proveedor(client: AsyncClient, db_session: AsyncSession):
     """Prueba el ciclo Crear, Leer, Desactivar para un proveedor (con depuración)."""
     print("\n--- Iniciando test_crear_leer_desactivar_proveedor (Debug) ---")
-    user_id, headers = await create_user_and_get_token_for_prov_tests(client, db_session, "crud_prov_debug")
+    # Usar la función genérica de helpers
+    user_id, headers = await create_user_and_get_token(client, db_session, "crud_prov_debug", rol="ADMIN", es_superusuario=True)
     print(f"Token obtenido para user_id: {user_id}")
     user_uuid = uuid.UUID(user_id)
 
@@ -105,7 +76,8 @@ async def test_crear_leer_desactivar_proveedor(client: AsyncClient, db_session: 
 
 @pytest.mark.asyncio
 async def test_crear_proveedor_duplicado_nombre(client: AsyncClient, db_session: AsyncSession):
-    user_id, headers = await create_user_and_get_token_for_prov_tests(client, db_session, "dup_prov")
+    # Usar la función genérica de helpers
+    user_id, headers = await create_user_and_get_token(client, db_session, "dup_prov", rol="ADMIN", es_superusuario=True)
     nombre_duplicado = f"Prov Dup {uuid.uuid4()}"
     url_base = f"{PROVEEDORES_PREFIX}/" # <-- URL Corregida
     prov_data_1 = {"nombre": nombre_duplicado, "tipo": TipoProveedorEnum.OTRO.value, "rfc": f"DUP1-{uuid.uuid4().hex[:8]}"}
@@ -115,14 +87,16 @@ async def test_crear_proveedor_duplicado_nombre(client: AsyncClient, db_session:
 
 @pytest.mark.asyncio
 async def test_leer_proveedor_not_found(client: AsyncClient, db_session: AsyncSession):
-    user_id, headers = await create_user_and_get_token_for_prov_tests(client, db_session, "get_404_prov")
+    # Usar la función genérica de helpers
+    user_id, headers = await create_user_and_get_token(client, db_session, "get_404_prov", rol="ADMIN", es_superusuario=True)
     non_existent_uuid = uuid.uuid4()
     url_get = f"{PROVEEDORES_PREFIX}/{non_existent_uuid}" # <-- URL Corregida
     response = await client.get(url_get, headers=headers); assert response.status_code == status.HTTP_404_NOT_FOUND
 
 @pytest.mark.asyncio
 async def test_actualizar_proveedor_success(client: AsyncClient, db_session: AsyncSession):
-    user_id, headers = await create_user_and_get_token_for_prov_tests(client, db_session, "update_prov")
+    # Usar la función genérica de helpers
+    user_id, headers = await create_user_and_get_token(client, db_session, "update_prov", rol="ADMIN", es_superusuario=True)
     user_uuid = uuid.UUID(user_id)
     url_base = f"{PROVEEDORES_PREFIX}/" # <-- URL Corregida
     prov_inicial_data = {"nombre": f"Prov Original {uuid.uuid4()}", "tipo": TipoProveedorEnum.OTRO.value, "rfc": f"ORI-{uuid.uuid4().hex[:9]}"}
@@ -134,14 +108,16 @@ async def test_actualizar_proveedor_success(client: AsyncClient, db_session: Asy
 
 @pytest.mark.asyncio
 async def test_actualizar_proveedor_not_found(client: AsyncClient, db_session: AsyncSession):
-    user_id, headers = await create_user_and_get_token_for_prov_tests(client, db_session, "put_404_prov")
+    # Usar la función genérica de helpers
+    user_id, headers = await create_user_and_get_token(client, db_session, "put_404_prov", rol="ADMIN", es_superusuario=True)
     non_existent_uuid = uuid.uuid4()
     url_put = f"{PROVEEDORES_PREFIX}/{non_existent_uuid}" # <-- URL Corregida
     response = await client.put(url_put, json={"nombre": "Fantasma"}, headers=headers); assert response.status_code == status.HTTP_404_NOT_FOUND
 
 @pytest.mark.asyncio
 async def test_actualizar_proveedor_duplicado_nombre(client: AsyncClient, db_session: AsyncSession):
-    user_id, headers = await create_user_and_get_token_for_prov_tests(client, db_session, "put_dup_prov")
+    # Usar la función genérica de helpers
+    user_id, headers = await create_user_and_get_token(client, db_session, "put_dup_prov", rol="ADMIN", es_superusuario=True)
     nombre_existente = f"Prov Nombre Exist PUT {uuid.uuid4()}"
     url_base = f"{PROVEEDORES_PREFIX}/" # <-- URL Corregida
     resp_a = await client.post(url_base, json={"nombre": nombre_existente, "rfc": f"EXT-{uuid.uuid4().hex[:9]}", "tipo": TipoProveedorEnum.OTRO.value}, headers=headers); assert resp_a.status_code == status.HTTP_201_CREATED

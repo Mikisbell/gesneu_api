@@ -1,11 +1,15 @@
 # models/configuracion_eje.py
 import uuid
-from typing import Optional
-from sqlmodel import Field, SQLModel
+from typing import Optional, TYPE_CHECKING # Importar TYPE_CHECKING
+from sqlmodel import Field, SQLModel, Relationship # Importar Relationship
 from sqlalchemy import Column, ForeignKey
 from sqlalchemy import Enum as SAEnum
 # --- Importar Enum desde common ---
 from schemas.common import TipoEjeEnum
+
+# Importación solo para type checking
+if TYPE_CHECKING:
+    from .tipo_vehiculo import TipoVehiculo # Importar TipoVehiculo
 
 class ConfiguracionEje(SQLModel, table=True):
     __tablename__ = "configuraciones_eje"
@@ -17,3 +21,6 @@ class ConfiguracionEje(SQLModel, table=True):
     numero_posiciones: int
     posiciones_duales: bool = False
     neumaticos_por_posicion: int = 1
+
+    # Definir la relación inversa con TipoVehiculo
+    tipo_vehiculo: "TipoVehiculo" = Relationship(back_populates="configuraciones_eje")

@@ -8,15 +8,9 @@ from sqlmodel import select # Asegurar que select esté importado
 from core.security import create_access_token, verify_password
 # --- Fin de importación ---
 
-from database import get_session
+from core.dependencies import get_session # Usar la dependencia centralizada
 from models.usuario import Usuario
-
-# Helper para buscar usuario (si no lo tienes como método en el modelo)
-async def get_user_by_username(session: AsyncSession, username: str) -> Usuario | None:
-    statement = select(Usuario).where(Usuario.username == username)
-    results = await session.exec(statement)
-    return results.first()
-
+from crud.crud_usuario import usuario as crud_usuario # Importar el objeto CRUD de usuario
 
 router = APIRouter(tags=["Authentication"])
 
@@ -25,14 +19,17 @@ async def login_for_access_token(
     form_data: OAuth2PasswordRequestForm = Depends(),
     session: AsyncSession = Depends(get_session)
 ):
-    # Buscar al usuario
-    user = await get_user_by_username(session, form_data.username)
+    # Buscar al usuario usando el CRUD
+    user = await crud_usuario.get_by_username(session, username=form_data.username)
 
     # --- Usar la verificación segura ---
     password_ok = False
-    if user and user.password_hash: # Asegurarse que user existe y tiene hash
+    #f user and user.password_hash: # Asegurarse que user existe y tiene hash
+    if user and user.hashed_password:
         # ¡Llamar a la función de verificación!
-        password_ok = verify_password(form_data.password, user.password_hash)
+        #password_ok = verify_password(form_data.password, user.password_hash)
+        password_ok = verify_password(form_data.password, user.hashed_password)
+
     # --- Fin de la verificación segura ---
 
     # Verificar si el usuario existe Y la contraseña es correcta

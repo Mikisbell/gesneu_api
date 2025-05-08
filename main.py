@@ -10,6 +10,7 @@ from core.config import settings # Importar settings de core.config
 from database import init_db     # Importar init_db de database
 # -----------------------------
 
+import models # Importar el paquete models para que SQLAlchemy descubra los modelos
 # Importa tus routers existentes...
 from routers.vehiculos import router as vehiculos_router
 from routers.auth import router as auth_router

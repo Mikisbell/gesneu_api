@@ -24,6 +24,8 @@ from models.parametro_inventario import TipoParametroEnum   # <-- LÍNEA CORRECT
 from models.evento_neumatico import TipoEventoNeumaticoEnum
 
 
+from schemas.common import TipoAlertaEnum # Importar TipoAlertaEnum
+
 logger = logging.getLogger(__name__)
 
 # --- Función HELPER para convertir Decimal en el contexto ---
@@ -48,6 +50,28 @@ class AlertService:
     def __init__(self, session: AsyncSession):
         self.session = session
 
+    def _generar_descripcion_alerta(self, tipo_alerta: str, context_data: Optional[Dict[str, Any]]) -> str:
+        """Genera una descripción detallada para la alerta basada en su tipo y contexto."""
+        if context_data is None:
+            context_data = {}
+
+        if tipo_alerta == TipoAlertaEnum.PROFUNDIDAD_BAJA.value:
+            profundidad = context_data.get('profundidad_medida_mm')
+            umbral = context_data.get('umbral_minimo_mm')
+            if profundidad is not None and umbral is not None:
+                 return f"Profundidad medida ({profundidad:.1f}mm) <= umbral mínimo ({umbral:.1f}mm)."
+            return "Alerta de profundidad baja detectada."
+
+        # Añadir lógica para otros tipos de alerta si es necesario
+        # elif tipo_alerta == TipoAlertaEnum.STOCK_MINIMO.value:
+        #     stock = context_data.get('stock_actual')
+        #     minimo = context_data.get('nivel_minimo')
+        #     modelo_id = context_data.get('modelo_id')
+        #     almacen_id = context_data.get('almacen_id')
+        #     return f"Stock bajo ({stock}) para modelo {modelo_id} en almacén {almacen_id} (mínimo {minimo})."
+
+        return f"Alerta tipo {tipo_alerta} detectada." # Descripción por defecto
+
     async def _crear_alerta_en_db(
         self,
         tipo_alerta: str,
@@ -70,7 +94,8 @@ class AlertService:
 
             stmt_existente = select(Alerta).where(
                 Alerta.tipo_alerta == tipo_alerta,
-                Alerta.estado_alerta != 'GESTIONADA', # Usar estado_alerta
+                # Corregido: Usar el campo booleano 'resuelta' en lugar de 'estado_alerta'
+                Alerta.resuelta == False,
                 Alerta.neumatico_id == neumatico_id,
                 Alerta.modelo_id == modelo_id,
                 Alerta.almacen_id == almacen_id,
@@ -84,11 +109,19 @@ class AlertService:
                 logger.info(f"Alerta '{tipo_alerta}' similar (ID: {alerta_existente.id}) ya existe y no está gestionada. No se crea una nueva.")
                 return alerta_existente # Devolver la existente
 
+            # Generar la descripción usando el nuevo método helper
+            descripcion_generada = self._generar_descripcion_alerta(tipo_alerta, datos_contexto)
+
             nueva_alerta = Alerta(
                 tipo_alerta=tipo_alerta,
-                mensaje=mensaje,
+                # Usar la descripción generada para el campo 'descripcion'
+                descripcion=descripcion_generada,
+                # Mantener 'mensaje' si el modelo Alerta lo tiene y se usa para otra cosa,
+                # o eliminar si 'descripcion' lo reemplaza. Asumo que 'descripcion' es el campo requerido.
+                # Si 'mensaje' en el modelo es el campo de error, podrías asignarlo aquí:
+                # mensaje=mensaje, # Si el modelo Alerta tiene un campo 'mensaje'
                 nivel_severidad=nivel_severidad,
-                estado_alerta='NUEVA', # Estado inicial
+                resuelta=False, # Estado inicial: no resuelta
                 neumatico_id=neumatico_id,
                 modelo_id=modelo_id,
                 almacen_id=almacen_id,
@@ -159,7 +192,8 @@ class AlertService:
                 }
                 await self._crear_alerta_en_db(
                     tipo_alerta='PROFUNDIDAD_BAJA',
-                    mensaje=mensaje,
+                    # Asegurar que el mensaje es un string, incluso si la construcción falla
+                    mensaje=str(mensaje) if mensaje is not None else "Alerta de profundidad baja (mensaje no disponible)",
                     nivel_severidad='WARN', # O 'ERROR' según criticidad
                     neumatico_id=neumatico.id,
                     modelo_id=modelo_id,
@@ -171,12 +205,14 @@ class AlertService:
                  stmt_resolver = select(Alerta).where(
                      Alerta.tipo_alerta == 'PROFUNDIDAD_BAJA',
                      Alerta.neumatico_id == neumatico.id,
-                     Alerta.estado_alerta != 'GESTIONADA' # Solo resolver las no gestionadas
+                     # Corregido: Usar el campo booleano 'resuelta'
+                     Alerta.resuelta == False # Solo resolver las no resueltas
                  )
                  res_resolver = await self.session.exec(stmt_resolver)
                  alertas_a_resolver = res_resolver.all()
                  for alerta in alertas_a_resolver:
-                     alerta.estado_alerta = 'GESTIONADA'
+                     # Corregido: Marcar como resuelta
+                     alerta.resuelta = True
                      alerta.timestamp_gestion = datetime.now(timezone.utc)
                      alerta.notas_resolucion = f"Resuelta automáticamente por inspección con profundidad {profundidad_medida:.1f}mm >= umbral {umbral_minimo:.1f}mm."
                      self.session.add(alerta) # Añadir a la sesión para guardar cambios
@@ -255,12 +291,14 @@ class AlertService:
                      Alerta.tipo_alerta == 'STOCK_MINIMO',
                      Alerta.modelo_id == modelo_id,
                      Alerta.almacen_id == almacen_id,
-                     Alerta.estado_alerta != 'GESTIONADA'
+                     # Corregido: Usar el campo booleano 'resuelta'
+                     Alerta.resuelta == False
                  )
                  res_resolver = await self.session.exec(stmt_resolver)
                  alertas_a_resolver = res_resolver.all()
                  for alerta in alertas_a_resolver:
-                     alerta.estado_alerta = 'GESTIONADA'
+                     # Corregido: Marcar como resuelta
+                     alerta.resuelta = True
                      alerta.timestamp_gestion = datetime.now(timezone.utc)
                      alerta.notas_resolucion = f"Resuelta automáticamente. Stock actual {stock_actual} >= mínimo {nivel_minimo:.0f}."
                      self.session.add(alerta)

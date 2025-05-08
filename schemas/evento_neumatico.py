@@ -46,7 +46,7 @@ class EventoNeumaticoCreate(EventoNeumaticoBase):
     posicion_id: Optional[uuid.UUID] = None
 
     # Desmontaje
-    motivo_desmontaje_destino: Optional[EstadoNeumaticoEnum] = None # Estado destino al desmontar
+    destino_desmontaje: Optional[EstadoNeumaticoEnum] = None # Estado destino al desmontar
 
     # Destinos (Almacén) - Usado por COMPRA, DESMONTAJE(a stock), REPARACION/REENCAUCHE_SALIDA, AJUSTE
     destino_almacen_id: Optional[uuid.UUID] = None
@@ -65,20 +65,20 @@ class EventoNeumaticoCreate(EventoNeumaticoBase):
     estado_ajuste: Optional[EstadoNeumaticoEnum] = None # Nuevo estado a asignar
 
     # --- Validadores (Se aplican sobre los campos opcionales cuando son relevantes) ---
-    @field_validator('motivo_desmontaje_destino', mode='before')
-    def check_motivo_desmontaje_destino(cls, v: Optional[str], info: ValidationInfo):
+    @field_validator('destino_desmontaje', mode='before')
+    def check_destino_desmontaje(cls, v: Optional[str], info: ValidationInfo):
         enum_member = cls._get_enum_from_val(v, EstadoNeumaticoEnum)
         tipo_enum = cls._get_enum_from_val(info.data.get('tipo_evento'), TipoEventoNeumaticoEnum)
 
         if tipo_enum == TipoEventoNeumaticoEnum.DESMONTAJE and enum_member is None:
-            raise ValueError('motivo_desmontaje_destino es requerido para eventos de tipo DESMONTAJE')
+            raise ValueError('destino_desmontaje es requerido para eventos de tipo DESMONTAJE')
         return enum_member
 
     @field_validator('motivo_desecho_id_evento', mode='before')
     def check_motivo_desecho(cls, v: Optional[str | uuid.UUID], info: ValidationInfo):
         motivo_uuid = cls._get_uuid_from_val(v)
         tipo_enum = cls._get_enum_from_val(info.data.get('tipo_evento'), TipoEventoNeumaticoEnum)
-        destino_enum = cls._get_enum_from_val(info.data.get('motivo_desmontaje_destino'), EstadoNeumaticoEnum)
+        destino_enum = cls._get_enum_from_val(info.data.get('destino_desmontaje'), EstadoNeumaticoEnum)
 
         is_evento_desecho = (tipo_enum == TipoEventoNeumaticoEnum.DESECHO)
         is_desmontaje_a_desecho = (tipo_enum == TipoEventoNeumaticoEnum.DESMONTAJE and destino_enum == EstadoNeumaticoEnum.DESECHADO)

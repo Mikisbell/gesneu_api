@@ -14,6 +14,7 @@ from models.usuario import Usuario
 from models.tipo_vehiculo import TipoVehiculo
 from schemas.tipo_vehiculo import TipoVehiculoRead, TipoVehiculoUpdate
 from core.security import get_password_hash, verify_password
+from tests.helpers import create_user_and_get_token # Importar desde helpers
 
 # --- Importar settings y definir prefijos ---
 from core.config import settings
@@ -21,39 +22,9 @@ API_PREFIX = settings.API_V1_STR
 AUTH_PREFIX = f"{API_PREFIX}/auth"
 TIPOV_PREFIX = f"{API_PREFIX}/tipos-vehiculo" # <-- VERIFICA que este sea el prefijo en main.py
 
-# --- Helper para Usuario/Token (CORREGIDO TOKEN URL) ---
-async def create_user_and_get_token_for_tipov_tests(
-    client: AsyncClient, db_session: AsyncSession, user_suffix: str
-) -> tuple[str, dict]:
-    user_password = f"password_tipov_{user_suffix}"
-    hashed_password = get_password_hash(user_password)
-    username = f"testuser_tipov_{user_suffix}_{uuid.uuid4().hex[:4]}"
-    email = f"tipov_{user_suffix}@example.com"
-    stmt_user = select(Usuario).where(Usuario.username == username)
-    existing_user = (await db_session.exec(stmt_user)).first()
-    user: Usuario; user_id: Optional[str] = None
-    if not existing_user:
-        user = Usuario(username=username, email=email, password_hash=hashed_password, activo=True, rol="ADMIN", creado_en=datetime.now(timezone.utc))
-        db_session.add(user); await db_session.commit(); await db_session.refresh(user)
-        user_id = str(user.id)
-    else:
-        if not verify_password(user_password, existing_user.password_hash or ""): existing_user.password_hash = hashed_password
-        existing_user.activo=True; existing_user.rol="ADMIN"; existing_user.actualizado_en=datetime.now(timezone.utc)
-        db_session.add(existing_user); await db_session.commit(); await db_session.refresh(existing_user)
-        user_id = str(existing_user.id); user = existing_user
-    if user_id is None: pytest.fail(f"No se pudo obtener/crear user_id para {username}")
-
-    login_data = {"username": user.username, "password": user_password}
-    # ==========================
-    # ===== RUTA TOKEN CORREGIDA =====
-    token_url = f"{AUTH_PREFIX}/token"
-    # ==========================
-    response_token = await client.post(token_url, data=login_data)
-    if response_token.status_code != status.HTTP_200_OK: pytest.fail(f"Fallo al obtener token: {response_token.status_code} {response_token.text}")
-    token = response_token.json()["access_token"]
-    headers = {"Authorization": f"Bearer {token}"}
-    return user_id, headers
-# --- Fin Helper ---
+# --- Helper para Usuario/Token (Usando helper genérico) ---
+# La función create_user_and_get_token_for_tipov_tests ya no es necesaria aquí
+# ya que usaremos la versión genérica de tests.helpers
 
 # --- Pruebas (URLs Corregidas con TIPOV_PREFIX) ---
 @pytest.mark.asyncio
@@ -61,7 +32,7 @@ async def test_crear_leer_desactivar_tipo_vehiculo(client: AsyncClient, db_sessi
     """Prueba el ciclo Crear, Leer, Desactivar para un tipo de vehículo."""
     # --- CORRECCIÓN: Descomentar y asegurar que esta línea se ejecute ---
     # Llama al helper para obtener un token válido y el ID del usuario creador
-    user_id, headers = await create_user_and_get_token_for_tipov_tests(client, db_session, "crud_tipov")
+    user_id, headers = await create_user_and_get_token(client, db_session, "crud_tipov", rol="ADMIN", es_superusuario=True)
     # --- FIN CORRECCIÓN ---
 
     user_uuid = uuid.UUID(user_id) # Ahora user_id está definido
@@ -92,11 +63,12 @@ async def test_crear_leer_desactivar_tipo_vehiculo(client: AsyncClient, db_sessi
     assert db_tv is not None, "Tipo de vehículo no encontrado en BD después de desactivar"
     assert db_tv.activo is False, "Tipo de vehículo no quedó inactivo en BD"
 
-# ... (resto de las funciones de prueba en tests/test_tipos_vehiculo.py) 
+# ... (resto de las funciones de prueba en tests/test_tipos_vehiculo.py)
 
 @pytest.mark.asyncio
 async def test_crear_tipo_vehiculo_duplicado_nombre(client: AsyncClient, db_session: AsyncSession):
-    user_id, headers = await create_user_and_get_token_for_tipov_tests(client, db_session, "dup_tipov")
+    # Usar la función genérica de helpers
+    user_id, headers = await create_user_and_get_token(client, db_session, "dup_tipov", rol="ADMIN", es_superusuario=True)
     nombre_duplicado = f"TV Duplicado {uuid.uuid4()}"
     url_base = f"{TIPOV_PREFIX}/" # <-- URL Corregida
     resp1 = await client.post(url_base, json={"nombre": nombre_duplicado, "ejes_standard": 2}, headers=headers); assert resp1.status_code == status.HTTP_201_CREATED
@@ -104,26 +76,30 @@ async def test_crear_tipo_vehiculo_duplicado_nombre(client: AsyncClient, db_sess
 
 @pytest.mark.asyncio
 async def test_crear_tipo_vehiculo_ejes_fuera_rango_min(client: AsyncClient, db_session: AsyncSession):
-    user_id, headers = await create_user_and_get_token_for_tipov_tests(client, db_session, "ejes_min_tipov")
+    # Usar la función genérica de helpers
+    user_id, headers = await create_user_and_get_token(client, db_session, "ejes_min_tipov", rol="ADMIN", es_superusuario=True)
     url_base = f"{TIPOV_PREFIX}/" # <-- URL Corregida
     response = await client.post(url_base, json={"nombre": f"TV Ejes Min {uuid.uuid4()}", "ejes_standard": 0}, headers=headers); assert response.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY
 
 @pytest.mark.asyncio
 async def test_crear_tipo_vehiculo_ejes_fuera_rango_max(client: AsyncClient, db_session: AsyncSession):
-    user_id, headers = await create_user_and_get_token_for_tipov_tests(client, db_session, "ejes_max_tipov")
+    # Usar la función genérica de helpers
+    user_id, headers = await create_user_and_get_token(client, db_session, "ejes_max_tipov", rol="ADMIN", es_superusuario=True)
     url_base = f"{TIPOV_PREFIX}/" # <-- URL Corregida
     response = await client.post(url_base, json={"nombre": f"TV Ejes Max {uuid.uuid4()}", "ejes_standard": 11}, headers=headers); assert response.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY
 
 @pytest.mark.asyncio
 async def test_leer_tipo_vehiculo_not_found(client: AsyncClient, db_session: AsyncSession):
-    user_id, headers = await create_user_and_get_token_for_tipov_tests(client, db_session, "get_404_tipov")
+    # Usar la función genérica de helpers
+    user_id, headers = await create_user_and_get_token(client, db_session, "get_404_tipov", rol="ADMIN", es_superusuario=True)
     non_existent_uuid = uuid.uuid4()
     url_get = f"{TIPOV_PREFIX}/{non_existent_uuid}" # <-- URL Corregida
     response = await client.get(url_get, headers=headers); assert response.status_code == status.HTTP_404_NOT_FOUND
 
 @pytest.mark.asyncio
 async def test_actualizar_tipo_vehiculo_success(client: AsyncClient, db_session: AsyncSession):
-    user_id, headers = await create_user_and_get_token_for_tipov_tests(client, db_session, "update_tipov")
+    # Usar la función genérica de helpers
+    user_id, headers = await create_user_and_get_token(client, db_session, "update_tipov", rol="ADMIN", es_superusuario=True)
     url_base = f"{TIPOV_PREFIX}/" # <-- URL Corregida
     resp_create = await client.post(url_base, json={"nombre": f"TV Orig {uuid.uuid4()}", "ejes_standard": 2}, headers=headers); assert resp_create.status_code == status.HTTP_201_CREATED
     tipo_id = resp_create.json()["id"]
@@ -133,14 +109,16 @@ async def test_actualizar_tipo_vehiculo_success(client: AsyncClient, db_session:
 
 @pytest.mark.asyncio
 async def test_actualizar_tipo_vehiculo_not_found(client: AsyncClient, db_session: AsyncSession):
-    user_id, headers = await create_user_and_get_token_for_tipov_tests(client, db_session, "put_404_tipov")
+    # Usar la función genérica de helpers
+    user_id, headers = await create_user_and_get_token(client, db_session, "put_404_tipov", rol="ADMIN", es_superusuario=True)
     non_existent_uuid = uuid.uuid4()
     url_put = f"{TIPOV_PREFIX}/{non_existent_uuid}" # <-- URL Corregida
     response = await client.put(url_put, json={"nombre": "Fantasma"}, headers=headers); assert response.status_code == status.HTTP_404_NOT_FOUND
 
 @pytest.mark.asyncio
 async def test_actualizar_tipo_vehiculo_duplicado_nombre(client: AsyncClient, db_session: AsyncSession):
-    user_id, headers = await create_user_and_get_token_for_tipov_tests(client, db_session, "put_dup_tipov")
+    # Usar la función genérica de helpers
+    user_id, headers = await create_user_and_get_token(client, db_session, "put_dup_tipov", rol="ADMIN", es_superusuario=True)
     nombre_existente = f"TV Nombre Existente {uuid.uuid4()}"
     url_base = f"{TIPOV_PREFIX}/" # <-- URL Corregida
     resp_a = await client.post(url_base, json={"nombre": nombre_existente, "ejes_standard": 2}, headers=headers); assert resp_a.status_code == status.HTTP_201_CREATED

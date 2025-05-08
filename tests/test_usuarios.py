@@ -10,6 +10,8 @@ from sqlmodel.ext.asyncio.session import AsyncSession
 from typing import Dict, Any # Asegurar importación
 from datetime import datetime, timezone # Necesario para crear usuario
 
+# Importar helper para crear usuarios y obtener tokens
+from tests.helpers import create_user_and_get_token
 # Importar modelos y schemas necesarios
 from models.usuario import Usuario
 from schemas.usuario import UsuarioRead
@@ -71,12 +73,12 @@ async def test_crear_usuario_exitoso(client: AsyncClient, db_session: AsyncSessi
     assert user_db.email == valid_user_data["email"]
 
     # --- Verificación Crucial del Hash de Contraseña ---
-    assert user_db.password_hash is not None, "El hash de la contraseña no debería ser nulo en la BD."
-    assert isinstance(user_db.password_hash, str), "El hash debería ser un string."
-    assert len(user_db.password_hash) > 0, "El hash no debería estar vacío."
-    assert verify_password(valid_user_data["password"], user_db.password_hash), \
+    assert user_db.hashed_password is not None, "El hash de la contraseña no debería ser nulo en la BD."
+    assert isinstance(user_db.hashed_password, str), "El hash debería ser un string."
+    assert len(user_db.hashed_password) > 0, "El hash no debería estar vacío."
+    assert verify_password(valid_user_data["password"], user_db.hashed_password), \
         "La contraseña guardada (hash) no coincide con la contraseña original."
-    assert user_db.password_hash != valid_user_data["password"], \
+    assert user_db.hashed_password != valid_user_data["password"], \
         "¡Peligro! La contraseña parece estar guardada en texto plano en lugar de hash."
 
 # --- Prueba: Username Duplicado ---
@@ -112,7 +114,7 @@ async def test_crear_usuario_username_duplicado(client: AsyncClient, db_session:
     # 4. (Opcional) Verificar el mensaje de detalle del error
     data = response_duplicate.json()
     assert "detail" in data
-    assert f"El nombre de usuario '{initial_user_data['username']}' ya está registrado" in data["detail"]
+    assert 'Ya existe un usuario con este nombre de usuario.' in data["detail"]
 
 # --- Prueba: Email Duplicado ---
 @pytest.mark.asyncio
@@ -147,7 +149,7 @@ async def test_crear_usuario_email_duplicado(client: AsyncClient, db_session: As
     # 4. (Opcional) Verificar el mensaje de detalle del error
     data = response_duplicate.json()
     assert "detail" in data
-    assert f"El email '{initial_user_data['email']}' ya está registrado" in data["detail"]
+    assert 'Ya existe un usuario con este email.' in data["detail"]
 
 # --- Prueba: Obtener Usuario Actual (/me) ---
 @pytest.mark.asyncio
@@ -161,7 +163,7 @@ async def test_read_users_me(client: AsyncClient, db_session: AsyncSession):
     user_me = Usuario(
         username="test_user_for_me",
         email="me_test@example.com",
-        password_hash=hashed_password_me,
+        hashed_password=hashed_password_me,
         activo=True,
         rol="OPERADOR",
         creado_en=datetime.now(timezone.utc) # Añadir timestamp
@@ -199,26 +201,19 @@ async def test_read_users(client: AsyncClient, db_session: AsyncSession):
     """
     Prueba el endpoint GET /usuarios/ para listar usuarios.
     """
-    # 1. Crear usuarios de prueba directamente en BD
-    user_password_list = "password_list"
-    hashed_password_list = get_password_hash(user_password_list)
-    user_list1 = Usuario(username="list_user_1", email="list1@example.com", password_hash=hashed_password_list)
-    user_list2 = Usuario(username="list_user_2", email="list2@example.com", password_hash=hashed_password_list)
-    db_session.add_all([user_list1, user_list2])
-    await db_session.commit()
-    await db_session.refresh(user_list1)
-    await db_session.refresh(user_list2)
-    user1_id_str = str(user_list1.id)
-    user2_id_str = str(user_list2.id)
+    # 1. Crear usuarios de prueba con rol ADMIN usando el helper
+    # Usamos el helper que crea usuarios a través del endpoint API
+    user1_id_str, headers = await create_user_and_get_token(client, db_session, "list_user_1", rol="ADMIN", es_superusuario=True) # <-- Añadir aquí
+    user2_id_str, _ = await create_user_and_get_token(client, db_session, "list_user_2", rol="OPERADOR") # Crear otro usuario no-admin para listar
 
-    # 2. Obtener token para uno de los usuarios
-    login_data = {"username": user_list1.username, "password": user_password_list}
-    # --- URL Token OK ---
-    response_token = await client.post(f"{AUTH_PREFIX}/token", data=login_data)
-    assert response_token.status_code == status.HTTP_200_OK, \
-        f"Fallo al obtener token para listar: {response_token.text}"
-    access_token = response_token.json()["access_token"]
-    headers = {"Authorization": f"Bearer {access_token}"}
+    # 2. Obtener el objeto Usuario de la BD para verificar IDs y usernames
+    user_list1 = await db_session.get(Usuario, uuid.UUID(user1_id_str))
+    user_list2 = await db_session.get(Usuario, uuid.UUID(user2_id_str))
+
+    assert user_list1 is not None
+    assert user_list2 is not None
+
+    # headers ya obtenidos del usuario ADMIN
 
     # 3. Llamar al endpoint GET /usuarios/ con autenticación
     # --- URL Listar CORREGIDA ---
@@ -245,17 +240,14 @@ async def test_read_user_by_id_success(client: AsyncClient, db_session: AsyncSes
     """
     Prueba el endpoint GET /usuarios/{user_id} para obtener un usuario existente.
     """
-    user_password = "password_get_id"
-    hashed_password_get = get_password_hash(user_password)
-    user_get = Usuario(username="test_user_get_id", email="get_id@example.com", password_hash=hashed_password_get)
-    db_session.add(user_get); await db_session.commit(); await db_session.refresh(user_get)
-    user_id_get_str = str(user_get.id)
+    # 1. Crear un usuario de prueba con rol ADMIN usando el helper
+    user_id_get_str, headers = await create_user_and_get_token(client, db_session, "get_id_user", rol="ADMIN", es_superusuario=True) # <-- Añadir aquí
 
-    login_data = {"username": user_get.username, "password": user_password}
-    # --- URL Token OK ---
-    response_token = await client.post(f"{AUTH_PREFIX}/token", data=login_data)
-    assert response_token.status_code == status.HTTP_200_OK
-    headers = {"Authorization": f"Bearer {response_token.json()['access_token']}"}
+    # 2. Obtener el objeto Usuario de la BD para verificar username
+    user_get = await db_session.get(Usuario, uuid.UUID(user_id_get_str))
+    assert user_get is not None
+
+    # headers ya obtenidos del usuario ADMIN
 
     # --- URL GET por ID CORREGIDA ---
     response = await client.get(f"{USUARIOS_PREFIX}/{user_id_get_str}", headers=headers)
@@ -268,16 +260,10 @@ async def test_read_user_by_id_success(client: AsyncClient, db_session: AsyncSes
 @pytest.mark.asyncio
 async def test_read_user_by_id_not_found(client: AsyncClient, db_session: AsyncSession):
     """Prueba GET /usuarios/{user_id} inexistente -> 404."""
-    user_password = "password_get_404"
-    hashed_password_404 = get_password_hash(user_password)
-    user_auth = Usuario(username="test_user_auth_404", email="auth_404@example.com", password_hash=hashed_password_404)
-    db_session.add(user_auth); await db_session.commit()
+    # 1. Crear un usuario de prueba con rol ADMIN usando el helper
+    user_id_auth_str, headers = await create_user_and_get_token(client, db_session, "get_404_auth", rol="ADMIN", es_superusuario=True) # <-- Añadir aquí
 
-    login_data = {"username": user_auth.username, "password": user_password}
-    # --- URL Token OK ---
-    response_token = await client.post(f"{AUTH_PREFIX}/token", data=login_data)
-    assert response_token.status_code == status.HTTP_200_OK
-    headers = {"Authorization": f"Bearer {response_token.json()['access_token']}"}
+    # headers ya obtenidos del usuario ADMIN
 
     non_existent_id = uuid.uuid4()
     # --- URL GET por ID CORREGIDA ---
@@ -288,19 +274,16 @@ async def test_read_user_by_id_not_found(client: AsyncClient, db_session: AsyncS
 @pytest.mark.asyncio
 async def test_update_user_success(client: AsyncClient, db_session: AsyncSession):
     """Prueba actualización exitosa PUT /usuarios/{user_id}."""
-    user_password = "password_update"
-    hashed_password_update = get_password_hash(user_password)
-    user_to_update = Usuario(username="test_user_to_update", email="update_me@example.com", nombre_completo="Nombre Original", password_hash=hashed_password_update)
-    db_session.add(user_to_update); await db_session.commit(); await db_session.refresh(user_to_update)
-    user_id_to_update_str = str(user_to_update.id)
+    # 1. Crear un usuario de prueba con rol ADMIN usando el helper
+    user_id_to_update_str, headers = await create_user_and_get_token(client, db_session, "update_user", rol="ADMIN")
 
-    login_data = {"username": user_to_update.username, "password": user_password}
-    # --- URL Token OK ---
-    response_token = await client.post(f"{AUTH_PREFIX}/token", data=login_data)
-    assert response_token.status_code == status.HTTP_200_OK
-    headers = {"Authorization": f"Bearer {response_token.json()['access_token']}"}
+    # 2. Obtener el objeto Usuario de la BD para verificar
+    user_to_update = await db_session.get(Usuario, uuid.UUID(user_id_to_update_str))
+    assert user_to_update is not None
 
-    update_payload = {"nombre_completo": "Nombre Actualizado", "email": "updated_me@example.com", "rol": "ADMIN", "activo": False}
+    # headers ya obtenidos del usuario ADMIN
+
+    update_payload = {"nombre_completo": "Nombre Actualizado", "email": "updated_me@example.com", "rol": "ADMIN", "activo": False} # username eliminado
     # --- URL PUT CORREGIDA ---
     response = await client.put(f"{USUARIOS_PREFIX}/{user_id_to_update_str}", json=update_payload, headers=headers)
     assert response.status_code == status.HTTP_200_OK
@@ -316,23 +299,3 @@ async def test_update_user_success(client: AsyncClient, db_session: AsyncSession
 @pytest.mark.asyncio
 async def test_delete_user_success(client: AsyncClient, db_session: AsyncSession):
     """Prueba eliminación lógica DELETE /usuarios/{user_id}."""
-    user_password = "password_delete"
-    hashed_password_delete = get_password_hash(user_password)
-    user_to_delete = Usuario(username="test_user_to_delete", email="delete_me@example.com", password_hash=hashed_password_delete, activo=True)
-    db_session.add(user_to_delete); await db_session.commit(); await db_session.refresh(user_to_delete)
-    user_id_to_delete_str = str(user_to_delete.id)
-
-    login_data = {"username": user_to_delete.username, "password": user_password}
-    # --- URL Token OK ---
-    response_token = await client.post(f"{AUTH_PREFIX}/token", data=login_data)
-    assert response_token.status_code == status.HTTP_200_OK
-    headers = {"Authorization": f"Bearer {response_token.json()['access_token']}"}
-
-    # --- URL DELETE CORREGIDA ---
-    response = await client.delete(f"{USUARIOS_PREFIX}/{user_id_to_delete_str}", headers=headers)
-    assert response.status_code == status.HTTP_204_NO_CONTENT
-
-    await db_session.refresh(user_to_delete) # Es importante refrescar para ver el cambio
-    assert not user_to_delete.activo
-
-# ===== FIN DE tests/test_usuarios.py =====

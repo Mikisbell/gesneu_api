@@ -11,8 +11,8 @@ from sqlalchemy import func # Para usar func.lower si refinas el check
 from sqlalchemy.sql import text # Solo para vistas
 
 # --- Dependencias de BD y Autenticación ---
-from database import get_session # Tu función para obtener sesión
-import auth # Tu módulo de autenticación
+from core.dependencies import get_session # Usar la dependencia centralizada
+from core.dependencies import get_current_active_user # Usar la dependencia centralizada
 from models.usuario import Usuario # Modelo de Usuario
 
 # --- Modelos y Schemas ---
@@ -39,7 +39,7 @@ from services.neumatico_service import (
 router = APIRouter(
     tags=["Neumáticos y Eventos"],
     # Aplicar autenticación a todos los endpoints de este router
-    dependencies=[Depends(auth.get_current_active_user)]
+    dependencies=[Depends(get_current_active_user)] # Usar la dependencia centralizada
 )
 logger = logging.getLogger(__name__)
 
@@ -62,7 +62,7 @@ async def ping_neumaticos():
 async def crear_evento_neumatico(
     evento_in: EventoNeumaticoCreate, # Schema de entrada
     session: Annotated[AsyncSession, Depends(get_session)], # Dependencia de Sesión
-    current_user: Annotated[Usuario, Depends(auth.get_current_active_user)] # Dependencia de Usuario
+    current_user: Annotated[Usuario, Depends(get_current_active_user)] # Usar la dependencia centralizada
 ):
     """
     Endpoint para registrar un nuevo evento de neumático.
@@ -146,12 +146,11 @@ async def leer_historial_neumatico(
     if not neumatico:
          raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"Neumático con ID {neumatico_id} no encontrado.")
 
-    # Consultar eventos
+    # Obtener historial usando el servicio
     try:
-        stmt = select(EventoNeumatico).where(EventoNeumatico.neumatico_id == neumatico_id).order_by(EventoNeumatico.timestamp_evento.desc())
-        result = await session.exec(stmt)
-        eventos = result.all()
-        logger.info(f"Encontrados {len(eventos)} eventos para neumático {neumatico_id}")
+        neumatico_service = NeumaticoService(session=session) # Instanciar servicio
+        eventos = await neumatico_service.get_historial(neumatico_id)
+        logger.info(f"Encontrados {len(eventos)} eventos para neumático {neumatico_id} (vía servicio)")
         # Validar con el schema de respuesta
         return [HistorialNeumaticoItem.model_validate(evento) for evento in eventos]
     except PydanticValidationError as e:
@@ -170,17 +169,17 @@ async def leer_historial_neumatico(
 )
 async def leer_neumaticos_instalados(
     session: Annotated[AsyncSession, Depends(get_session)],
-    # current_user: Usuario = Depends(auth.get_current_active_user) # Ya está en dependencies
+    # current_user: Usuario = Depends(get_current_active_user) # Ya está en dependencies
 ):
     """Obtiene la lista de neumáticos instalados desde la vista optimizada `vw_neumaticos_instalados_optimizada`."""
     logger.info(f"Solicitando lista de neumáticos instalados.")
-    # Asegúrate que la vista 'vw_neumaticos_instalados_optimizada' existe en tu BD
-    view_query = text("SELECT * FROM vw_neumaticos_instalados_optimizada")
+    # Importar el objeto CRUD de neumático si no está ya importado
+    from crud.crud_neumatico import neumatico as crud_neumatico # Importar aquí o al inicio
+
     try:
-        result = await session.execute(view_query)
-        # Obtener como lista de diccionarios (o RowMapping)
-        instalados_data = result.mappings().all()
-        logger.info(f"Encontrados {len(instalados_data)} neumáticos instalados desde la vista.")
+        # Obtener datos de la vista usando el CRUD
+        instalados_data = await crud_neumatico.get_neumaticos_instalados(session)
+        logger.info(f"Encontrados {len(instalados_data)} neumáticos instalados desde la vista (vía CRUD).")
         # Validar cada fila contra el schema Pydantic
         validated_items = [NeumaticoInstaladoItem.model_validate(item_data) for item_data in instalados_data]
         return validated_items

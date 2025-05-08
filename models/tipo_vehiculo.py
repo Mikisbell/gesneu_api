@@ -1,23 +1,28 @@
-# models/tipo_vehiculo.py
+# gesneu_api2/models/tipo_vehiculo.py
+from typing import Optional, List
+from sqlmodel import Field, SQLModel, Relationship
 import uuid
-from datetime import datetime
-from typing import Optional # List si añades relaciones
-from sqlmodel import Field, SQLModel, Relationship # Añadir Relationship
-from sqlalchemy import Column, text, ForeignKey
-# Importar helpers
-from models.common import TimestampTZ, utcnow_aware
+# Se importarán SQLModelTimestamp y EstadoItem para heredar de ellos
+from .common import SQLModelTimestamp, EstadoItem # <--- Importación corregida
+from .configuracion_eje import ConfiguracionEje # Importación añadida
+from .vehiculo import Vehiculo # Importación añadida
 
-class TipoVehiculo(SQLModel, table=True):
+class TipoVehiculoBase(SQLModel):
+    nombre: str = Field(max_length=100, unique=True, index=True)
+    descripcion: Optional[str] = Field(default=None, max_length=255)
+    # Los campos 'activo' y timestamps serán heredados
+
+class TipoVehiculo(SQLModelTimestamp, EstadoItem, TipoVehiculoBase, table=True): # <--- Herencia actualizada
     __tablename__ = "tipos_vehiculo"
-    id: Optional[uuid.UUID] = Field(default_factory=uuid.uuid4, primary_key=True)
-    nombre: str = Field(index=True)
-    # Asegúrate de que estos campos coincidan con tu tabla real
-    descripcion: Optional[str] = Field(default=None)
-    categoria_principal: Optional[str] = Field(default=None, max_length=50)
-    subtipo: Optional[str] = Field(default=None, max_length=50)
-    ejes_standard: int = Field(default=2)
-    activo: bool = Field(default=True)
-    creado_en: datetime = Field(default_factory=utcnow_aware, sa_column=Column(TimestampTZ, nullable=False, server_default=text("now()")))
-    creado_por: Optional[uuid.UUID] = Field(default=None, foreign_key="usuarios.id")
-    actualizado_en: Optional[datetime] = Field(default=None, sa_column=Column(TimestampTZ, nullable=True))
-    actualizado_por: Optional[uuid.UUID] = Field(default=None, foreign_key="usuarios.id")
+
+    id: Optional[uuid.UUID] = Field(default_factory=uuid.uuid4, primary_key=True, index=True)
+    
+    # Relaciones
+    # Un tipo de vehículo puede tener muchas configuraciones de eje
+    configuraciones_eje: List["ConfiguracionEje"] = Relationship(back_populates="tipo_vehiculo")
+    # Un tipo de vehículo puede estar asociado a muchos vehículos
+    vehiculos: List["Vehiculo"] = Relationship(back_populates="tipo_vehiculo")
+
+    class Config:
+        from_attributes = True # Para Pydantic V2 (reemplaza orm_mode)
+        # orm_mode = True # Para Pydantic V1

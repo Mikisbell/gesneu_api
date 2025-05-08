@@ -1,63 +1,78 @@
-# models/parametro_inventario.py
-
+# gesneu_api2/models/parametro_inventario.py
 import uuid
-from datetime import datetime
-from typing import Optional, TYPE_CHECKING
-from sqlmodel import Field, SQLModel, Relationship
-from sqlalchemy import Column, Enum as SAEnum, text, CheckConstraint, UniqueConstraint # Renombrar Enum a SAEnum para evitar conflicto
-from models.common import TimestampTZ, utcnow_aware
+from datetime import datetime, timezone # Asegurarse que timezone esté importado si se usa
+from typing import Optional, List, TYPE_CHECKING, Any # Añadido List, Any
+from decimal import Decimal # Para campos numéricos precisos
 
-# --- IMPORTAR EL ENUM DESDE COMMON ---
-from schemas.common import TipoParametroEnum # <-- Nueva importación
+from sqlmodel import Field, SQLModel, Relationship # Añadido Relationship
+from sqlalchemy import Column, Enum as SAEnum, CheckConstraint, UniqueConstraint 
+# text ya no es necesario aquí para los campos de auditoría
+# from sqlalchemy import text 
 
-# --- ELIMINAR LA DEFINICIÓN LOCAL ---
-# import enum                          <-- Eliminar
-# class TipoParametroEnum(str, enum.Enum): <-- Eliminar bloque completo
-#    PROFUNDIDAD_MINIMA = "PROFUNDIDAD_MINIMA"
-#    ...
-# ------------------------------------
+# --- Importar los mixins correctos desde .common ---
+from .common import SQLModelTimestamp, EstadoItem # <--- CORREGIDO
 
+# --- Importar el Enum desde schemas.common ---
+from schemas.common import TipoParametroEnum 
+
+# Para referencias adelantadas en relaciones
 if TYPE_CHECKING:
     from .modelo import ModeloNeumatico
     from .almacen import Almacen
-    from .usuario import Usuario
+    from .usuario import Usuario # Si se definen relaciones explícitas para creador/actualizador
 
-class ParametroInventario(SQLModel, table=True):
-    __tablename__ = "parametros_inventario"
-    __table_args__ = (
-        # Constraint para asegurar que valor_numerico sea NOT NULL si es PROFUNDIDAD o STOCK, etc.
-        # CheckConstraint(...), # Podrías añadir constraints aquí
-        # Constraint único para combinación modelo/almacen/tipo
-        UniqueConstraint('modelo_id', 'almacen_id', 'tipo_parametro', name='uq_parametro_inventario'),
-    )
 
-    id: Optional[uuid.UUID] = Field(default_factory=uuid.uuid4, primary_key=True)
+# Definir una clase base para los campos específicos de ParametroInventario
+class ParametroInventarioBase(SQLModel):
     # FK a modelos_neumatico (NULL si es global)
     modelo_id: Optional[uuid.UUID] = Field(default=None, foreign_key="modelos_neumatico.id", index=True)
     # FK a almacenes (NULL si es global)
     almacen_id: Optional[uuid.UUID] = Field(default=None, foreign_key="almacenes.id", index=True)
 
-    # Usar el Enum importado, usando SAEnum para la columna SQLAlchemy
     tipo_parametro: TipoParametroEnum = Field(
-        sa_column=Column(SAEnum(TipoParametroEnum), nullable=False, index=True)
+        sa_column=Column(SAEnum(TipoParametroEnum, name="tipo_parametro_inventario_enum"), nullable=False, index=True) # Añadido name al SAEnum
     )
 
     # Valor numérico del parámetro (ej: mm, unidades, km, años)
-    valor_numerico: Optional[float] = Field(default=None)
+    # Usar Decimal para precisión si es necesario, o float
+    valor_numerico: Optional[Decimal] = Field(default=None, decimal_places=2) # Ejemplo con Decimal
+    # valor_numerico: Optional[float] = Field(default=None) # Alternativa con float
+    
     # Valor de texto (si algún parámetro lo necesita)
-    valor_texto: Optional[str] = Field(default=None)
+    valor_texto: Optional[str] = Field(default=None, max_length=255) # Añadido max_length
+    
+    unidad: Optional[str] = Field(default=None, max_length=50, description="Unidad del valor_numerico, ej: mm, psi, km, uds") # Campo añadido
+    descripcion: Optional[str] = Field(default=None, max_length=255) # Campo notas renombrado y con max_length
+    
+    # El campo 'activo' y los campos de timestamp vendrán de EstadoItem y SQLModelTimestamp
 
-    activo: bool = Field(default=True, nullable=False)
-    notas: Optional[str] = Field(default=None)
+# Modelo de tabla ParametroInventario, heredando los campos de auditoría y estado
+class ParametroInventario(SQLModelTimestamp, EstadoItem, ParametroInventarioBase, table=True):
+    __tablename__ = "parametros_inventario"
+    __table_args__ = (
+        # Constraint único para combinación modelo/almacen/tipo
+        UniqueConstraint('modelo_id', 'almacen_id', 'tipo_parametro', name='uq_parametro_inventario_unico'), # Nombre de constraint ajustado
+    )
 
-    # Campos de auditoría
-    creado_en: datetime = Field(default_factory=utcnow_aware, sa_column=Column(TimestampTZ, nullable=False, server_default=text("now()")))
-    creado_por: Optional[uuid.UUID] = Field(default=None, foreign_key="usuarios.id")
-    actualizado_en: Optional[datetime] = Field(default=None, sa_column=Column(TimestampTZ, nullable=True))
-    actualizado_por: Optional[uuid.UUID] = Field(default=None, foreign_key="usuarios.id")
+    id: Optional[uuid.UUID] = Field(default_factory=uuid.uuid4, primary_key=True, index=True) # Añadido index=True
 
-    # Relaciones (opcional, si necesitas navegar desde el parámetro)
-    # modelo: Optional["ModeloNeumatico"] = Relationship(back_populates="parametros")
-    # almacen: Optional["Almacen"] = Relationship(back_populates="parametros")
-    # creado_por_usuario: Optional["Usuario"] = Relationship(...)
-    # actualizado_por_usuario: Optional["Usuario"] = Relationship(...)
+    # Los campos 'activo', 'fecha_baja', 'creado_en', 'actualizado_en', 
+    # 'creado_por', 'actualizado_por' son heredados de SQLModelTimestamp y EstadoItem.
+    # Ya no es necesario definirlos explícitamente aquí.
+
+    # --- Relaciones ---
+    modelo: Optional["ModeloNeumatico"] = Relationship(back_populates="parametros_inventario")
+    almacen: Optional["Almacen"] = Relationship() # back_populates="parametros_inventario" si Almacen tiene esta relación
+
+    # Si quieres relacionar explícitamente con el usuario creador/actualizador más allá
+    # de los campos UUID heredados de SQLModelTimestamp:
+    # creador: Optional["Usuario"] = Relationship(
+    #     sa_relationship_kwargs={'foreign_keys': '[ParametroInventario.creado_por]'}
+    # )
+    # actualizador: Optional["Usuario"] = Relationship(
+    #     sa_relationship_kwargs={'foreign_keys': '[ParametroInventario.actualizado_por]'}
+    # )
+
+    class Config:
+        from_attributes = True # Para Pydantic V2
+        # orm_mode = True # Para Pydantic V1

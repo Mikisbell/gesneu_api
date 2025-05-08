@@ -1,31 +1,37 @@
-# models/alerta.py
+# gesneu_api2/models/alerta.py
 import uuid
-from datetime import datetime
-from typing import Optional, Dict, Any
-from sqlmodel import Field, SQLModel
-from sqlalchemy import Column, ForeignKey, text, JSON # Usar JSON estándar
+from datetime import datetime, timezone 
+from typing import Optional, Dict, Any, List, TYPE_CHECKING 
 
-# Importar helpers comunes
-from models.common import TimestampTZ, utcnow_aware
+import sqlalchemy # <--- IMPORTACIÓN AÑADIDA AQUÍ
+from sqlmodel import Field, SQLModel, Relationship 
+from sqlalchemy import Column, ForeignKey, text, JSON, TIMESTAMP 
+# Eliminar Enum de sqlalchemy si no se usa directamente aquí para definir columnas Enum
+# from sqlalchemy import Enum as SAEnum 
 
-class Alerta(SQLModel, table=True):
-    __tablename__ = "alertas" # Nombre de la tabla creada
+# --- Importar SQLModelTimestamp ---
+from .common import SQLModelTimestamp 
+# TipoAlertaEnum se importará desde schemas.common si se define un campo de tipo enum aquí.
+from schemas.common import TipoAlertaEnum # Asumiendo que lo usarás para tipo_alerta
 
-    id: Optional[uuid.UUID] = Field(default_factory=uuid.uuid4, primary_key=True)
-    tipo_alerta: str = Field(index=True, max_length=50)
-    mensaje: str
+# Para referencias adelantadas en relaciones
+if TYPE_CHECKING:
+    from .usuario import Usuario
+    from .neumatico import Neumatico
+    from .vehiculo import Vehiculo
+    from .modelo import ModeloNeumatico # Asumiendo que es ModeloNeumatico
+    from .almacen import Almacen
+    from .parametro_inventario import ParametroInventario
+
+
+# Definir una clase base para los campos específicos de Alerta
+class AlertaBase(SQLModel):
+    tipo_alerta: TipoAlertaEnum = Field(index=True, max_length=50) # Usar el Enum
+    descripcion: str = Field(sa_column=Column(sqlalchemy.Text, nullable=False)) # Renombrado de mensaje a descripcion y usando Text
+    
     nivel_severidad: str = Field(default='INFO', max_length=20) # ('INFO', 'WARN', 'CRITICAL')
-    estado_alerta: str = Field(default='NUEVA', index=True, max_length=20) # ('NUEVA', 'VISTA', 'GESTIONADA')
-
-    timestamp_generacion: datetime = Field(
-        default_factory=utcnow_aware,
-        sa_column=Column(TimestampTZ, nullable=False, server_default=text("now()"))
-    )
-    timestamp_gestion: Optional[datetime] = Field(
-        default=None,
-        sa_column=Column(TimestampTZ, nullable=True)
-    )
-    usuario_gestion_id: Optional[uuid.UUID] = Field(default=None, foreign_key="usuarios.id")
+    
+    resuelta: bool = Field(default=False, index=True, nullable=False)
 
     # Foreign Keys opcionales
     neumatico_id: Optional[uuid.UUID] = Field(default=None, foreign_key="neumaticos.id", index=True)
@@ -36,5 +42,35 @@ class Alerta(SQLModel, table=True):
 
     datos_contexto: Optional[Dict[str, Any]] = Field(default=None, sa_column=Column(JSON))
 
- #   class Config:
- #      orm_mode = True
+
+# Modelo de tabla Alerta, heredando los campos de auditoría de SQLModelTimestamp
+class Alerta(SQLModelTimestamp, AlertaBase, table=True):
+    __tablename__ = "alertas"
+
+    id: Optional[uuid.UUID] = Field(default_factory=uuid.uuid4, primary_key=True, index=True) 
+
+    # --- Campos heredados de AlertaBase ---
+    # tipo_alerta, descripcion, nivel_severidad, resuelta, FKs, datos_contexto
+
+    # --- Campos heredados de SQLModelTimestamp ---
+    # creado_en (será el timestamp_generacion)
+    # actualizado_en (será el timestamp_gestion si la alerta se actualiza/resuelve)
+    # creado_por (quién/qué sistema generó la alerta, si es un usuario)
+    # actualizado_por (será el usuario_gestion_id si un usuario la actualiza/resuelve)
+
+    # --- Relaciones ---
+    neumatico: Optional["Neumatico"] = Relationship() # back_populates="alertas"
+    vehiculo: Optional["Vehiculo"] = Relationship()   # back_populates="alertas"
+    modelo: Optional["ModeloNeumatico"] = Relationship() # back_populates="alertas"
+    almacen: Optional["Almacen"] = Relationship()     # back_populates="alertas"
+    parametro: Optional["ParametroInventario"] = Relationship() # back_populates="alertas"
+
+    usuario_creador: Optional["Usuario"] = Relationship(
+        sa_relationship_kwargs={'foreign_keys': '[Alerta.creado_por]'}
+    )
+    usuario_gestor: Optional["Usuario"] = Relationship(
+        sa_relationship_kwargs={'foreign_keys': '[Alerta.actualizado_por]'}
+    )
+    
+    class Config:
+        from_attributes = True 

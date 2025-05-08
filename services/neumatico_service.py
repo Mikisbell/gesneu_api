@@ -1,8 +1,8 @@
 # services/neumatico_service.py (Completo - v9 Diagnóstico)
-
 import logging
+import sys
 from datetime import date, datetime, timezone
-from typing import Optional, Tuple, cast
+from typing import Optional, Tuple, List, cast
 from uuid import UUID
 from decimal import Decimal
 
@@ -27,6 +27,13 @@ from schemas.evento_neumatico import EventoNeumaticoCreate
 from services.alert_service import AlertService
 
 logger = logging.getLogger(__name__)
+
+logging.basicConfig(
+    level=logging.DEBUG, # <-- Nivel DEBUG para ver todo
+    format='%(levelname)-8s %(name)s:%(filename)s:%(lineno)d %(message)s',
+    stream=sys.stdout, # <-- Asegurar que vaya a la consola
+    force=True # <-- Forzar reconfiguración si ya estaba configurado
+)
 
 # --- Excepciones ---
 class ServiceError(Exception):
@@ -81,34 +88,47 @@ class NeumaticoService:
         if not event_data.vehiculo_id or not event_data.posicion_id:
             raise ValidationError("vehiculo_id y posicion_id requeridos.")
 
+        # Obtener vehículo y posición
         vehiculo = await self.session.get(Vehiculo, event_data.vehiculo_id)
         if not vehiculo: raise ValidationError(f"Vehículo ID {event_data.vehiculo_id} no encontrado.")
         if not vehiculo.activo: raise ValidationError(f"Vehículo ID {event_data.vehiculo_id} inactivo.")
-
+ 
         posicion = await self.session.get(PosicionNeumatico, event_data.posicion_id)
         if not posicion: raise ValidationError(f"Posición ID {event_data.posicion_id} no encontrada.")
-
-        # --- Inicio Corrección: Quitar refresh y cargar config_eje con session.get ---
-        # Ya no se usa refresh aquí para las relaciones
-
+ 
+        # --- Inicio Corrección: Forzar recarga de objetos ---
+        # Esto es un intento de mitigar posibles problemas de caché de sesión
+        await self.session.refresh(vehiculo)
+        await self.session.refresh(posicion)
+        # --- Fin Corrección ---
+ 
         # Validar si la posición pertenece al tipo de vehículo (comparando IDs)
         if posicion.configuracion_eje_id and vehiculo.tipo_vehiculo_id:
             # Obtener explícitamente el objeto ConfiguracionEje usando su ID
-            config_eje = await self.session.get(ConfiguracionEje, posicion.configuracion_eje_id)
+            # Usar selectinload para cargar la relación tipo_vehiculo en ConfiguracionEje
+            stmt_config_eje = select(ConfiguracionEje).where(ConfiguracionEje.id == posicion.configuracion_eje_id).options(selectinload(ConfiguracionEje.tipo_vehiculo))
+            config_eje = (await self.session.exec(stmt_config_eje)).first()
+ 
+            logger.debug(f"SERVICIO: Vehiculo ID: {vehiculo.id}, TipoVehiculo ID en Vehiculo: {vehiculo.tipo_vehiculo_id}")
+            logger.debug(f"SERVICIO: Posicion ID: {posicion.id}, ConfigEje ID en Posicion: {posicion.configuracion_eje_id}")
+            logger.debug(f"SERVICIO: ConfigEje obtenido: {config_eje.id if config_eje else 'No encontrado'}, TipoVehiculo ID en Eje: {config_eje.tipo_vehiculo_id if config_eje else 'N/A'}")
+ 
             if not config_eje:
                 # Error si el ID existe en 'posicion' pero el Eje no (problema de integridad)
                 logger.error(f"Error Crítico: ConfiguracionEje ID {posicion.configuracion_eje_id} no encontrado, referenciado por Posicion {posicion.id}")
                 raise ServiceError(f"No se pudo encontrar la configuración del eje para la posición {posicion.id}.")
-
+                
             # Ahora sí, comparar el tipo_vehiculo_id del eje con el del vehículo
-            if config_eje.tipo_vehiculo_id != vehiculo.tipo_vehiculo_id:
-                logger.error(f"Discrepancia Tipo Vehículo: Vehiculo {vehiculo.id}({vehiculo.tipo_vehiculo_id}) vs Posicion {posicion.id} en Eje {posicion.configuracion_eje_id}({config_eje.tipo_vehiculo_id})")
+            # Acceder al tipo_vehiculo_id a través del objeto cargado
+            # --- TEMPORAL: Comparar como strings para depuración ---
+            if str(config_eje.tipo_vehiculo_id) != str(vehiculo.tipo_vehiculo_id):
+                logger.error(f"Discrepancia Tipo Vehículo (string compare): Vehiculo {vehiculo.id}({vehiculo.tipo_vehiculo_id}) vs Posicion {posicion.id} en Eje {posicion.configuracion_eje_id}({config_eje.tipo_vehiculo_id})")
                 raise ValidationError(f"La posición {posicion.id} ({posicion.codigo_posicion}) no pertenece al tipo de vehículo del vehículo {vehiculo.numero_economico} (Tipo ID: {vehiculo.tipo_vehiculo_id}).")
-        # --- Fin Corrección ---
+            # --- FIN TEMPORAL ---
         elif not posicion.configuracion_eje_id:
              logger.warning(f"Posición {posicion.id} ({posicion.codigo_posicion}) no tiene configuracion_eje_id asignado.")
              # Considerar si esto debe ser un ValidationError
-
+ 
         # Si todo está bien, devolver los objetos obtenidos
         return vehiculo, posicion
 
@@ -191,6 +211,28 @@ class NeumaticoService:
         await self.alert_service.check_and_create_alerts(db_neumatico, db_evento)
         return db_neumatico, db_evento
 
+    async def get_historial(self, neumatico_id: UUID) -> List[EventoNeumatico]:
+        """
+        Retrieve the history of events for a specific tire, ordered by timestamp descending.
+
+        Args:
+            neumatico_id: The ID of the tire.
+
+        Returns:
+            A list of EventoNeumatico instances.
+        """
+        logger.info(f"Service: Getting historial for neumático ID: {neumatico_id}")
+        # Verificar si el neumático existe (opcional aquí, el router ya lo hace, pero buena práctica)
+        # neumatico = await self.session.get(Neumatico, neumatico_id)
+        # if not neumatico:
+        #      raise NeumaticoNotFoundError(f"Neumático con ID {neumatico_id} no encontrado.")
+
+        stmt = select(EventoNeumatico).where(EventoNeumatico.neumatico_id == neumatico_id).order_by(EventoNeumatico.timestamp_evento.desc())
+        result = await self.session.exec(stmt)
+        eventos = result.all()
+        logger.info(f"Service: Found {len(eventos)} events for neumático {neumatico_id}")
+        return eventos
+
     # --- Métodos Helper ---
     def _calculate_km_recorridos(self, event_data: EventoNeumaticoCreate, db_neumatico: Neumatico) -> int:
         """Calcula KM recorridos desde la última instalación/rotación."""
@@ -258,8 +300,8 @@ class NeumaticoService:
         logger.info(f"Procesando DESMONTAJE para neumático {db_neumatico.id}")
         if db_neumatico.estado_actual != EstadoNeumaticoEnum.INSTALADO:
              raise ConflictError(f"Neumático {db_neumatico.id} no está INSTALADO.")
-        if not event_data.motivo_desmontaje_destino:
-             raise ValidationError("motivo_desmontaje_destino requerido.")
+        if not event_data.destino_desmontaje:
+             raise ValidationError("destino_desmontaje requerido.")
 
         # --- CORRECCIÓN AQUÍ: Calcular y sumar KM al campo correcto ---
         # Ahora llamamos a la función reactivada y corregida
@@ -269,7 +311,7 @@ class NeumaticoService:
         logger.info(f"Sumando {km_recorridos_ciclo} KM por desmontaje al neumático {db_neumatico.id}. Total acumulado: {db_neumatico.kilometraje_acumulado}")
         # -------------------------------------------------------------
 
-        nuevo_estado = event_data.motivo_desmontaje_destino
+        nuevo_estado = event_data.destino_desmontaje
         db_neumatico.estado_actual = nuevo_estado
         db_neumatico.ubicacion_actual_vehiculo_id = None
         db_neumatico.ubicacion_actual_posicion_id = None
@@ -381,45 +423,77 @@ class NeumaticoService:
         return True
 
     async def _handle_reparacion_salida(self, event_data: EventoNeumaticoCreate, db_neumatico: Neumatico) -> bool:
-        # ... (sin cambios) ...
         logger.info(f"Procesando REPARACION_SALIDA para neumático {db_neumatico.id}")
-        if db_neumatico.estado_actual != EstadoNeumaticoEnum.EN_REPARACION: raise ConflictError(f"Neumático {db_neumatico.id} no está EN_REPARACION.")
-        almacen_destino = await self._validate_and_get_almacen(event_data.destino_almacen_id)
-        await self._validate_and_get_proveedor(event_data.proveedor_servicio_id, required=False)
+        if db_neumatico.estado_actual != EstadoNeumaticoEnum.EN_REPARACION:
+            raise ConflictError(f"Neumático {db_neumatico.id} no está EN_REPARACION.")
+
+        # --- CORRECCIÓN y DEBUGGING AQUÍ ---
+        logger.debug(f"HANDLER REPARACION_SALIDA: Verificando almacen_id recibido: {event_data.destino_almacen_id}")
+        # Asegúrate de que el almacén es requerido para este evento
+        almacen_destino = await self._validate_and_get_almacen(event_data.destino_almacen_id, required=True)
+        # --- FIN CORRECCIÓN y DEBUGGING ---
+
+        await self._validate_and_get_proveedor(event_data.proveedor_servicio_id, required=False) # Proveedor es opcional en la salida? Ajusta si es necesario.
+
         db_neumatico.estado_actual = EstadoNeumaticoEnum.EN_STOCK
-        db_neumatico.ubicacion_almacen_id = almacen_destino.id # type: ignore
-        db_neumatico.ubicacion_actual_vehiculo_id = None; db_neumatico.ubicacion_actual_posicion_id = None
-        logger.info(f"Neumático {db_neumatico.id} actualizado a EN_STOCK post-reparación.")
+        # La siguiente línea dará error si almacen_destino es None, pero la validación anterior (required=True) lo previene.
+        db_neumatico.ubicacion_almacen_id = almacen_destino.id # type: ignore 
+        db_neumatico.ubicacion_actual_vehiculo_id = None
+        db_neumatico.ubicacion_actual_posicion_id = None
+        logger.info(f"Neumático {db_neumatico.id} actualizado a EN_STOCK post-reparación y asignado a almacén {almacen_destino.id}.") # type: ignore
         return True
+    
+
 
     async def _handle_reencauche_entrada(self, event_data: EventoNeumaticoCreate, db_neumatico: Neumatico) -> bool:
         logger.info(f"Procesando REENCAUCHE_ENTRADA para neumático {db_neumatico.id}")
-        if db_neumatico.estado_actual == EstadoNeumaticoEnum.INSTALADO: raise ConflictError("Desmontar antes de reencauchar.")
-        await self._validate_and_get_proveedor(event_data.proveedor_servicio_id)
+        # Validar estado previo
+        if db_neumatico.estado_actual == EstadoNeumaticoEnum.INSTALADO: 
+            raise ConflictError("Desmontar antes de enviar a reencauchar.")
+        # Se podría añadir lógica para permitir solo desde ciertos estados (ej: EN_STOCK, EN_REPARACION?) si aplica.
 
-        # --- CORRECCIÓN v8: Validación límite (usando nombre correcto y carga explícita) ---
+        
+        # --- CORRECCIÓN: Hacer explícito que el proveedor es requerido ---
+        await self._validate_and_get_proveedor(event_data.proveedor_servicio_id, required=True)
+        # ---------------------------------------------------------------
+
+        # Validación del límite de reencauches (parece correcta)
         modelo_neum = None
         if db_neumatico.modelo_id:
             modelo_neum = await self.session.get(ModeloNeumatico, db_neumatico.modelo_id)
 
-        if modelo_neum and modelo_neum.reencauches_maximos is not None:
-             reencauches_previos = db_neumatico.reencauches_realizados or 0 # <-- Usar nombre correcto
+        # Añadir manejo si el modelo no se encuentra
+        if not modelo_neum:
+            logger.error(f"No se pudo cargar ModeloNeumatico con ID {db_neumatico.modelo_id} para neumático {db_neumatico.id}")
+            raise ServiceError("No se pudo obtener la información del modelo del neumático.")
+        
+        # Verificar si el modelo permite reencauche (Importante tener esta validación aquí también)
+        if not modelo_neum.permite_reencauche:
+            raise ValidationError(f"Modelo {modelo_neum.nombre_modelo} (ID: {modelo_neum.id}) no permite reencauche.")
+
+        if modelo_neum.reencauches_maximos is not None:
+             reencauches_previos = db_neumatico.reencauches_realizados or 0
              if reencauches_previos >= modelo_neum.reencauches_maximos:
                  raise ValidationError(f"Neumático {db_neumatico.id} alcanzó límite de {modelo_neum.reencauches_maximos} reencauches.")
-        elif not modelo_neum and db_neumatico.modelo_id:
-             logger.warning(f"Modelo ID {db_neumatico.modelo_id} no encontrado para validar límite.")
-        # --- FIN CORRECCIÓN v8 ---
-
+        
+        # Actualizar estado y limpiar ubicaciones
         db_neumatico.estado_actual = EstadoNeumaticoEnum.EN_REENCAUCHE
-        db_neumatico.ubicacion_actual_vehiculo_id = None; db_neumatico.ubicacion_actual_posicion_id = None; db_neumatico.ubicacion_almacen_id = None
+        db_neumatico.ubicacion_actual_vehiculo_id = None
+        db_neumatico.ubicacion_actual_posicion_id = None
+        db_neumatico.ubicacion_almacen_id = None
         logger.info(f"Neumático {db_neumatico.id} actualizado a EN_REENCAUCHE.")
         return True
+
+
 
 
     async def _handle_reencauche_salida(self, event_data: EventoNeumaticoCreate, db_neumatico: Neumatico) -> bool:
         logger.info(f"Procesando REENCAUCHE_SALIDA para neumático {db_neumatico.id}")
         if db_neumatico.estado_actual != EstadoNeumaticoEnum.EN_REENCAUCHE: raise ConflictError(f"Neumático {db_neumatico.id} no está EN_REENCAUCHE.")
         if event_data.profundidad_post_reencauche_mm is None: raise ValidationError("profundidad_post_reencauche_mm requerida.")
+
+        logger.debug(f"HANDLER REENCAUCHE_SALIDA: Verificando almacen_id recibido: {event_data.destino_almacen_id}")
+        
         almacen_destino = await self._validate_and_get_almacen(event_data.destino_almacen_id, required=True) # Asegurar que es requerido
         await self._validate_and_get_proveedor(event_data.proveedor_servicio_id, required=False) # Proveedor es opcional aquí?
 
@@ -471,6 +545,9 @@ class NeumaticoService:
         estado_ajuste_enum = event_data.estado_ajuste
         if estado_ajuste_enum is None: raise ValidationError("estado_ajuste requerido.")
         if not isinstance(estado_ajuste_enum, EstadoNeumaticoEnum): raise ValidationError(f"Valor inválido para estado_ajuste: {estado_ajuste_enum}")
+
+        logger.debug(f"HANDLER AJUSTE_INV: Verificando almacen_id recibido: {event_data.destino_almacen_id}")
+
         almacen_destino = await self._validate_and_get_almacen(event_data.destino_almacen_id)
         db_neumatico.estado_actual = estado_ajuste_enum
         db_neumatico.ubicacion_almacen_id = almacen_destino.id # type: ignore

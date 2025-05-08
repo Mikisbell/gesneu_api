@@ -35,11 +35,11 @@ async def create_user_and_get_token_for_fabr_tests(
     existing_user = (await db_session.exec(stmt_user)).first()
     user: Usuario; user_id: Optional[str] = None
     if not existing_user:
-        user = Usuario(username=username, email=email, password_hash=hashed_password, activo=True, rol="ADMIN", creado_en=datetime.now(timezone.utc))
+        user = Usuario(username=username, email=email, hashed_password=hashed_password, activo=True, rol="ADMIN", creado_en=datetime.now(timezone.utc))
         db_session.add(user); await db_session.commit(); await db_session.refresh(user)
         user_id = str(user.id)
     else:
-        if not verify_password(user_password, existing_user.password_hash or ""): existing_user.password_hash = hashed_password
+        if not verify_password(user_password, existing_user.hashed_password or ""): existing_user.hashed_password = hashed_password
         existing_user.activo=True; existing_user.rol="ADMIN"; existing_user.actualizado_en=datetime.now(timezone.utc)
         db_session.add(existing_user); await db_session.commit(); await db_session.refresh(existing_user)
         user_id = str(existing_user.id); user = existing_user

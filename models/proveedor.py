@@ -1,44 +1,65 @@
-# models/proveedor.py
-
+# gesneu_api2/models/proveedor.py
 import uuid
-from datetime import datetime, timezone # timezone no se usa aquí, podrías quitarla
-from typing import Optional
-from sqlmodel import Field, SQLModel
-# --- Asegúrate de importar Column, text, TIMESTAMP, ForeignKey ---
-from sqlalchemy import Column, text, ForeignKey # TIMESTAMP no se usa explícitamente aquí, TimestampTZ sí
-# Importar TimestampTZ y utcnow_aware desde common
-from models.common import TimestampTZ, utcnow_aware
+from typing import Optional, List, TYPE_CHECKING # Añadido List y TYPE_CHECKING
 
-# Importar Base y Enum desde schemas
-from schemas.proveedor import ProveedorBase # <--- IMPORTANTE: Aquí se hereda 'nombre' y 'ruc'
-from schemas.common import TipoProveedorEnum # Asegúrate que este Enum exista y se importe bien
+from sqlmodel import Field, SQLModel, Relationship # Añadido Relationship
+# Column, text, ForeignKey ya no son necesarios aquí para los campos de auditoría
+# from sqlalchemy import Column, text, ForeignKey
+
+# --- Importar SQLModelTimestamp y la base del schema ---
+from .common import SQLModelTimestamp # <--- CORREGIDO: Importar SQLModelTimestamp
+# ProveedorBase de schemas ya es un SQLModel y define 'activo', 'nombre', 'ruc', 'tipo_proveedor'
+from schemas.proveedor import ProveedorBase as ProveedorSchemaBase 
+# TipoProveedorEnum es usado por ProveedorSchemaBase, así que su importación allí es suficiente.
+
+# Para referencias adelantadas en relaciones
+if TYPE_CHECKING:
+    from .neumatico import Neumatico # Para la relación neumaticos_comprados
+    from .usuario import Usuario # Si se definen relaciones explícitas para creador/actualizador
 
 
-# ---------------------------------------------------------------------------
 # Modelo de Tabla Proveedor
-# ---------------------------------------------------------------------------
-class Proveedor(ProveedorBase, table=True): # Hereda de ProveedorBase
+# Hereda los campos de auditoría de SQLModelTimestamp
+# y los campos base (incluyendo 'activo') de ProveedorSchemaBase.
+class Proveedor(SQLModelTimestamp, ProveedorSchemaBase, table=True):
     __tablename__ = "proveedores"
 
-    # ID y campos de auditoría definidos aquí están bien
-    id: Optional[uuid.UUID] = Field(default_factory=uuid.uuid4, primary_key=True)
+    # --- Clave Primaria ---
+    # ProveedorSchemaBase no define 'id', así que lo definimos aquí.
+    id: Optional[uuid.UUID] = Field(default_factory=uuid.uuid4, primary_key=True, index=True)
 
-    # --- Campos específicos de tabla (no heredados) ---
-    # Estos no tienen unique/index, así que están bien
-    contacto_principal: Optional[str] = Field(default=None)
+    # --- Campos heredados de ProveedorSchemaBase ---
+    # nombre: str (unique, index, max_length=100)
+    # ruc: Optional[str] (unique, index, max_length=20)
+    # tipo_proveedor: Optional[TipoProveedorEnum]
+    # activo: bool (default=True)
+
+    # --- Campos heredados de SQLModelTimestamp ---
+    # creado_en: datetime
+    # actualizado_en: Optional[datetime]
+    # creado_por: Optional[uuid.UUID] (ForeignKey a usuarios.id)
+    # actualizado_por: Optional[uuid.UUID] (ForeignKey a usuarios.id)
+
+    # --- Campos adicionales específicos de la tabla 'proveedores' ---
+    contacto_principal: Optional[str] = Field(default=None, max_length=150) # Especificar max_length
     telefono: Optional[str] = Field(default=None, max_length=50)
-    email: Optional[str] = Field(default=None, max_length=100)
-    direccion: Optional[str] = Field(default=None)
+    email: Optional[str] = Field(default=None, max_length=100, index=True) # Considerar index si se busca por email
+    direccion: Optional[str] = Field(default=None, max_length=255) # Especificar max_length
 
-    # --- Campos de auditoría con mapeo TZ ---
-    # Estos usan sa_column=Column(...) y están bien
-    creado_en: datetime = Field(
-        default_factory=utcnow_aware,
-        sa_column=Column(TimestampTZ, nullable=False, server_default=text("now()"))
-    )
-    creado_por: Optional[uuid.UUID] = Field(default=None, foreign_key="usuarios.id")
-    actualizado_en: Optional[datetime] = Field(
-        default=None,
-        sa_column=Column(TimestampTZ, nullable=True)
-    )
-    actualizado_por: Optional[uuid.UUID] = Field(default=None, foreign_key="usuarios.id")
+    # --- Relaciones ---
+    # Un proveedor puede haber suministrado muchos neumáticos
+    # Esta relación asume que Neumatico tiene un campo 'proveedor_compra_id' y una relación 'proveedor_compra'
+    neumaticos_comprados: List["Neumatico"] = Relationship(back_populates="proveedor_compra")
+
+    # Si quieres relacionar explícitamente con el usuario creador/actualizador más allá
+    # de los campos UUID heredados de SQLModelTimestamp:
+    # creador: Optional["Usuario"] = Relationship(
+    #     sa_relationship_kwargs={'foreign_keys': '[Proveedor.creado_por]'}
+    # )
+    # actualizador: Optional["Usuario"] = Relationship(
+    #     sa_relationship_kwargs={'foreign_keys': '[Proveedor.actualizado_por]'}
+    # )
+
+    class Config:
+        from_attributes = True # Para Pydantic V2
+        # orm_mode = True # Para Pydantic V1

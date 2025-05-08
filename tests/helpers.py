@@ -1,142 +1,148 @@
-# tests/helpers.py (Versión Completa y Corregida - VERIFICADA)
-
+# tests/helpers.py
 import uuid
-from typing import Dict, Optional, Tuple
-from datetime import datetime, timezone, date # <-- Imports datetime OK
+from typing import Dict, Optional, Tuple, Union 
+from datetime import datetime, timezone, date
 from httpx import AsyncClient
 from sqlmodel import select
 from sqlmodel.ext.asyncio.session import AsyncSession
 from fastapi import status
-import pytest # <-- Import pytest OK
+import pytest
+import sqlalchemy # Necesario si usas Column con sqlalchemy.String
 
-# --- Importar utilidades de seguridad ---
-from core.security import get_password_hash, verify_password # OK
+# --- Importaciones para Pylance y uso en helpers ---
+from decimal import Decimal
+from models.usuario import Usuario
+from models.fabricante import FabricanteNeumatico
+from models.modelo import ModeloNeumatico
+from models.proveedor import Proveedor
+from models.neumatico import Neumatico
+from models.tipo_vehiculo import TipoVehiculo
+from models.vehiculo import Vehiculo 
+from models.configuracion_eje import ConfiguracionEje
+from models.posicion_neumatico import PosicionNeumatico
+from models.parametro_inventario import ParametroInventario
+from models.almacen import Almacen
+from models.motivo_desecho import MotivoDesecho # Añadido si se usa
+from models.alerta import Alerta # Añadido si se usa
 
-# --- Importar todos los Modelos y Enums necesarios para los helpers ---
-from models.usuario import Usuario # OK
-from models.fabricante import FabricanteNeumatico # OK
-from models.modelo import ModeloNeumatico # OK
-from models.proveedor import Proveedor # OK
-# Importar Enums desde common es mejor práctica
-from schemas.common import ( # OK (Importado desde common)
-    TipoProveedorEnum, EstadoNeumaticoEnum, TipoEjeEnum,
-    LadoVehiculoEnum, TipoParametroEnum
+from schemas.common import (
+    EstadoNeumaticoEnum, TipoEventoNeumaticoEnum, TipoProveedorEnum,
+    TipoEjeEnum, LadoVehiculoEnum, TipoParametroEnum, TipoAlertaEnum
 )
-from models.tipo_vehiculo import TipoVehiculo # OK
-from models.configuracion_eje import ConfiguracionEje # OK
-from models.posicion_neumatico import PosicionNeumatico # OK
-from models.vehiculo import Vehiculo # OK
-from models.neumatico import Neumatico # OK
-from models.almacen import Almacen # OK
-from models.motivo_desecho import MotivoDesecho # OK
-from models.parametro_inventario import ParametroInventario # OK
+# --- Fin importaciones ---
 
-# --- Importar settings para obtener el prefijo de la API ---
-from core.config import settings # OK
+from core.security import get_password_hash, verify_password
+from core.config import settings
 
-API_PREFIX = settings.API_V1_STR # Obtener el prefijo (ej: /api/v1) OK
+API_PREFIX = settings.API_V1_STR
+AUTH_PREFIX = f"{API_PREFIX}/auth"
+NEUMATICOS_PREFIX = f"{API_PREFIX}/neumaticos"
 
-# --- Helper Genérico Corregido ---
+# --- Helper Genérico Corregido con Debugging y manejo de None ---
+
+
+# --- Función Auxiliar Principal (si aún la necesitas directamente) ---
+# --- Función Auxiliar Principal (si aún la necesitas directamente) ---
 async def create_user_and_get_token(
-    client: AsyncClient,
-    session: AsyncSession,
-    user_suffix: str,
-    rol: str = "OPERADOR",
-    activo: bool = True
-) -> tuple[str, dict]:
-    """
-    Crea un usuario único para pruebas y devuelve su ID y headers con token.
-    Funciona con cualquier sesión asíncrona. CORREGIDO para usar API_PREFIX.
-    """
-    user_password = f"password_{user_suffix}"
-    hashed_password = get_password_hash(user_password)
-    username = f"testuser_{user_suffix}_{uuid.uuid4().hex[:4]}"
+    client: AsyncClient, db_session: AsyncSession, user_suffix: str = "", rol: str = "OPERADOR", activo: bool = True, es_superusuario: bool = False
+) -> Tuple[str, Dict[str, str]]:
+    """Crea un usuario, inicia sesión y devuelve ID y headers."""
+    # Genera un nombre de usuario y email únicos para evitar colisiones en ejecuciones rápidas
+    unique_part = uuid.uuid4().hex[:6]
+    username = f"testuser_{user_suffix}_{unique_part}"
     email = f"{username}@example.com"
+    password = "testpassword"
 
-    stmt_user = select(Usuario).where(Usuario.username == username)
-    existing_user_result = await session.exec(stmt_user)
-    existing_user = existing_user_result.first()
+    user = await create_test_user(db_session, username, email, password, rol=rol, activo=activo, es_superusuario=es_superusuario)
+    headers = await get_auth_headers(client, username, password)
 
-    user: Usuario
-    # Intentar asignar user_id dentro del if/else para asegurar que siempre tenga valor
-    user_id: Optional[str] = None
-    if not existing_user:
-        user = Usuario(
-            username=username, email=email, password_hash=hashed_password,
-            activo=activo, rol=rol, creado_en=datetime.now(timezone.utc)
-        )
-        session.add(user)
-        await session.commit()
-        await session.refresh(user)
-        user_id = str(user.id)
-    else:
-        # Si existiera, actualizar datos y obtener ID
-        if not verify_password(user_password, existing_user.password_hash or ""):
-             existing_user.password_hash = hashed_password
-        existing_user.activo = activo
-        existing_user.rol = rol
-        existing_user.actualizado_en = datetime.now(timezone.utc)
-        session.add(existing_user)
-        await session.commit()
-        await session.refresh(existing_user)
-        user_id = str(existing_user.id)
-        user = existing_user
+    return str(user.id), headers
+# --- Función Base para Crear Usuario ---
+async def create_test_user(db_session: AsyncSession, username: str, email: str, password: str, rol: str = "OPERADOR", activo: bool = True, es_superusuario: bool = False) -> Usuario:
+    """Crea y guarda un usuario de prueba con contraseña hasheada."""
+    user_id_uuid = uuid.uuid4()
+    user = Usuario(
+        id=user_id_uuid,
+        username=username,
+        email=email,
+        hashed_password=get_password_hash(password), # ¡Aplicar hash aquí!
+        activo=activo,
+        rol=rol, # Añadir rol
+        es_superusuario=es_superusuario,
+        creado_en=datetime.now(timezone.utc) # Asegurar campo de auditoría
+    )
+    db_session.add(user)
+    try:
+        await db_session.commit()
+        await db_session.refresh(user)
+    except Exception as e:
+        await db_session.rollback() # Importante hacer rollback si falla el commit
+        print(f"Error al crear usuario de prueba {username}: {e}") # Log para depuración
+        # Puedes decidir si relanzar la excepción o manejarla de otra forma
+        raise e
+    return user
 
-    # Asegurarse que user_id se asignó
-    if user_id is None:
-        pytest.fail(f"No se pudo obtener/crear user_id para {username}")
+# --- Función Base para Obtener Headers ---
+async def get_auth_headers(client: AsyncClient, username: str, password: str) -> Dict[str, str]:
+    """Inicia sesión y devuelve los headers de autorización."""
+    login_data = {"username": username, "password": password}
+    # Asegúrate que la URL de login sea correcta según tu router de autenticación
+    # CORRECCIÓN: Usar la URL correcta para el endpoint de token
+    response = await client.post(f"{AUTH_PREFIX}/token", data=login_data)
 
-    # Obtener token usando la ruta CORRECTA con prefijo
-    login_data = {"username": user.username, "password": user_password}
-    # ===========================
-    # ===== RUTA CORREGIDA =====
-    token_url = f"{API_PREFIX}/auth/token" # Usar el prefijo
-    # ===========================
-    print(f"DEBUG [helpers]: Solicitando token a: {token_url}")
-    response_token = await client.post(token_url, data=login_data)
+    # Verifica si el login fue exitoso antes de continuar
+    if response.status_code != status.HTTP_200_OK: # Usar status.HTTP_200_OK
+        print(f"Fallo el login para {username}: {response.status_code} {response.text}")
+        # Decide cómo manejar el fallo de login, ¿debería fallar la prueba?
+        response.raise_for_status() # Esto hará que la prueba falle si el login no es 200 OK
 
-    if response_token.status_code != status.HTTP_200_OK:
-        pytest.fail(
-            f"Fallo al obtener token en helper genérico para user {user.username}: "
-            f"{response_token.status_code} {response_token.text}. URL: {token_url}"
-        )
+    token_data = response.json()
+    token = token_data.get("access_token") # Usar .get() para seguridad
 
-    token_data = response_token.json()
-    token = token_data["access_token"]
+    if not token:
+        print(f"ERROR [helpers]: No se encontró 'access_token' en la respuesta del token para {username}. Respuesta: {token_data}")
+        # Decide cómo manejar la falta de token, ¿debería fallar la prueba?
+        raise ValueError(f"No se recibió access_token para el usuario {username}") # Fallar si no hay token
+
     headers = {"Authorization": f"Bearer {token}"}
-    print(f"DEBUG [helpers]: Token obtenido para {user.username}")
-    # Asegúrate de que user_id no sea None antes de devolverlo
-    return user_id, headers
+    return headers
 
-# --- Otros Helpers Específicos (Llaman al genérico corregido) ---
+
+
+
+
+
+
+# --- Otros Helpers Específicos (Manejan Optional) ---
 async def create_user_and_get_token_for_fabr_tests(
      client: AsyncClient, db_session: AsyncSession, user_suffix: str
-) -> tuple[str, dict]:
-     return await create_user_and_get_token(client, db_session, f"fabr_{user_suffix}", rol="ADMIN")
+) -> Tuple[str, Dict[str, str]]: # Cambiar a Tuple, ya que get_auth_headers falla si no hay token
+     return await create_user_and_get_token(client, db_session, f"fabr_{user_suffix}", rol="ADMIN", es_superusuario=True)
 
 async def create_user_and_get_token_for_prov_tests(
      client: AsyncClient, db_session: AsyncSession, user_suffix: str
-) -> tuple[str, dict]:
-     return await create_user_and_get_token(client, db_session, f"prov_{user_suffix}", rol="ADMIN")
+) -> Tuple[str, Dict[str, str]]: # Cambiar a Tuple
+     return await create_user_and_get_token(client, db_session, f"prov_{user_suffix}", rol="ADMIN", es_superusuario=True)
 
 async def create_user_and_get_token_for_tipov_tests(
      client: AsyncClient, db_session: AsyncSession, user_suffix: str
-) -> tuple[str, dict]:
-     return await create_user_and_get_token(client, db_session, f"tipov_{user_suffix}", rol="ADMIN")
+) -> Tuple[str, Dict[str, str]]: # Cambiar a Tuple
+     return await create_user_and_get_token(client, db_session, f"tipov_{user_suffix}", rol="ADMIN", es_superusuario=True)
 
 async def create_user_and_get_token_for_veh_tests(
      client: AsyncClient, db_session: AsyncSession, user_suffix: str
-) -> tuple[str, dict]:
-     return await create_user_and_get_token(client, db_session, f"veh_{user_suffix}")
+) -> Tuple[str, Dict[str, str]]: # Cambiar a Tuple
+     return await create_user_and_get_token(client, db_session, f"veh_{user_suffix}", es_superusuario=True) # Ajustar rol si es necesario
 
 
-# --- Helpers de Setup (Centralizados aquí) ---
+# --- Helpers de Setup (Ajustados para manejar None y devolver 5 elementos) ---
 async def setup_compra_prerequisites(
     client: AsyncClient, db_session: AsyncSession
-) -> Tuple[Dict[str, str], uuid.UUID, uuid.UUID]:
-    """Crea neumático base y dependencias (usuario, token, fab, mod, prov). CORREGIDO"""
+) -> Tuple[Dict[str, str], uuid.UUID, uuid.UUID, uuid.UUID, uuid.UUID]:
+    """Crea usuario, token, fabricante, modelo, proveedor y almacén base."""
     print("DEBUG [setup_compra]: Iniciando...")
-    user_id_str, headers = await create_user_and_get_token(client, db_session, f"neum_compra_{uuid.uuid4().hex[:4]}")
+    # Usar la función refactorizada
+    user_id_str, headers = await create_user_and_get_token(client, db_session, f"compra_prereq_{uuid.uuid4().hex[:4]}")
     user_id = uuid.UUID(user_id_str)
     print(f"DEBUG [setup_compra]: Usuario {user_id} y token OK.")
 
@@ -146,7 +152,7 @@ async def setup_compra_prerequisites(
 
     modelo = ModeloNeumatico(
         fabricante_id=fabricante.id, nombre_modelo=f"Mod Compra {test_suffix}", medida="295/80R22.5",
-        profundidad_original_mm=18.0, permite_reencauche=True, reencauches_maximos=1, creado_por=user_id
+        profundidad_original_mm=Decimal("18.0"), permite_reencauche=True, reencauches_maximos=1, activo=True, creado_por=user_id
     )
     db_session.add(modelo); await db_session.commit(); await db_session.refresh(modelo)
 
@@ -154,61 +160,70 @@ async def setup_compra_prerequisites(
     db_session.add(proveedor); await db_session.commit(); await db_session.refresh(proveedor)
     print(f"DEBUG [setup_compra]: Dependencias Fabricante/Modelo/Proveedor OK.")
 
-    neumatico = Neumatico(
-        numero_serie=f"SERIE-COMPRA-{test_suffix}", modelo_id=modelo.id,
-        fecha_compra=date.today(), costo_compra=750.0, proveedor_compra_id=proveedor.id,
-        estado_actual=EstadoNeumaticoEnum.EN_STOCK,
-        creado_por=user_id
-    )
-    db_session.add(neumatico); await db_session.commit(); await db_session.refresh(neumatico)
-    print(f"DEBUG [setup_compra]: Neumático {neumatico.id} creado OK.")
+    almacen = await get_or_create_almacen_test(db_session)
+    print(f"DEBUG [setup_compra]: Almacén obtenido/creado: {almacen.id}")
 
-    return headers, neumatico.id, proveedor.id
+    return headers, modelo.id, proveedor.id, almacen.id, user_id
+
 
 async def setup_instalacion_prerequisites(
     client: AsyncClient, db_session: AsyncSession
-) -> Tuple[Dict[str, str], uuid.UUID, uuid.UUID, uuid.UUID]:
-    """Crea todo lo necesario para probar una instalación. CORREGIDO"""
+) -> Tuple[Dict[str, str], uuid.UUID, uuid.UUID, uuid.UUID, uuid.UUID]:
+    """Crea neumático EN_STOCK, vehículo, posición y devuelve IDs + headers + user_id."""
     print("DEBUG [setup_instalacion]: Iniciando...")
-    headers, neumatico_id, _ = await setup_compra_prerequisites(client, db_session)
-    print(f"DEBUG [setup_instalacion]: Prerequisitos de compra OK (Neumático: {neumatico_id}).")
+    headers, modelo_id, proveedor_id, almacen_id, user_id_creador = await setup_compra_prerequisites(client, db_session)
+    print(f"DEBUG [setup_instalacion]: Prerequisitos de compra OK.")
 
-    user_id_str_audit, _ = await create_user_and_get_token(client, db_session, "install_audit_user")
-    user_id_audit=uuid.UUID(user_id_str_audit)
-    print(f"DEBUG [setup_instalacion]: Usuario {user_id_audit} para auditoría obtenido.")
+    serie_unica = f"SERIE-INSTPRE-{uuid.uuid4().hex[:8]}"
+    neum = Neumatico(
+        numero_serie=serie_unica, modelo_id=modelo_id, fecha_compra=date.today(),
+        costo_compra=Decimal("500.00"), proveedor_compra_id=proveedor_id,
+        estado_actual=EstadoNeumaticoEnum.EN_STOCK, ubicacion_almacen_id=almacen_id,
+        creado_por=user_id_creador
+    )
+    db_session.add(neum); await db_session.commit(); await db_session.refresh(neum)
+    neumatico_id = neum.id
+    print(f"DEBUG [setup_instalacion]: Neumático {neumatico_id} creado OK.")
+
+    user_id_audit = user_id_creador 
+    print(f"DEBUG [setup_instalacion]: Usuario {user_id_audit} para auditoría.")
 
     test_suffix = uuid.uuid4().hex[:4]
     tipo_vehiculo = TipoVehiculo(nombre=f"TipoV Install {test_suffix}", ejes_standard=2, categoria_principal="CAMIÓN", activo=True, creado_por=user_id_audit)
     db_session.add(tipo_vehiculo); await db_session.commit(); await db_session.refresh(tipo_vehiculo)
 
     vehiculo = Vehiculo(
-        numero_economico=f"ECO-INST-{test_suffix}", tipo_vehiculo_id=tipo_vehiculo.id, activo=True, creado_por=user_id_audit
+        numero_economico=f"ECO-INSTPRE-{test_suffix}", tipo_vehiculo_id=tipo_vehiculo.id, activo=True, creado_por=user_id_audit
     )
     db_session.add(vehiculo); await db_session.commit(); await db_session.refresh(vehiculo)
 
     config_eje = ConfiguracionEje(
         tipo_vehiculo_id=tipo_vehiculo.id, numero_eje=1, nombre_eje="Delantero Install",
-        tipo_eje=TipoEjeEnum.DIRECCION, numero_posiciones=2, neumaticos_por_posicion=1,
-        creado_por=user_id_audit # Asumiendo que este modelo tiene auditoría
+        tipo_eje=TipoEjeEnum.DIRECCION, numero_posiciones=2, neumaticos_por_posicion=1, 
+        activo=True, # Asegurar que esté activo
+        creado_por=user_id_audit
     )
     db_session.add(config_eje); await db_session.commit(); await db_session.refresh(config_eje)
 
     posicion = PosicionNeumatico(
         configuracion_eje_id=config_eje.id,
-        codigo_posicion=f"1LI-I{test_suffix}"[:10],
-        lado=LadoVehiculoEnum.IZQUIERDO,
+        codigo_posicion=f"E1P1-IP{test_suffix}"[:10], # Código más corto
+        descripcion="Posición para pruebas",
+        lado=LadoVehiculoEnum.IZQUIERDO.value, # Pasar el valor del Enum explícitamente
         posicion_relativa=1,
         es_direccion=True,
-        # creado_por=user_id_audit # Añadir si este modelo tiene auditoría
+        activo=True, # Asegurar que esté activo
+        creado_por=user_id_audit
     )
     db_session.add(posicion); await db_session.commit(); await db_session.refresh(posicion)
     print(f"DEBUG [setup_instalacion]: Vehículo {vehiculo.id} y Posición {posicion.id} creados.")
 
-    neumatico = await db_session.get(Neumatico, neumatico_id)
-    if not neumatico or neumatico.estado_actual != EstadoNeumaticoEnum.EN_STOCK:
+    neumatico_check = await db_session.get(Neumatico, neumatico_id)
+    if not neumatico_check or neumatico_check.estado_actual != EstadoNeumaticoEnum.EN_STOCK:
          pytest.fail(f"Neumático {neumatico_id} no está en estado EN_STOCK antes de prueba de instalación.")
 
-    return headers, neumatico_id, vehiculo.id, posicion.id
+    return headers, neumatico_id, vehiculo.id, posicion.id, user_id_creador
+
 
 # --- Helpers para obtener/crear entidades específicas ---
 async def get_or_create_proveedor(session: AsyncSession, nombre: str, tipo: TipoProveedorEnum, user_id: Optional[uuid.UUID] = None) -> Proveedor:
@@ -217,7 +232,6 @@ async def get_or_create_proveedor(session: AsyncSession, nombre: str, tipo: Tipo
     result = await session.exec(stmt)
     prov = result.first()
     if not prov:
-        # Intentar obtener un user_id si no se proporcionó
         if not user_id:
             user_result = await session.exec(select(Usuario).limit(1))
             user = user_result.first()
@@ -225,21 +239,19 @@ async def get_or_create_proveedor(session: AsyncSession, nombre: str, tipo: Tipo
             if not user_id: print(f"WARN [helpers]: No se encontró usuario para 'creado_por' en get_or_create_proveedor({nombre}).")
 
         prov = Proveedor(
-             nombre=nombre,
-             tipo_proveedor=tipo,
-             activo=True,
-             creado_por=user_id
+             nombre=nombre, tipo_proveedor=tipo, activo=True,
+             creado_por=user_id, ruc=f"RUC-{nombre[:3].upper()}-{uuid.uuid4().hex[:6]}"[:20]
          )
         session.add(prov)
         await session.commit()
         await session.refresh(prov)
     return prov
 
-async def get_or_create_proveedor_reparacion(session: AsyncSession) -> Proveedor:
-    return await get_or_create_proveedor(session, "Taller Test Reparacion", TipoProveedorEnum.SERVICIO_REPARACION)
+async def get_or_create_proveedor_reparacion(session: AsyncSession, user_id: uuid.UUID) -> Proveedor:
+    return await get_or_create_proveedor(session, "Taller Test Reparacion V5", TipoProveedorEnum.SERVICIO_REPARACION, user_id)
 
-async def get_or_create_proveedor_reencauche(session: AsyncSession) -> Proveedor:
-     return await get_or_create_proveedor(session, "Reencauchadora Test", TipoProveedorEnum.SERVICIO_REENCAUCHE)
+async def get_or_create_proveedor_reencauche(session: AsyncSession, user_id: uuid.UUID) -> Proveedor:
+     return await get_or_create_proveedor(session, "Reencauchadora Test V5", TipoProveedorEnum.SERVICIO_REENCAUCHE, user_id)
 
 async def get_or_create_almacen_test(session: AsyncSession, nombre: str = "Almacen Test Default") -> Almacen:
      codigo = f"ALM-{nombre.replace(' ','-').upper()[:6]}-{uuid.uuid4().hex[:4]}"[:20]
@@ -252,49 +264,37 @@ async def get_or_create_almacen_test(session: AsyncSession, nombre: str = "Almac
          creador_id = user.id if user else None
          if not creador_id: print("WARN [helpers]: No se encontró usuario para 'creado_por' en get_or_create_almacen_test.")
 
-         almacen = Almacen(
-             codigo=codigo,
-             nombre=nombre,
-             activo=True,
-             creado_por=creador_id
-         )
+         almacen = Almacen(codigo=codigo, nombre=nombre, activo=True, creado_por=creador_id)
          session.add(almacen)
          await session.commit()
          await session.refresh(almacen)
      return almacen
 
-# Helper para parámetro de profundidad mínima (Usa TipoParametroEnum desde common)
+# Helper para parámetro de profundidad mínima (Revisado)
 async def set_profundidad_minima_param(
-    session: AsyncSession, modelo_id: uuid.UUID, umbral: float, almacen_id: Optional[uuid.UUID] = None
+    session: AsyncSession, modelo_id: uuid.UUID, umbral: float, user_id: uuid.UUID, almacen_id: Optional[uuid.UUID] = None
 ) -> ParametroInventario:
      """Crea o actualiza el parámetro de profundidad mínima para un modelo/almacén."""
      stmt = select(ParametroInventario).where(
          ParametroInventario.modelo_id == modelo_id,
-         ParametroInventario.almacen_id == almacen_id,
+         ParametroInventario.almacen_id == almacen_id, 
          ParametroInventario.tipo_parametro == TipoParametroEnum.PROFUNDIDAD_MINIMA
      )
      result = await session.exec(stmt)
      param = result.first()
 
-     user_result = await session.exec(select(Usuario).limit(1))
-     user = user_result.first()
-     auditor_id = user.id if user else None
-     if not auditor_id: print("WARN [helpers]: No se encontró usuario para auditoría en set_profundidad_minima_param.")
-
      now = datetime.now(timezone.utc)
      if param:
-         param.valor_numerico = umbral
+         param.valor_numerico = Decimal(str(umbral)) 
+         param.activo = True 
          param.actualizado_en = now
-         param.actualizado_por = auditor_id
+         param.actualizado_por = user_id
      else:
         param = ParametroInventario(
-             modelo_id=modelo_id,
-             almacen_id=almacen_id,
+             modelo_id=modelo_id, almacen_id=almacen_id,
              tipo_parametro=TipoParametroEnum.PROFUNDIDAD_MINIMA,
-             valor_numerico=umbral,
-             activo=True,
-             creado_por=auditor_id,
-             creado_en=now
+             valor_numerico=Decimal(str(umbral)), 
+             activo=True, creado_por=user_id, creado_en=now
         )
      session.add(param)
      await session.commit()

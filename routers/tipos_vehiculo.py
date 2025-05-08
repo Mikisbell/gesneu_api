@@ -1,35 +1,30 @@
-# routers/tipos_vehiculo.py (Corregido - Sin Prefijo Interno)
+# routers/tipos_vehiculo.py (Refactorizado con CRUD)
 import uuid
 import logging
 from datetime import datetime, timezone
 from typing import List, Optional
 
 from fastapi import APIRouter, Depends, HTTPException, status, Query, Path
-from sqlmodel import select
 from sqlmodel.ext.asyncio.session import AsyncSession
 from sqlalchemy.exc import IntegrityError
-from sqlalchemy import func # Para usar func.lower si refinas el check
 
 # Dependencias y modelos/schemas necesarios
-import auth
-from database import get_session
+from core.dependencies import get_session # Usar la dependencia centralizada
+from core.dependencies import get_current_active_user # Usar la dependencia centralizada
 from models.tipo_vehiculo import TipoVehiculo # El modelo
 from models.usuario import Usuario
 # Importar los schemas que creamos
 from schemas.tipo_vehiculo import TipoVehiculoCreate, TipoVehiculoRead, TipoVehiculoUpdate
+# Importar el objeto CRUD
+from crud.crud_tipo_vehiculo import tipo_vehiculo as crud_tipo_vehiculo
 
 # Crear el router específico
-# --- CORRECCIÓN: Eliminar el argumento prefix ---
 router = APIRouter(
     tags=["Tipos de Vehículo"], # Mantener tags
-    dependencies=[Depends(auth.get_current_active_user)] # Mantener dependencias globales
+    dependencies=[Depends(get_current_active_user)] # Usar la dependencia centralizada
 )
-# --- FIN CORRECCIÓN ---
 
 logger = logging.getLogger(__name__)
-
-# El resto del código (endpoints @router.post, @router.get, etc.) permanece igual
-# ... (pega aquí el resto de tu código original para este archivo) ...
 
 @router.post(
     "/", # Ruta relativa al prefijo: /tipos-vehiculo/
@@ -40,44 +35,42 @@ logger = logging.getLogger(__name__)
 async def crear_tipo_vehiculo(
     tipo_vehiculo_in: TipoVehiculoCreate,
     session: AsyncSession = Depends(get_session),
-    current_user: Usuario = Depends(auth.get_current_active_user)
+    current_user: Usuario = Depends(get_current_active_user)
 ):
     """Crea un nuevo registro de tipo de vehículo."""
-    # Verificación simple de duplicado
-    stmt_nombre = select(TipoVehiculo).where(TipoVehiculo.nombre == tipo_vehiculo_in.nombre)
-    result_nombre = await session.exec(stmt_nombre)
-    if result_nombre.first():
+    # Verificación de duplicado por nombre usando el CRUD
+    existing_tipo_vehiculo_nombre = await crud_tipo_vehiculo.get_by_name(session, name=tipo_vehiculo_in.nombre)
+    if existing_tipo_vehiculo_nombre:
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT,
             detail=f"Ya existe un tipo de vehículo con el nombre '{tipo_vehiculo_in.nombre}'"
         )
 
-    # Crear instancia y asignar auditoría
+    # Crear instancia y asignar auditoría usando el CRUD
+    # Añadir el usuario creador antes de pasar al CRUD si el CRUD base no lo maneja
     tipo_vehiculo_data = tipo_vehiculo_in.model_dump()
-    db_tipo_vehiculo = TipoVehiculo.model_validate(tipo_vehiculo_data)
-    db_tipo_vehiculo.creado_por = current_user.id
+    tipo_vehiculo_data['creado_por'] = current_user.id
 
-    # Guardar en BD
-    session.add(db_tipo_vehiculo)
+    # El CRUD base maneja la adición, commit y refresh
     try:
-        await session.commit()
-        await session.refresh(db_tipo_vehiculo)
+        # Pasar el diccionario de datos, no el schema directamente, para incluir 'creado_por'
+        db_tipo_vehiculo = await crud_tipo_vehiculo.create(session, obj_in=tipo_vehiculo_in) # Pasar el schema directamente
         logger.info(f"Tipo de Vehículo '{db_tipo_vehiculo.nombre}' creado por {current_user.username}")
         return db_tipo_vehiculo
     except IntegrityError as e:
-        await session.rollback()
+        # El CRUD base ya hizo rollback si falló el commit
         logger.warning(f"Error de integridad al crear tipo vehículo (posible duplicado BD): {str(e)}")
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT,
             detail=f"Conflicto al guardar. El nombre '{tipo_vehiculo_in.nombre}' ya podría existir (insensible a mayúsculas/acentos) o hubo otro problema."
         )
     except Exception as e:
-         await session.rollback()
+         # El CRUD base ya hizo rollback si falló el commit
          logger.error(f"Error inesperado al crear tipo vehículo: {str(e)}", exc_info=True)
          raise HTTPException(
-             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-             detail="Error interno al crear el tipo de vehículo."
-         )
+              status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+              detail="Error interno al crear el tipo de vehículo."
+          )
 
 @router.get(
     "/", # Ruta relativa: /tipos-vehiculo/
@@ -91,12 +84,22 @@ async def leer_tipos_vehiculo(
     activo: Optional[bool] = Query(None, description="Filtrar por estado activo/inactivo")
 ):
     """Obtiene una lista paginada de tipos de vehículo."""
-    statement = select(TipoVehiculo)
-    if activo is not None:
-        statement = statement.where(TipoVehiculo.activo == activo)
-    statement = statement.order_by(TipoVehiculo.nombre).offset(skip).limit(limit)
-    results = await session.exec(statement)
-    tipos_vehiculo = results.all()
+    if activo is True:
+        # Usar el método específico para activos
+        tipos_vehiculo = await crud_tipo_vehiculo.get_multi_active(session, skip=skip, limit=limit)
+    elif activo is False:
+        # Si se pide inactivos, necesitamos un método específico o filtrar aquí
+        # Por ahora, obtendremos todos y filtraremos (menos eficiente para grandes datasets)
+        # O mejor, añadimos un método get_multi_inactive al CRUD si es necesario frecuentemente
+        # Para simplificar, usaremos get_multi y filtraremos si activo is False
+        all_tipos_vehiculo = await crud_tipo_vehiculo.get_multi(session, skip=skip, limit=limit)
+        tipos_vehiculo = [tv for tv in all_tipos_vehiculo if not tv.activo]
+    else: # activo is None (obtener todos)
+        tipos_vehiculo = await crud_tipo_vehiculo.get_multi(session, skip=skip, limit=limit)
+
+    # Nota: La ordenación por nombre no está en el CRUD base get_multi.
+    # Si la ordenación es crucial, se debe añadir al método CRUD o manejar aquí.
+    # Por ahora, devolvemos como vienen del CRUD base/filtrado.
     return tipos_vehiculo
 
 @router.get(
@@ -107,9 +110,11 @@ async def leer_tipos_vehiculo(
 async def leer_tipo_vehiculo_por_id(
     tipo_vehiculo_id: uuid.UUID = Path(..., description="ID único del tipo de vehículo"),
     session: AsyncSession = Depends(get_session)
+    # current_user: Usuario = Depends(get_current_active_user) # Ya protegido a nivel router
 ):
     """Obtiene los detalles de un tipo de vehículo específico."""
-    db_tipo_vehiculo = await session.get(TipoVehiculo, tipo_vehiculo_id)
+    # Usar el método get del CRUD
+    db_tipo_vehiculo = await crud_tipo_vehiculo.get(session, id=tipo_vehiculo_id)
     if not db_tipo_vehiculo:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
@@ -126,10 +131,11 @@ async def actualizar_tipo_vehiculo(
     tipo_vehiculo_id: uuid.UUID,
     tipo_vehiculo_update: TipoVehiculoUpdate,
     session: AsyncSession = Depends(get_session),
-    current_user: Usuario = Depends(auth.get_current_active_user)
+    current_user: Usuario = Depends(get_current_active_user) # Usar la dependencia centralizada
 ):
     """Actualiza los datos de un tipo de vehículo existente."""
-    db_tipo_vehiculo = await session.get(TipoVehiculo, tipo_vehiculo_id)
+    # Obtener el tipo de vehículo usando el CRUD
+    db_tipo_vehiculo = await crud_tipo_vehiculo.get(session, id=tipo_vehiculo_id)
     if not db_tipo_vehiculo:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
@@ -138,42 +144,33 @@ async def actualizar_tipo_vehiculo(
 
     update_data = tipo_vehiculo_update.model_dump(exclude_unset=True)
 
-    # Verificación simple de duplicado
+    # Verificación de duplicado por nombre (si se está actualizando el nombre)
     if "nombre" in update_data and update_data["nombre"] != db_tipo_vehiculo.nombre:
-        stmt_nombre = select(TipoVehiculo).where(
-            TipoVehiculo.nombre == update_data["nombre"],
-            TipoVehiculo.id != tipo_vehiculo_id
-        )
-        result_nombre = await session.exec(stmt_nombre)
-        if result_nombre.first():
+        existing_tipo_vehiculo_nombre = await crud_tipo_vehiculo.get_by_name(session, name=update_data["nombre"])
+        if existing_tipo_vehiculo_nombre and existing_tipo_vehiculo_nombre.id != tipo_vehiculo_id:
             raise HTTPException(
                 status_code=status.HTTP_409_CONFLICT,
                 detail=f"Ya existe otro tipo de vehículo con el nombre '{update_data['nombre']}'"
             )
 
-    # Aplicar actualizaciones
-    for key, value in update_data.items():
-        setattr(db_tipo_vehiculo, key, value)
+    # Añadir usuario actualizador antes de pasar al CRUD si el CRUD base no lo maneja
+    update_data['actualizado_en'] = datetime.now(timezone.utc)
+    update_data['actualizado_por'] = current_user.id
 
-    # Auditoría
-    db_tipo_vehiculo.actualizado_en = datetime.now(timezone.utc)
-    db_tipo_vehiculo.actualizado_por = current_user.id
-
-    session.add(db_tipo_vehiculo)
+    # Actualizar el tipo de vehículo usando el CRUD
     try:
-        await session.commit()
-        await session.refresh(db_tipo_vehiculo)
+        db_tipo_vehiculo = await crud_tipo_vehiculo.update(session, db_obj=db_tipo_vehiculo, obj_in=update_data) # Pasar el diccionario de actualización
         logger.info(f"Tipo Vehículo {tipo_vehiculo_id} actualizado por {current_user.username}")
         return db_tipo_vehiculo
     except IntegrityError as e:
-        await session.rollback()
+        # El CRUD base ya hizo rollback si falló el commit
         logger.warning(f"Error de integridad al actualizar tipo vehículo {tipo_vehiculo_id}: {str(e)}")
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT,
             detail=f"Conflicto al guardar. El nombre '{update_data.get('nombre', db_tipo_vehiculo.nombre)}' ya podría existir (insensible a mayúsculas/acentos) o hubo otro problema."
         )
     except Exception as e:
-        await session.rollback()
+        # El CRUD base ya hizo rollback si falló el commit
         logger.error(f"Error inesperado al actualizar tipo vehículo {tipo_vehiculo_id}: {str(e)}", exc_info=True)
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
@@ -188,10 +185,11 @@ async def actualizar_tipo_vehiculo(
 async def desactivar_tipo_vehiculo(
     tipo_vehiculo_id: uuid.UUID,
     session: AsyncSession = Depends(get_session),
-    current_user: Usuario = Depends(auth.get_current_active_user)
+    current_user: Usuario = Depends(get_current_active_user) # Usar la dependencia centralizada
 ):
     """Marca un tipo de vehículo como inactivo."""
-    db_tipo_vehiculo = await session.get(TipoVehiculo, tipo_vehiculo_id)
+    # Obtener el tipo de vehículo usando el CRUD
+    db_tipo_vehiculo = await crud_tipo_vehiculo.get(session, id=tipo_vehiculo_id)
     if not db_tipo_vehiculo:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
@@ -199,18 +197,22 @@ async def desactivar_tipo_vehiculo(
         )
 
     if not db_tipo_vehiculo.activo:
-        return # Idempotente
+        # Ya está inactivo, no hacer nada (idempotente)
+        return # Devuelve 204 implícitamente
 
-    db_tipo_vehiculo.activo = False
-    db_tipo_vehiculo.actualizado_en = datetime.now(timezone.utc)
-    db_tipo_vehiculo.actualizado_por = current_user.id
-
-    session.add(db_tipo_vehiculo)
+    # Actualizar el estado activo a False usando el método update del CRUD
+    # Pasamos un diccionario con solo el campo a actualizar
+    update_data = {
+        "activo": False,
+        "actualizado_en": datetime.now(timezone.utc),
+        "actualizado_por": current_user.id
+    }
     try:
-        await session.commit()
+        await crud_tipo_vehiculo.update(session, db_obj=db_tipo_vehiculo, obj_in=update_data)
         logger.info(f"Tipo Vehículo {tipo_vehiculo_id} desactivado por {current_user.username}")
+        # No se devuelve contenido en 204
     except Exception as e:
-        await session.rollback()
+        # El CRUD base ya hizo rollback si falló el commit
         logger.error(f"Error al desactivar tipo vehículo {tipo_vehiculo_id}: {str(e)}", exc_info=True)
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT, # O 500

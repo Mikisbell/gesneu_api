@@ -50,21 +50,6 @@ AsyncSessionFactory = sessionmaker(
 
 # --- Función para obtener una sesión asíncrona ---
 # (Sin cambios aquí - Asumiendo que este es el 'get_session' que usan tus endpoints)
-async def get_session() -> AsyncGenerator[AsyncSession, None]:
-    # print("DEBUG: Abriendo sesión asíncrona...") # Debug
-    async with AsyncSessionFactory() as session:
-        # print("DEBUG: Sesión asíncrona obtenida, yielding...") # Debug
-        try:
-            yield session
-            # print("DEBUG: Sesión asíncrona yield terminado.") # Debug
-        except Exception as e:
-             print(f"ERROR en sesión: {e}. Haciendo rollback...")
-             await session.rollback()
-             raise # Re-lanzar la excepción para que FastAPI la maneje
-        finally:
-            # print("DEBUG: Cerrando sesión asíncrona.") # Debug
-             # No es necesario cerrar explícitamente con el context manager 'async with'
-             pass
 
 
 # --- Función de inicialización (Opcional) ---
