@@ -2566,3 +2566,441 @@ FROM usuarios
 2025-05-13 19:08:28,388 - GesNeuAPI - INFO - usuarios:147 - Total de usuarios en la respuesta: 1
 2025-05-13 19:08:30,980 - GesNeuAPI - INFO - usuarios:31 - Intentando crear usuario con username: user_to_delete y email: delete_me@example.com
 2025-05-13 19:08:31,215 - GesNeuAPI - INFO - usuarios:51 - Usuario creado exitosamente con ID: 73d4c852-d5a0-47d5-ad1e-9bcfb2fd5d41
+2025-05-13 19:20:09,710 - GesNeuAPI - INFO - usuarios:31 - Intentando crear usuario con username: testuser_nuevo y email: test_nuevo@example.com
+2025-05-13 19:20:09,947 - GesNeuAPI - INFO - usuarios:51 - Usuario creado exitosamente con ID: c3ba4e2a-3056-4b61-8293-5a0319a718b0
+2025-05-13 19:20:10,249 - GesNeuAPI - INFO - usuarios:31 - Intentando crear usuario con username: test_duplicado_user y email: original_user@example.com
+2025-05-13 19:20:10,495 - GesNeuAPI - INFO - usuarios:51 - Usuario creado exitosamente con ID: 1377a01d-af77-4210-beb9-bcd6a7fb5144
+2025-05-13 19:20:10,496 - GesNeuAPI - INFO - usuarios:31 - Intentando crear usuario con username: test_duplicado_user y email: duplicado_user@example.com
+2025-05-13 19:20:10,498 - GesNeuAPI - WARNING - usuarios:43 - Intento de crear usuario con username duplicado: test_duplicado_user
+2025-05-13 19:20:10,569 - GesNeuAPI - INFO - usuarios:31 - Intentando crear usuario con username: original_email_user y email: test_duplicado_email@example.com
+2025-05-13 19:20:10,808 - GesNeuAPI - INFO - usuarios:51 - Usuario creado exitosamente con ID: 831ccb50-748a-409b-b197-897fc6a4cb12
+2025-05-13 19:20:10,809 - GesNeuAPI - INFO - usuarios:31 - Intentando crear usuario con username: duplicado_email_user y email: test_duplicado_email@example.com
+2025-05-13 19:20:10,810 - GesNeuAPI - WARNING - usuarios:35 - Intento de crear usuario con email duplicado: test_duplicado_email@example.com
+2025-05-13 19:20:11,886 - GesNeuAPI - INFO - usuarios:96 - Ejecutando consulta: SELECT usuarios.activo, usuarios.fecha_baja, usuarios.creado_en, usuarios.actualizado_en, usuarios.creado_por, usuarios.actualizado_por, usuarios.username, usuarios.email, usuarios.nombre_completo, usuarios.es_superusuario, usuarios.id, usuarios.hashed_password 
+FROM usuarios
+ LIMIT :param_1 OFFSET :param_2
+2025-05-13 19:20:11,888 - GesNeuAPI - INFO - usuarios:102 - Número de usuarios encontrados: 1
+2025-05-13 19:20:11,888 - GesNeuAPI - INFO - usuarios:109 - Tipo de objeto usuario: <class 'models.usuario.Usuario'>
+2025-05-13 19:20:11,888 - GesNeuAPI - INFO - usuarios:113 - Procesando usuario 1: admin_test_e6f9b9
+2025-05-13 19:20:11,889 - GesNeuAPI - INFO - usuarios:142 - Usuario añadido a la respuesta: admin_test_e6f9b9
+2025-05-13 19:20:11,889 - GesNeuAPI - INFO - usuarios:147 - Total de usuarios en la respuesta: 1
+2025-05-13 19:20:14,056 - GesNeuAPI - INFO - usuarios:31 - Intentando crear usuario con username: user_to_delete y email: delete_me@example.com
+2025-05-13 19:20:14,287 - GesNeuAPI - INFO - usuarios:51 - Usuario creado exitosamente con ID: 5bcf374e-a8b1-429f-9345-da39022c7c7a
+2025-05-13 19:26:33,903 - GesNeuAPI - INFO - usuarios:31 - Intentando crear usuario con username: testuser_nuevo y email: test_nuevo@example.com
+2025-05-13 19:26:34,136 - GesNeuAPI - INFO - usuarios:51 - Usuario creado exitosamente con ID: 0ea7da46-6b26-47a6-abf5-4ce31b40618c
+2025-05-13 19:26:34,498 - GesNeuAPI - INFO - usuarios:31 - Intentando crear usuario con username: test_duplicado_user y email: original_user@example.com
+2025-05-13 19:26:34,740 - GesNeuAPI - INFO - usuarios:51 - Usuario creado exitosamente con ID: 3b63cccd-06a1-442c-96ac-899bf07e0938
+2025-05-13 19:26:34,741 - GesNeuAPI - INFO - usuarios:31 - Intentando crear usuario con username: test_duplicado_user y email: duplicado_user@example.com
+2025-05-13 19:26:34,744 - GesNeuAPI - WARNING - usuarios:43 - Intento de crear usuario con username duplicado: test_duplicado_user
+2025-05-13 19:26:34,807 - GesNeuAPI - INFO - usuarios:31 - Intentando crear usuario con username: original_email_user y email: test_duplicado_email@example.com
+2025-05-13 19:26:35,047 - GesNeuAPI - INFO - usuarios:51 - Usuario creado exitosamente con ID: 8ba2cb39-8c56-471a-bea2-94cb9006f2af
+2025-05-13 19:26:35,048 - GesNeuAPI - INFO - usuarios:31 - Intentando crear usuario con username: duplicado_email_user y email: test_duplicado_email@example.com
+2025-05-13 19:26:35,049 - GesNeuAPI - WARNING - usuarios:35 - Intento de crear usuario con email duplicado: test_duplicado_email@example.com
+2025-05-13 19:26:36,156 - GesNeuAPI - INFO - usuarios:96 - Ejecutando consulta: SELECT usuarios.activo, usuarios.fecha_baja, usuarios.creado_en, usuarios.actualizado_en, usuarios.creado_por, usuarios.actualizado_por, usuarios.username, usuarios.email, usuarios.nombre_completo, usuarios.es_superusuario, usuarios.id, usuarios.hashed_password 
+FROM usuarios
+ LIMIT :param_1 OFFSET :param_2
+2025-05-13 19:26:36,157 - GesNeuAPI - INFO - usuarios:102 - Número de usuarios encontrados: 1
+2025-05-13 19:26:36,157 - GesNeuAPI - INFO - usuarios:109 - Tipo de objeto usuario: <class 'models.usuario.Usuario'>
+2025-05-13 19:26:36,158 - GesNeuAPI - INFO - usuarios:113 - Procesando usuario 1: admin_test_4dd129
+2025-05-13 19:26:36,158 - GesNeuAPI - INFO - usuarios:142 - Usuario añadido a la respuesta: admin_test_4dd129
+2025-05-13 19:26:36,158 - GesNeuAPI - INFO - usuarios:147 - Total de usuarios en la respuesta: 1
+2025-05-13 19:26:38,372 - GesNeuAPI - INFO - usuarios:31 - Intentando crear usuario con username: user_to_delete y email: delete_me@example.com
+2025-05-13 19:26:38,612 - GesNeuAPI - INFO - usuarios:51 - Usuario creado exitosamente con ID: a4af5dc4-6705-4080-b756-79560d38e1ab
+2025-05-13 19:39:48,216 - GesNeuAPI - INFO - usuarios:31 - Intentando crear usuario con username: testuser_nuevo y email: test_nuevo@example.com
+2025-05-13 19:39:48,499 - GesNeuAPI - INFO - usuarios:51 - Usuario creado exitosamente con ID: a79cde7a-c6b2-4af0-9abc-0d8df278d459
+2025-05-13 19:39:48,825 - GesNeuAPI - INFO - usuarios:31 - Intentando crear usuario con username: test_duplicado_user y email: original_user@example.com
+2025-05-13 19:39:49,069 - GesNeuAPI - INFO - usuarios:51 - Usuario creado exitosamente con ID: b8507948-b448-4166-93c8-453d27b622af
+2025-05-13 19:39:49,071 - GesNeuAPI - INFO - usuarios:31 - Intentando crear usuario con username: test_duplicado_user y email: duplicado_user@example.com
+2025-05-13 19:39:49,073 - GesNeuAPI - WARNING - usuarios:43 - Intento de crear usuario con username duplicado: test_duplicado_user
+2025-05-13 19:39:49,149 - GesNeuAPI - INFO - usuarios:31 - Intentando crear usuario con username: original_email_user y email: test_duplicado_email@example.com
+2025-05-13 19:39:49,407 - GesNeuAPI - INFO - usuarios:51 - Usuario creado exitosamente con ID: 1d8683d6-a239-4a59-9131-bc06b734c2f0
+2025-05-13 19:39:49,409 - GesNeuAPI - INFO - usuarios:31 - Intentando crear usuario con username: duplicado_email_user y email: test_duplicado_email@example.com
+2025-05-13 19:39:49,410 - GesNeuAPI - WARNING - usuarios:35 - Intento de crear usuario con email duplicado: test_duplicado_email@example.com
+2025-05-13 19:39:50,563 - GesNeuAPI - INFO - usuarios:96 - Ejecutando consulta: SELECT usuarios.activo, usuarios.fecha_baja, usuarios.creado_en, usuarios.actualizado_en, usuarios.creado_por, usuarios.actualizado_por, usuarios.username, usuarios.email, usuarios.nombre_completo, usuarios.es_superusuario, usuarios.id, usuarios.hashed_password 
+FROM usuarios
+ LIMIT :param_1 OFFSET :param_2
+2025-05-13 19:39:50,564 - GesNeuAPI - INFO - usuarios:102 - Número de usuarios encontrados: 1
+2025-05-13 19:39:50,564 - GesNeuAPI - INFO - usuarios:109 - Tipo de objeto usuario: <class 'models.usuario.Usuario'>
+2025-05-13 19:39:50,565 - GesNeuAPI - INFO - usuarios:113 - Procesando usuario 1: admin_test_e5105b
+2025-05-13 19:39:50,565 - GesNeuAPI - INFO - usuarios:142 - Usuario añadido a la respuesta: admin_test_e5105b
+2025-05-13 19:39:50,565 - GesNeuAPI - INFO - usuarios:147 - Total de usuarios en la respuesta: 1
+2025-05-13 19:39:52,940 - GesNeuAPI - INFO - usuarios:31 - Intentando crear usuario con username: user_to_delete y email: delete_me@example.com
+2025-05-13 19:39:53,192 - GesNeuAPI - INFO - usuarios:51 - Usuario creado exitosamente con ID: 232608ff-d0b6-4fa3-b216-59649ef58817
+2025-05-13 19:42:05,946 - GesNeuAPI - INFO - usuarios:31 - Intentando crear usuario con username: testuser_nuevo y email: test_nuevo@example.com
+2025-05-13 19:42:06,198 - GesNeuAPI - INFO - usuarios:51 - Usuario creado exitosamente con ID: 7bbe055e-a1c7-46ed-8e6d-2fc3117737d7
+2025-05-13 19:42:06,499 - GesNeuAPI - INFO - usuarios:31 - Intentando crear usuario con username: test_duplicado_user y email: original_user@example.com
+2025-05-13 19:42:06,758 - GesNeuAPI - INFO - usuarios:51 - Usuario creado exitosamente con ID: 77efaa4b-40df-4529-bd45-e1ba0f8fbb23
+2025-05-13 19:42:06,759 - GesNeuAPI - INFO - usuarios:31 - Intentando crear usuario con username: test_duplicado_user y email: duplicado_user@example.com
+2025-05-13 19:42:06,762 - GesNeuAPI - WARNING - usuarios:43 - Intento de crear usuario con username duplicado: test_duplicado_user
+2025-05-13 19:42:06,831 - GesNeuAPI - INFO - usuarios:31 - Intentando crear usuario con username: original_email_user y email: test_duplicado_email@example.com
+2025-05-13 19:42:07,065 - GesNeuAPI - INFO - usuarios:51 - Usuario creado exitosamente con ID: 2d4767b0-7177-49ba-8732-e54a49141b5f
+2025-05-13 19:42:07,066 - GesNeuAPI - INFO - usuarios:31 - Intentando crear usuario con username: duplicado_email_user y email: test_duplicado_email@example.com
+2025-05-13 19:42:07,067 - GesNeuAPI - WARNING - usuarios:35 - Intento de crear usuario con email duplicado: test_duplicado_email@example.com
+2025-05-13 19:42:08,142 - GesNeuAPI - INFO - usuarios:96 - Ejecutando consulta: SELECT usuarios.activo, usuarios.fecha_baja, usuarios.creado_en, usuarios.actualizado_en, usuarios.creado_por, usuarios.actualizado_por, usuarios.username, usuarios.email, usuarios.nombre_completo, usuarios.es_superusuario, usuarios.id, usuarios.hashed_password 
+FROM usuarios
+ LIMIT :param_1 OFFSET :param_2
+2025-05-13 19:42:08,144 - GesNeuAPI - INFO - usuarios:102 - Número de usuarios encontrados: 1
+2025-05-13 19:42:08,144 - GesNeuAPI - INFO - usuarios:109 - Tipo de objeto usuario: <class 'models.usuario.Usuario'>
+2025-05-13 19:42:08,144 - GesNeuAPI - INFO - usuarios:113 - Procesando usuario 1: admin_test_3f89ac
+2025-05-13 19:42:08,144 - GesNeuAPI - INFO - usuarios:142 - Usuario añadido a la respuesta: admin_test_3f89ac
+2025-05-13 19:42:08,144 - GesNeuAPI - INFO - usuarios:147 - Total de usuarios en la respuesta: 1
+2025-05-13 19:42:10,445 - GesNeuAPI - INFO - usuarios:31 - Intentando crear usuario con username: user_to_delete y email: delete_me@example.com
+2025-05-13 19:42:10,681 - GesNeuAPI - INFO - usuarios:51 - Usuario creado exitosamente con ID: 8e51b689-783f-434a-911a-5de0e8f8f47c
+2025-05-13 20:30:07,912 - GesNeuAPI - INFO - usuarios:31 - Intentando crear usuario con username: testuser_nuevo y email: test_nuevo@example.com
+2025-05-13 20:30:08,150 - GesNeuAPI - INFO - usuarios:51 - Usuario creado exitosamente con ID: 994251a3-4781-4f8b-b4d7-0c82dfa83898
+2025-05-13 20:30:08,451 - GesNeuAPI - INFO - usuarios:31 - Intentando crear usuario con username: test_duplicado_user y email: original_user@example.com
+2025-05-13 20:30:08,703 - GesNeuAPI - INFO - usuarios:51 - Usuario creado exitosamente con ID: 07a1cdeb-f3d4-4f33-9ccb-29d7959b08fe
+2025-05-13 20:30:08,704 - GesNeuAPI - INFO - usuarios:31 - Intentando crear usuario con username: test_duplicado_user y email: duplicado_user@example.com
+2025-05-13 20:30:08,707 - GesNeuAPI - WARNING - usuarios:43 - Intento de crear usuario con username duplicado: test_duplicado_user
+2025-05-13 20:30:08,769 - GesNeuAPI - INFO - usuarios:31 - Intentando crear usuario con username: original_email_user y email: test_duplicado_email@example.com
+2025-05-13 20:30:09,012 - GesNeuAPI - INFO - usuarios:51 - Usuario creado exitosamente con ID: 07ef8f80-bf73-461e-93e9-bc5b3218d5e8
+2025-05-13 20:30:09,013 - GesNeuAPI - INFO - usuarios:31 - Intentando crear usuario con username: duplicado_email_user y email: test_duplicado_email@example.com
+2025-05-13 20:30:09,014 - GesNeuAPI - WARNING - usuarios:35 - Intento de crear usuario con email duplicado: test_duplicado_email@example.com
+2025-05-13 20:30:10,120 - GesNeuAPI - INFO - usuarios:96 - Ejecutando consulta: SELECT usuarios.activo, usuarios.fecha_baja, usuarios.creado_en, usuarios.actualizado_en, usuarios.creado_por, usuarios.actualizado_por, usuarios.username, usuarios.email, usuarios.nombre_completo, usuarios.es_superusuario, usuarios.id, usuarios.hashed_password 
+FROM usuarios
+ LIMIT :param_1 OFFSET :param_2
+2025-05-13 20:30:10,122 - GesNeuAPI - INFO - usuarios:102 - Número de usuarios encontrados: 1
+2025-05-13 20:30:10,122 - GesNeuAPI - INFO - usuarios:109 - Tipo de objeto usuario: <class 'models.usuario.Usuario'>
+2025-05-13 20:30:10,122 - GesNeuAPI - INFO - usuarios:113 - Procesando usuario 1: admin_test_167959
+2025-05-13 20:30:10,122 - GesNeuAPI - INFO - usuarios:142 - Usuario añadido a la respuesta: admin_test_167959
+2025-05-13 20:30:10,122 - GesNeuAPI - INFO - usuarios:147 - Total de usuarios en la respuesta: 1
+2025-05-13 20:30:12,298 - GesNeuAPI - INFO - usuarios:31 - Intentando crear usuario con username: user_to_delete y email: delete_me@example.com
+2025-05-13 20:30:12,532 - GesNeuAPI - INFO - usuarios:51 - Usuario creado exitosamente con ID: 770b2dfb-7451-47db-94f0-afc7ef39fc63
+2025-05-13 20:37:57,034 - GesNeuAPI - INFO - usuarios:31 - Intentando crear usuario con username: testuser_nuevo y email: test_nuevo@example.com
+2025-05-13 20:37:57,303 - GesNeuAPI - INFO - usuarios:51 - Usuario creado exitosamente con ID: 97bec1e9-c29f-4bde-a4f2-646afbb01798
+2025-05-13 20:37:57,654 - GesNeuAPI - INFO - usuarios:31 - Intentando crear usuario con username: test_duplicado_user y email: original_user@example.com
+2025-05-13 20:37:57,906 - GesNeuAPI - INFO - usuarios:51 - Usuario creado exitosamente con ID: 6c18f615-7001-4daf-b928-c1f0eb0ca88c
+2025-05-13 20:37:57,907 - GesNeuAPI - INFO - usuarios:31 - Intentando crear usuario con username: test_duplicado_user y email: duplicado_user@example.com
+2025-05-13 20:37:57,909 - GesNeuAPI - WARNING - usuarios:43 - Intento de crear usuario con username duplicado: test_duplicado_user
+2025-05-13 20:37:57,973 - GesNeuAPI - INFO - usuarios:31 - Intentando crear usuario con username: original_email_user y email: test_duplicado_email@example.com
+2025-05-13 20:37:58,226 - GesNeuAPI - INFO - usuarios:51 - Usuario creado exitosamente con ID: 38c8c9dc-cf61-4d23-8620-0a6ae23ec7e1
+2025-05-13 20:37:58,227 - GesNeuAPI - INFO - usuarios:31 - Intentando crear usuario con username: duplicado_email_user y email: test_duplicado_email@example.com
+2025-05-13 20:37:58,228 - GesNeuAPI - WARNING - usuarios:35 - Intento de crear usuario con email duplicado: test_duplicado_email@example.com
+2025-05-13 20:37:59,457 - GesNeuAPI - INFO - usuarios:96 - Ejecutando consulta: SELECT usuarios.activo, usuarios.fecha_baja, usuarios.creado_en, usuarios.actualizado_en, usuarios.creado_por, usuarios.actualizado_por, usuarios.username, usuarios.email, usuarios.nombre_completo, usuarios.es_superusuario, usuarios.id, usuarios.hashed_password 
+FROM usuarios
+ LIMIT :param_1 OFFSET :param_2
+2025-05-13 20:37:59,460 - GesNeuAPI - INFO - usuarios:102 - Número de usuarios encontrados: 1
+2025-05-13 20:37:59,460 - GesNeuAPI - INFO - usuarios:109 - Tipo de objeto usuario: <class 'models.usuario.Usuario'>
+2025-05-13 20:37:59,460 - GesNeuAPI - INFO - usuarios:113 - Procesando usuario 1: admin_test_690818
+2025-05-13 20:37:59,460 - GesNeuAPI - INFO - usuarios:142 - Usuario añadido a la respuesta: admin_test_690818
+2025-05-13 20:37:59,460 - GesNeuAPI - INFO - usuarios:147 - Total de usuarios en la respuesta: 1
+2025-05-13 20:38:01,819 - GesNeuAPI - INFO - usuarios:31 - Intentando crear usuario con username: user_to_delete y email: delete_me@example.com
+2025-05-13 20:38:02,080 - GesNeuAPI - INFO - usuarios:51 - Usuario creado exitosamente con ID: 4ae3a5c4-ae56-4445-9511-dadbcf096329
+2025-05-13 20:39:07,693 - GesNeuAPI - INFO - usuarios:31 - Intentando crear usuario con username: testuser_nuevo y email: test_nuevo@example.com
+2025-05-13 20:39:07,931 - GesNeuAPI - INFO - usuarios:51 - Usuario creado exitosamente con ID: 7f7d9f51-ac89-40d8-addc-1cdff90c4645
+2025-05-13 20:39:08,250 - GesNeuAPI - INFO - usuarios:31 - Intentando crear usuario con username: test_duplicado_user y email: original_user@example.com
+2025-05-13 20:39:08,509 - GesNeuAPI - INFO - usuarios:51 - Usuario creado exitosamente con ID: cc2f26e6-10cc-4d3a-9a92-52209615df37
+2025-05-13 20:39:08,510 - GesNeuAPI - INFO - usuarios:31 - Intentando crear usuario con username: test_duplicado_user y email: duplicado_user@example.com
+2025-05-13 20:39:08,512 - GesNeuAPI - WARNING - usuarios:43 - Intento de crear usuario con username duplicado: test_duplicado_user
+2025-05-13 20:39:08,582 - GesNeuAPI - INFO - usuarios:31 - Intentando crear usuario con username: original_email_user y email: test_duplicado_email@example.com
+2025-05-13 20:39:08,828 - GesNeuAPI - INFO - usuarios:51 - Usuario creado exitosamente con ID: 43d16e5b-a93c-4925-9c7e-3af0193da605
+2025-05-13 20:39:08,829 - GesNeuAPI - INFO - usuarios:31 - Intentando crear usuario con username: duplicado_email_user y email: test_duplicado_email@example.com
+2025-05-13 20:39:08,831 - GesNeuAPI - WARNING - usuarios:35 - Intento de crear usuario con email duplicado: test_duplicado_email@example.com
+2025-05-13 20:39:10,022 - GesNeuAPI - INFO - usuarios:96 - Ejecutando consulta: SELECT usuarios.activo, usuarios.fecha_baja, usuarios.creado_en, usuarios.actualizado_en, usuarios.creado_por, usuarios.actualizado_por, usuarios.username, usuarios.email, usuarios.nombre_completo, usuarios.es_superusuario, usuarios.id, usuarios.hashed_password 
+FROM usuarios
+ LIMIT :param_1 OFFSET :param_2
+2025-05-13 20:39:10,024 - GesNeuAPI - INFO - usuarios:102 - Número de usuarios encontrados: 1
+2025-05-13 20:39:10,024 - GesNeuAPI - INFO - usuarios:109 - Tipo de objeto usuario: <class 'models.usuario.Usuario'>
+2025-05-13 20:39:10,024 - GesNeuAPI - INFO - usuarios:113 - Procesando usuario 1: admin_test_ce3cba
+2025-05-13 20:39:10,024 - GesNeuAPI - INFO - usuarios:142 - Usuario añadido a la respuesta: admin_test_ce3cba
+2025-05-13 20:39:10,024 - GesNeuAPI - INFO - usuarios:147 - Total de usuarios en la respuesta: 1
+2025-05-13 20:39:12,320 - GesNeuAPI - INFO - usuarios:31 - Intentando crear usuario con username: user_to_delete y email: delete_me@example.com
+2025-05-13 20:39:12,560 - GesNeuAPI - INFO - usuarios:51 - Usuario creado exitosamente con ID: 7fd8ae10-7a33-415c-81ef-c9318886e8c7
+2025-05-13 20:40:13,625 - GesNeuAPI - INFO - usuarios:31 - Intentando crear usuario con username: testuser_nuevo y email: test_nuevo@example.com
+2025-05-13 20:40:13,880 - GesNeuAPI - INFO - usuarios:51 - Usuario creado exitosamente con ID: 7b382127-a538-45ca-a244-0bb833945a37
+2025-05-13 20:40:14,197 - GesNeuAPI - INFO - usuarios:31 - Intentando crear usuario con username: test_duplicado_user y email: original_user@example.com
+2025-05-13 20:40:14,452 - GesNeuAPI - INFO - usuarios:51 - Usuario creado exitosamente con ID: b932239e-e9b5-4bc1-9487-412b3d4296f5
+2025-05-13 20:40:14,453 - GesNeuAPI - INFO - usuarios:31 - Intentando crear usuario con username: test_duplicado_user y email: duplicado_user@example.com
+2025-05-13 20:40:14,455 - GesNeuAPI - WARNING - usuarios:43 - Intento de crear usuario con username duplicado: test_duplicado_user
+2025-05-13 20:40:14,521 - GesNeuAPI - INFO - usuarios:31 - Intentando crear usuario con username: original_email_user y email: test_duplicado_email@example.com
+2025-05-13 20:40:14,778 - GesNeuAPI - INFO - usuarios:51 - Usuario creado exitosamente con ID: a69b1758-6129-4950-be65-abed1e6c1080
+2025-05-13 20:40:14,779 - GesNeuAPI - INFO - usuarios:31 - Intentando crear usuario con username: duplicado_email_user y email: test_duplicado_email@example.com
+2025-05-13 20:40:14,780 - GesNeuAPI - WARNING - usuarios:35 - Intento de crear usuario con email duplicado: test_duplicado_email@example.com
+2025-05-13 20:40:15,930 - GesNeuAPI - INFO - usuarios:96 - Ejecutando consulta: SELECT usuarios.activo, usuarios.fecha_baja, usuarios.creado_en, usuarios.actualizado_en, usuarios.creado_por, usuarios.actualizado_por, usuarios.username, usuarios.email, usuarios.nombre_completo, usuarios.es_superusuario, usuarios.id, usuarios.hashed_password 
+FROM usuarios
+ LIMIT :param_1 OFFSET :param_2
+2025-05-13 20:40:15,932 - GesNeuAPI - INFO - usuarios:102 - Número de usuarios encontrados: 1
+2025-05-13 20:40:15,932 - GesNeuAPI - INFO - usuarios:109 - Tipo de objeto usuario: <class 'models.usuario.Usuario'>
+2025-05-13 20:40:15,932 - GesNeuAPI - INFO - usuarios:113 - Procesando usuario 1: admin_test_862487
+2025-05-13 20:40:15,932 - GesNeuAPI - INFO - usuarios:142 - Usuario añadido a la respuesta: admin_test_862487
+2025-05-13 20:40:15,932 - GesNeuAPI - INFO - usuarios:147 - Total de usuarios en la respuesta: 1
+2025-05-13 20:40:18,360 - GesNeuAPI - INFO - usuarios:31 - Intentando crear usuario con username: user_to_delete y email: delete_me@example.com
+2025-05-13 20:40:18,610 - GesNeuAPI - INFO - usuarios:51 - Usuario creado exitosamente con ID: df9eb2ca-d6db-41f9-8b4a-b0256f048ef1
+2025-05-13 20:40:30,976 - GesNeuAPI - INFO - usuarios:31 - Intentando crear usuario con username: testuser_nuevo y email: test_nuevo@example.com
+2025-05-13 20:40:31,252 - GesNeuAPI - INFO - usuarios:51 - Usuario creado exitosamente con ID: 45b306d7-7daf-4b84-877b-ce03681a3d0b
+2025-05-13 20:40:31,567 - GesNeuAPI - INFO - usuarios:31 - Intentando crear usuario con username: test_duplicado_user y email: original_user@example.com
+2025-05-13 20:40:31,826 - GesNeuAPI - INFO - usuarios:51 - Usuario creado exitosamente con ID: 8afafd9b-d690-4553-98b7-b65e206da8c0
+2025-05-13 20:40:31,827 - GesNeuAPI - INFO - usuarios:31 - Intentando crear usuario con username: test_duplicado_user y email: duplicado_user@example.com
+2025-05-13 20:40:31,830 - GesNeuAPI - WARNING - usuarios:43 - Intento de crear usuario con username duplicado: test_duplicado_user
+2025-05-13 20:40:31,904 - GesNeuAPI - INFO - usuarios:31 - Intentando crear usuario con username: original_email_user y email: test_duplicado_email@example.com
+2025-05-13 20:40:32,180 - GesNeuAPI - INFO - usuarios:51 - Usuario creado exitosamente con ID: 00a63371-d7ae-4fa2-824d-a771b6f8e7ea
+2025-05-13 20:40:32,181 - GesNeuAPI - INFO - usuarios:31 - Intentando crear usuario con username: duplicado_email_user y email: test_duplicado_email@example.com
+2025-05-13 20:40:32,182 - GesNeuAPI - WARNING - usuarios:35 - Intento de crear usuario con email duplicado: test_duplicado_email@example.com
+2025-05-13 20:40:33,350 - GesNeuAPI - INFO - usuarios:96 - Ejecutando consulta: SELECT usuarios.activo, usuarios.fecha_baja, usuarios.creado_en, usuarios.actualizado_en, usuarios.creado_por, usuarios.actualizado_por, usuarios.username, usuarios.email, usuarios.nombre_completo, usuarios.es_superusuario, usuarios.id, usuarios.hashed_password 
+FROM usuarios
+ LIMIT :param_1 OFFSET :param_2
+2025-05-13 20:40:33,352 - GesNeuAPI - INFO - usuarios:102 - Número de usuarios encontrados: 1
+2025-05-13 20:40:33,352 - GesNeuAPI - INFO - usuarios:109 - Tipo de objeto usuario: <class 'models.usuario.Usuario'>
+2025-05-13 20:40:33,352 - GesNeuAPI - INFO - usuarios:113 - Procesando usuario 1: admin_test_535994
+2025-05-13 20:40:33,352 - GesNeuAPI - INFO - usuarios:142 - Usuario añadido a la respuesta: admin_test_535994
+2025-05-13 20:40:33,352 - GesNeuAPI - INFO - usuarios:147 - Total de usuarios en la respuesta: 1
+2025-05-13 20:40:35,796 - GesNeuAPI - INFO - usuarios:31 - Intentando crear usuario con username: user_to_delete y email: delete_me@example.com
+2025-05-13 20:40:36,036 - GesNeuAPI - INFO - usuarios:51 - Usuario creado exitosamente con ID: 2517f0cf-6702-43d3-bb59-2f099bd389e7
+2025-05-13 20:42:54,751 - GesNeuAPI - INFO - usuarios:31 - Intentando crear usuario con username: testuser_nuevo y email: test_nuevo@example.com
+2025-05-13 20:42:55,015 - GesNeuAPI - INFO - usuarios:51 - Usuario creado exitosamente con ID: 1f511b82-f200-446c-bf3a-01690db05bd8
+2025-05-13 20:42:55,344 - GesNeuAPI - INFO - usuarios:31 - Intentando crear usuario con username: test_duplicado_user y email: original_user@example.com
+2025-05-13 20:42:55,606 - GesNeuAPI - INFO - usuarios:51 - Usuario creado exitosamente con ID: 8ba51b6f-8e6c-4c1f-885a-6fe70cd9e1ad
+2025-05-13 20:42:55,607 - GesNeuAPI - INFO - usuarios:31 - Intentando crear usuario con username: test_duplicado_user y email: duplicado_user@example.com
+2025-05-13 20:42:55,609 - GesNeuAPI - WARNING - usuarios:43 - Intento de crear usuario con username duplicado: test_duplicado_user
+2025-05-13 20:42:55,675 - GesNeuAPI - INFO - usuarios:31 - Intentando crear usuario con username: original_email_user y email: test_duplicado_email@example.com
+2025-05-13 20:42:55,934 - GesNeuAPI - INFO - usuarios:51 - Usuario creado exitosamente con ID: 9fab2a86-60f8-47f2-a059-2bb03fed2b4d
+2025-05-13 20:42:55,934 - GesNeuAPI - INFO - usuarios:31 - Intentando crear usuario con username: duplicado_email_user y email: test_duplicado_email@example.com
+2025-05-13 20:42:55,935 - GesNeuAPI - WARNING - usuarios:35 - Intento de crear usuario con email duplicado: test_duplicado_email@example.com
+2025-05-13 20:42:57,059 - GesNeuAPI - INFO - usuarios:96 - Ejecutando consulta: SELECT usuarios.activo, usuarios.fecha_baja, usuarios.creado_en, usuarios.actualizado_en, usuarios.creado_por, usuarios.actualizado_por, usuarios.username, usuarios.email, usuarios.nombre_completo, usuarios.es_superusuario, usuarios.id, usuarios.hashed_password 
+FROM usuarios
+ LIMIT :param_1 OFFSET :param_2
+2025-05-13 20:42:57,062 - GesNeuAPI - INFO - usuarios:102 - Número de usuarios encontrados: 1
+2025-05-13 20:42:57,062 - GesNeuAPI - INFO - usuarios:109 - Tipo de objeto usuario: <class 'models.usuario.Usuario'>
+2025-05-13 20:42:57,062 - GesNeuAPI - INFO - usuarios:113 - Procesando usuario 1: admin_test_29bdc2
+2025-05-13 20:42:57,062 - GesNeuAPI - INFO - usuarios:142 - Usuario añadido a la respuesta: admin_test_29bdc2
+2025-05-13 20:42:57,062 - GesNeuAPI - INFO - usuarios:147 - Total de usuarios en la respuesta: 1
+2025-05-13 20:42:59,439 - GesNeuAPI - INFO - usuarios:31 - Intentando crear usuario con username: user_to_delete y email: delete_me@example.com
+2025-05-13 20:42:59,678 - GesNeuAPI - INFO - usuarios:51 - Usuario creado exitosamente con ID: 288fdbc6-a00c-4be5-98bb-31d58dddfbdb
+2025-05-13 20:44:42,901 - GesNeuAPI - INFO - usuarios:31 - Intentando crear usuario con username: testuser_nuevo y email: test_nuevo@example.com
+2025-05-13 20:44:43,172 - GesNeuAPI - INFO - usuarios:51 - Usuario creado exitosamente con ID: aebbc2f4-047a-430a-8c96-db2b5aca2dfe
+2025-05-13 20:44:43,502 - GesNeuAPI - INFO - usuarios:31 - Intentando crear usuario con username: test_duplicado_user y email: original_user@example.com
+2025-05-13 20:44:43,758 - GesNeuAPI - INFO - usuarios:51 - Usuario creado exitosamente con ID: 89612d5f-3a2c-4dbd-8851-918688bafb1a
+2025-05-13 20:44:43,759 - GesNeuAPI - INFO - usuarios:31 - Intentando crear usuario con username: test_duplicado_user y email: duplicado_user@example.com
+2025-05-13 20:44:43,762 - GesNeuAPI - WARNING - usuarios:43 - Intento de crear usuario con username duplicado: test_duplicado_user
+2025-05-13 20:44:43,831 - GesNeuAPI - INFO - usuarios:31 - Intentando crear usuario con username: original_email_user y email: test_duplicado_email@example.com
+2025-05-13 20:44:44,093 - GesNeuAPI - INFO - usuarios:51 - Usuario creado exitosamente con ID: 4f64eb73-5325-4884-aabd-557c29f02bfb
+2025-05-13 20:44:44,095 - GesNeuAPI - INFO - usuarios:31 - Intentando crear usuario con username: duplicado_email_user y email: test_duplicado_email@example.com
+2025-05-13 20:44:44,096 - GesNeuAPI - WARNING - usuarios:35 - Intento de crear usuario con email duplicado: test_duplicado_email@example.com
+2025-05-13 20:44:45,257 - GesNeuAPI - INFO - usuarios:96 - Ejecutando consulta: SELECT usuarios.activo, usuarios.fecha_baja, usuarios.creado_en, usuarios.actualizado_en, usuarios.creado_por, usuarios.actualizado_por, usuarios.username, usuarios.email, usuarios.nombre_completo, usuarios.es_superusuario, usuarios.id, usuarios.hashed_password 
+FROM usuarios
+ LIMIT :param_1 OFFSET :param_2
+2025-05-13 20:44:45,260 - GesNeuAPI - INFO - usuarios:102 - Número de usuarios encontrados: 1
+2025-05-13 20:44:45,261 - GesNeuAPI - INFO - usuarios:109 - Tipo de objeto usuario: <class 'models.usuario.Usuario'>
+2025-05-13 20:44:45,261 - GesNeuAPI - INFO - usuarios:113 - Procesando usuario 1: admin_test_71b034
+2025-05-13 20:44:45,261 - GesNeuAPI - INFO - usuarios:142 - Usuario añadido a la respuesta: admin_test_71b034
+2025-05-13 20:44:45,261 - GesNeuAPI - INFO - usuarios:147 - Total de usuarios en la respuesta: 1
+2025-05-13 20:44:47,668 - GesNeuAPI - INFO - usuarios:31 - Intentando crear usuario con username: user_to_delete y email: delete_me@example.com
+2025-05-13 20:44:47,932 - GesNeuAPI - INFO - usuarios:51 - Usuario creado exitosamente con ID: 4fdd16cb-443e-4820-8049-bdf9bc1f4ebd
+2025-05-13 20:49:07,129 - GesNeuAPI - INFO - usuarios:31 - Intentando crear usuario con username: testuser_nuevo y email: test_nuevo@example.com
+2025-05-13 20:49:07,380 - GesNeuAPI - INFO - usuarios:51 - Usuario creado exitosamente con ID: 04218262-d786-4819-9cd6-412422972a44
+2025-05-13 20:49:07,679 - GesNeuAPI - INFO - usuarios:31 - Intentando crear usuario con username: test_duplicado_user y email: original_user@example.com
+2025-05-13 20:49:07,980 - GesNeuAPI - INFO - usuarios:51 - Usuario creado exitosamente con ID: 7f1ecad6-be46-45e7-a870-0839b5dd297f
+2025-05-13 20:49:07,981 - GesNeuAPI - INFO - usuarios:31 - Intentando crear usuario con username: test_duplicado_user y email: duplicado_user@example.com
+2025-05-13 20:49:07,983 - GesNeuAPI - WARNING - usuarios:43 - Intento de crear usuario con username duplicado: test_duplicado_user
+2025-05-13 20:49:08,046 - GesNeuAPI - INFO - usuarios:31 - Intentando crear usuario con username: original_email_user y email: test_duplicado_email@example.com
+2025-05-13 20:49:08,293 - GesNeuAPI - INFO - usuarios:51 - Usuario creado exitosamente con ID: 560a9256-b259-4081-8e9d-dcc79472d57e
+2025-05-13 20:49:08,294 - GesNeuAPI - INFO - usuarios:31 - Intentando crear usuario con username: duplicado_email_user y email: test_duplicado_email@example.com
+2025-05-13 20:49:08,296 - GesNeuAPI - WARNING - usuarios:35 - Intento de crear usuario con email duplicado: test_duplicado_email@example.com
+2025-05-13 20:49:09,478 - GesNeuAPI - INFO - usuarios:96 - Ejecutando consulta: SELECT usuarios.activo, usuarios.fecha_baja, usuarios.creado_en, usuarios.actualizado_en, usuarios.creado_por, usuarios.actualizado_por, usuarios.username, usuarios.email, usuarios.nombre_completo, usuarios.es_superusuario, usuarios.id, usuarios.hashed_password 
+FROM usuarios
+ LIMIT :param_1 OFFSET :param_2
+2025-05-13 20:49:09,480 - GesNeuAPI - INFO - usuarios:102 - Número de usuarios encontrados: 1
+2025-05-13 20:49:09,480 - GesNeuAPI - INFO - usuarios:109 - Tipo de objeto usuario: <class 'models.usuario.Usuario'>
+2025-05-13 20:49:09,481 - GesNeuAPI - INFO - usuarios:113 - Procesando usuario 1: admin_test_7ceb76
+2025-05-13 20:49:09,481 - GesNeuAPI - INFO - usuarios:142 - Usuario añadido a la respuesta: admin_test_7ceb76
+2025-05-13 20:49:09,481 - GesNeuAPI - INFO - usuarios:147 - Total de usuarios en la respuesta: 1
+2025-05-13 20:49:43,655 - GesNeuAPI - INFO - usuarios:31 - Intentando crear usuario con username: testuser_nuevo y email: test_nuevo@example.com
+2025-05-13 20:49:43,920 - GesNeuAPI - INFO - usuarios:51 - Usuario creado exitosamente con ID: f46728c8-28e9-4a1d-852c-a6e205342541
+2025-05-13 20:49:44,240 - GesNeuAPI - INFO - usuarios:31 - Intentando crear usuario con username: test_duplicado_user y email: original_user@example.com
+2025-05-13 20:49:44,502 - GesNeuAPI - INFO - usuarios:51 - Usuario creado exitosamente con ID: dff817b9-b639-44dc-a541-b9a5dd7fbdc3
+2025-05-13 20:49:44,503 - GesNeuAPI - INFO - usuarios:31 - Intentando crear usuario con username: test_duplicado_user y email: duplicado_user@example.com
+2025-05-13 20:49:44,506 - GesNeuAPI - WARNING - usuarios:43 - Intento de crear usuario con username duplicado: test_duplicado_user
+2025-05-13 20:49:44,660 - GesNeuAPI - INFO - usuarios:31 - Intentando crear usuario con username: original_email_user y email: test_duplicado_email@example.com
+2025-05-13 20:49:44,925 - GesNeuAPI - INFO - usuarios:51 - Usuario creado exitosamente con ID: 2c683107-4332-4ee7-9709-b9ed51ed2d86
+2025-05-13 20:49:44,926 - GesNeuAPI - INFO - usuarios:31 - Intentando crear usuario con username: duplicado_email_user y email: test_duplicado_email@example.com
+2025-05-13 20:49:44,927 - GesNeuAPI - WARNING - usuarios:35 - Intento de crear usuario con email duplicado: test_duplicado_email@example.com
+2025-05-13 20:49:46,131 - GesNeuAPI - INFO - usuarios:96 - Ejecutando consulta: SELECT usuarios.activo, usuarios.fecha_baja, usuarios.creado_en, usuarios.actualizado_en, usuarios.creado_por, usuarios.actualizado_por, usuarios.username, usuarios.email, usuarios.nombre_completo, usuarios.es_superusuario, usuarios.id, usuarios.hashed_password 
+FROM usuarios
+ LIMIT :param_1 OFFSET :param_2
+2025-05-13 20:49:46,133 - GesNeuAPI - INFO - usuarios:102 - Número de usuarios encontrados: 1
+2025-05-13 20:49:46,133 - GesNeuAPI - INFO - usuarios:109 - Tipo de objeto usuario: <class 'models.usuario.Usuario'>
+2025-05-13 20:49:46,133 - GesNeuAPI - INFO - usuarios:113 - Procesando usuario 1: admin_test_f44bc6
+2025-05-13 20:49:46,133 - GesNeuAPI - INFO - usuarios:142 - Usuario añadido a la respuesta: admin_test_f44bc6
+2025-05-13 20:49:46,133 - GesNeuAPI - INFO - usuarios:147 - Total de usuarios en la respuesta: 1
+2025-05-13 20:49:48,539 - GesNeuAPI - INFO - usuarios:31 - Intentando crear usuario con username: user_to_delete y email: delete_me@example.com
+2025-05-13 20:49:48,796 - GesNeuAPI - INFO - usuarios:51 - Usuario creado exitosamente con ID: d7195066-2fa1-4e04-ba56-39806b9d542d
+2025-05-13 21:02:46,716 - GesNeuAPI - INFO - usuarios:31 - Intentando crear usuario con username: testuser_nuevo y email: test_nuevo@example.com
+2025-05-13 21:02:46,971 - GesNeuAPI - INFO - usuarios:51 - Usuario creado exitosamente con ID: a4de3873-81ef-4b95-ab2e-491c4703a7d4
+2025-05-13 21:02:47,284 - GesNeuAPI - INFO - usuarios:31 - Intentando crear usuario con username: test_duplicado_user y email: original_user@example.com
+2025-05-13 21:02:47,538 - GesNeuAPI - INFO - usuarios:51 - Usuario creado exitosamente con ID: 6240fa3d-d648-48af-a9fa-451af5927703
+2025-05-13 21:02:47,540 - GesNeuAPI - INFO - usuarios:31 - Intentando crear usuario con username: test_duplicado_user y email: duplicado_user@example.com
+2025-05-13 21:02:47,542 - GesNeuAPI - WARNING - usuarios:43 - Intento de crear usuario con username duplicado: test_duplicado_user
+2025-05-13 21:02:47,629 - GesNeuAPI - INFO - usuarios:31 - Intentando crear usuario con username: original_email_user y email: test_duplicado_email@example.com
+2025-05-13 21:02:47,884 - GesNeuAPI - INFO - usuarios:51 - Usuario creado exitosamente con ID: f0edd779-dcb6-4d6b-a594-f831a139dd94
+2025-05-13 21:02:47,885 - GesNeuAPI - INFO - usuarios:31 - Intentando crear usuario con username: duplicado_email_user y email: test_duplicado_email@example.com
+2025-05-13 21:02:47,886 - GesNeuAPI - WARNING - usuarios:35 - Intento de crear usuario con email duplicado: test_duplicado_email@example.com
+2025-05-13 21:02:49,032 - GesNeuAPI - INFO - usuarios:96 - Ejecutando consulta: SELECT usuarios.activo, usuarios.fecha_baja, usuarios.creado_en, usuarios.actualizado_en, usuarios.creado_por, usuarios.actualizado_por, usuarios.username, usuarios.email, usuarios.nombre_completo, usuarios.es_superusuario, usuarios.id, usuarios.hashed_password 
+FROM usuarios
+ LIMIT :param_1 OFFSET :param_2
+2025-05-13 21:02:49,034 - GesNeuAPI - INFO - usuarios:102 - Número de usuarios encontrados: 1
+2025-05-13 21:02:49,034 - GesNeuAPI - INFO - usuarios:109 - Tipo de objeto usuario: <class 'models.usuario.Usuario'>
+2025-05-13 21:02:49,034 - GesNeuAPI - INFO - usuarios:113 - Procesando usuario 1: admin_test_236357
+2025-05-13 21:02:49,034 - GesNeuAPI - INFO - usuarios:142 - Usuario añadido a la respuesta: admin_test_236357
+2025-05-13 21:02:49,034 - GesNeuAPI - INFO - usuarios:147 - Total de usuarios en la respuesta: 1
+2025-05-13 21:02:51,316 - GesNeuAPI - INFO - usuarios:31 - Intentando crear usuario con username: user_to_delete y email: delete_me@example.com
+2025-05-13 21:02:51,561 - GesNeuAPI - INFO - usuarios:51 - Usuario creado exitosamente con ID: 09ab2ace-43e1-4a10-894c-58144cd9eab7
+2025-05-13 21:04:51,551 - GesNeuAPI - INFO - usuarios:31 - Intentando crear usuario con username: testuser_nuevo y email: test_nuevo@example.com
+2025-05-13 21:04:51,836 - GesNeuAPI - INFO - usuarios:51 - Usuario creado exitosamente con ID: fce5f2c3-dddb-4520-a0a3-8a4d4229d7e5
+2025-05-13 21:04:52,188 - GesNeuAPI - INFO - usuarios:31 - Intentando crear usuario con username: test_duplicado_user y email: original_user@example.com
+2025-05-13 21:04:52,442 - GesNeuAPI - INFO - usuarios:51 - Usuario creado exitosamente con ID: 6d326dac-1594-464b-bbe7-e2b31310cfa0
+2025-05-13 21:04:52,443 - GesNeuAPI - INFO - usuarios:31 - Intentando crear usuario con username: test_duplicado_user y email: duplicado_user@example.com
+2025-05-13 21:04:52,445 - GesNeuAPI - WARNING - usuarios:43 - Intento de crear usuario con username duplicado: test_duplicado_user
+2025-05-13 21:04:52,509 - GesNeuAPI - INFO - usuarios:31 - Intentando crear usuario con username: original_email_user y email: test_duplicado_email@example.com
+2025-05-13 21:04:52,754 - GesNeuAPI - INFO - usuarios:51 - Usuario creado exitosamente con ID: 9b80dd53-bd2a-488b-89c1-74dc95bfd4c1
+2025-05-13 21:04:52,755 - GesNeuAPI - INFO - usuarios:31 - Intentando crear usuario con username: duplicado_email_user y email: test_duplicado_email@example.com
+2025-05-13 21:04:52,756 - GesNeuAPI - WARNING - usuarios:35 - Intento de crear usuario con email duplicado: test_duplicado_email@example.com
+2025-05-13 21:04:53,877 - GesNeuAPI - INFO - usuarios:96 - Ejecutando consulta: SELECT usuarios.activo, usuarios.fecha_baja, usuarios.creado_en, usuarios.actualizado_en, usuarios.creado_por, usuarios.actualizado_por, usuarios.username, usuarios.email, usuarios.nombre_completo, usuarios.es_superusuario, usuarios.id, usuarios.hashed_password 
+FROM usuarios
+ LIMIT :param_1 OFFSET :param_2
+2025-05-13 21:04:53,878 - GesNeuAPI - INFO - usuarios:102 - Número de usuarios encontrados: 1
+2025-05-13 21:04:53,878 - GesNeuAPI - INFO - usuarios:109 - Tipo de objeto usuario: <class 'models.usuario.Usuario'>
+2025-05-13 21:04:53,878 - GesNeuAPI - INFO - usuarios:113 - Procesando usuario 1: admin_test_e44458
+2025-05-13 21:04:53,879 - GesNeuAPI - INFO - usuarios:142 - Usuario añadido a la respuesta: admin_test_e44458
+2025-05-13 21:04:53,879 - GesNeuAPI - INFO - usuarios:147 - Total de usuarios en la respuesta: 1
+2025-05-13 21:04:56,097 - GesNeuAPI - INFO - usuarios:31 - Intentando crear usuario con username: user_to_delete y email: delete_me@example.com
+2025-05-13 21:04:56,381 - GesNeuAPI - INFO - usuarios:51 - Usuario creado exitosamente con ID: 6f9b9160-0c69-4024-ba89-f9fd88f37ca3
+2025-05-13 21:15:48,606 - GesNeuAPI - INFO - usuarios:31 - Intentando crear usuario con username: testuser_nuevo y email: test_nuevo@example.com
+2025-05-13 21:15:48,876 - GesNeuAPI - INFO - usuarios:51 - Usuario creado exitosamente con ID: dfa4170d-8c8d-4590-8a7e-5eca59f4b16d
+2025-05-13 21:15:49,221 - GesNeuAPI - INFO - usuarios:31 - Intentando crear usuario con username: test_duplicado_user y email: original_user@example.com
+2025-05-13 21:15:49,476 - GesNeuAPI - INFO - usuarios:51 - Usuario creado exitosamente con ID: d963cc83-6a48-4971-a34d-2af1e17b5c23
+2025-05-13 21:15:49,477 - GesNeuAPI - INFO - usuarios:31 - Intentando crear usuario con username: test_duplicado_user y email: duplicado_user@example.com
+2025-05-13 21:15:49,479 - GesNeuAPI - WARNING - usuarios:43 - Intento de crear usuario con username duplicado: test_duplicado_user
+2025-05-13 21:15:49,539 - GesNeuAPI - INFO - usuarios:31 - Intentando crear usuario con username: original_email_user y email: test_duplicado_email@example.com
+2025-05-13 21:15:49,777 - GesNeuAPI - INFO - usuarios:51 - Usuario creado exitosamente con ID: 918d0e1b-6890-4d4c-aa0b-c595c143d47c
+2025-05-13 21:15:49,778 - GesNeuAPI - INFO - usuarios:31 - Intentando crear usuario con username: duplicado_email_user y email: test_duplicado_email@example.com
+2025-05-13 21:15:49,779 - GesNeuAPI - WARNING - usuarios:35 - Intento de crear usuario con email duplicado: test_duplicado_email@example.com
+2025-05-13 21:15:50,981 - GesNeuAPI - INFO - usuarios:96 - Ejecutando consulta: SELECT usuarios.activo, usuarios.fecha_baja, usuarios.creado_en, usuarios.actualizado_en, usuarios.creado_por, usuarios.actualizado_por, usuarios.username, usuarios.email, usuarios.nombre_completo, usuarios.es_superusuario, usuarios.id, usuarios.hashed_password 
+FROM usuarios
+ LIMIT :param_1 OFFSET :param_2
+2025-05-13 21:15:50,985 - GesNeuAPI - INFO - usuarios:102 - Número de usuarios encontrados: 1
+2025-05-13 21:15:50,985 - GesNeuAPI - INFO - usuarios:109 - Tipo de objeto usuario: <class 'models.usuario.Usuario'>
+2025-05-13 21:15:50,985 - GesNeuAPI - INFO - usuarios:113 - Procesando usuario 1: admin_test_ad1e3d
+2025-05-13 21:15:50,985 - GesNeuAPI - INFO - usuarios:142 - Usuario añadido a la respuesta: admin_test_ad1e3d
+2025-05-13 21:15:50,985 - GesNeuAPI - INFO - usuarios:147 - Total de usuarios en la respuesta: 1
+2025-05-13 21:15:53,401 - GesNeuAPI - INFO - usuarios:31 - Intentando crear usuario con username: user_to_delete y email: delete_me@example.com
+2025-05-13 21:15:53,646 - GesNeuAPI - INFO - usuarios:51 - Usuario creado exitosamente con ID: 7064badc-c3b3-4c1b-8cc9-9b56cf5acbb5
+2025-05-13 21:26:09,246 - GesNeuAPI - INFO - usuarios:31 - Intentando crear usuario con username: testuser_nuevo y email: test_nuevo@example.com
+2025-05-13 21:26:09,491 - GesNeuAPI - INFO - usuarios:51 - Usuario creado exitosamente con ID: cf68a5b3-50f3-4d37-a7c7-ac28d279cc12
+2025-05-13 21:26:09,814 - GesNeuAPI - INFO - usuarios:31 - Intentando crear usuario con username: test_duplicado_user y email: original_user@example.com
+2025-05-13 21:26:10,049 - GesNeuAPI - INFO - usuarios:51 - Usuario creado exitosamente con ID: efd3b99f-4486-40e1-87fc-5c4faf6914fc
+2025-05-13 21:26:10,050 - GesNeuAPI - INFO - usuarios:31 - Intentando crear usuario con username: test_duplicado_user y email: duplicado_user@example.com
+2025-05-13 21:26:10,052 - GesNeuAPI - WARNING - usuarios:43 - Intento de crear usuario con username duplicado: test_duplicado_user
+2025-05-13 21:26:10,116 - GesNeuAPI - INFO - usuarios:31 - Intentando crear usuario con username: original_email_user y email: test_duplicado_email@example.com
+2025-05-13 21:26:10,376 - GesNeuAPI - INFO - usuarios:51 - Usuario creado exitosamente con ID: 00cd9f55-9f78-494a-b77d-e6522e25231d
+2025-05-13 21:26:10,377 - GesNeuAPI - INFO - usuarios:31 - Intentando crear usuario con username: duplicado_email_user y email: test_duplicado_email@example.com
+2025-05-13 21:26:10,378 - GesNeuAPI - WARNING - usuarios:35 - Intento de crear usuario con email duplicado: test_duplicado_email@example.com
+2025-05-13 21:26:11,488 - GesNeuAPI - INFO - usuarios:96 - Ejecutando consulta: SELECT usuarios.activo, usuarios.fecha_baja, usuarios.creado_en, usuarios.actualizado_en, usuarios.creado_por, usuarios.actualizado_por, usuarios.username, usuarios.email, usuarios.nombre_completo, usuarios.es_superusuario, usuarios.id, usuarios.hashed_password 
+FROM usuarios
+ LIMIT :param_1 OFFSET :param_2
+2025-05-13 21:26:11,489 - GesNeuAPI - INFO - usuarios:102 - Número de usuarios encontrados: 1
+2025-05-13 21:26:11,490 - GesNeuAPI - INFO - usuarios:109 - Tipo de objeto usuario: <class 'models.usuario.Usuario'>
+2025-05-13 21:26:11,490 - GesNeuAPI - INFO - usuarios:113 - Procesando usuario 1: admin_test_cdc6b6
+2025-05-13 21:26:11,490 - GesNeuAPI - INFO - usuarios:142 - Usuario añadido a la respuesta: admin_test_cdc6b6
+2025-05-13 21:26:11,490 - GesNeuAPI - INFO - usuarios:147 - Total de usuarios en la respuesta: 1
+2025-05-13 21:26:13,770 - GesNeuAPI - INFO - usuarios:31 - Intentando crear usuario con username: user_to_delete y email: delete_me@example.com
+2025-05-13 21:26:14,005 - GesNeuAPI - INFO - usuarios:51 - Usuario creado exitosamente con ID: db5353bd-51a7-4156-9810-6d2dfe13ab58
+2025-05-13 21:28:56,622 - GesNeuAPI - INFO - usuarios:31 - Intentando crear usuario con username: testuser_nuevo y email: test_nuevo@example.com
+2025-05-13 21:28:56,899 - GesNeuAPI - INFO - usuarios:51 - Usuario creado exitosamente con ID: 69ac5047-2fa4-43cd-9667-51e67c441369
+2025-05-13 21:28:57,236 - GesNeuAPI - INFO - usuarios:31 - Intentando crear usuario con username: test_duplicado_user y email: original_user@example.com
+2025-05-13 21:28:57,500 - GesNeuAPI - INFO - usuarios:51 - Usuario creado exitosamente con ID: 67ed2dac-d277-4a60-aaa5-3e91645088e3
+2025-05-13 21:28:57,501 - GesNeuAPI - INFO - usuarios:31 - Intentando crear usuario con username: test_duplicado_user y email: duplicado_user@example.com
+2025-05-13 21:28:57,503 - GesNeuAPI - WARNING - usuarios:43 - Intento de crear usuario con username duplicado: test_duplicado_user
+2025-05-13 21:28:57,582 - GesNeuAPI - INFO - usuarios:31 - Intentando crear usuario con username: original_email_user y email: test_duplicado_email@example.com
+2025-05-13 21:28:57,849 - GesNeuAPI - INFO - usuarios:51 - Usuario creado exitosamente con ID: 729a90d1-e5ad-4db8-8147-9295d002c53f
+2025-05-13 21:28:57,850 - GesNeuAPI - INFO - usuarios:31 - Intentando crear usuario con username: duplicado_email_user y email: test_duplicado_email@example.com
+2025-05-13 21:28:57,852 - GesNeuAPI - WARNING - usuarios:35 - Intento de crear usuario con email duplicado: test_duplicado_email@example.com
+2025-05-13 21:28:59,123 - GesNeuAPI - INFO - usuarios:96 - Ejecutando consulta: SELECT usuarios.activo, usuarios.fecha_baja, usuarios.creado_en, usuarios.actualizado_en, usuarios.creado_por, usuarios.actualizado_por, usuarios.username, usuarios.email, usuarios.nombre_completo, usuarios.es_superusuario, usuarios.id, usuarios.hashed_password 
+FROM usuarios
+ LIMIT :param_1 OFFSET :param_2
+2025-05-13 21:28:59,125 - GesNeuAPI - INFO - usuarios:102 - Número de usuarios encontrados: 1
+2025-05-13 21:28:59,125 - GesNeuAPI - INFO - usuarios:109 - Tipo de objeto usuario: <class 'models.usuario.Usuario'>
+2025-05-13 21:28:59,125 - GesNeuAPI - INFO - usuarios:113 - Procesando usuario 1: admin_test_d0f645
+2025-05-13 21:28:59,125 - GesNeuAPI - INFO - usuarios:142 - Usuario añadido a la respuesta: admin_test_d0f645
+2025-05-13 21:28:59,125 - GesNeuAPI - INFO - usuarios:147 - Total de usuarios en la respuesta: 1
+2025-05-13 21:29:01,554 - GesNeuAPI - INFO - usuarios:31 - Intentando crear usuario con username: user_to_delete y email: delete_me@example.com
+2025-05-13 21:29:01,823 - GesNeuAPI - INFO - usuarios:51 - Usuario creado exitosamente con ID: 5cc72b2f-9894-40ef-ae4f-ca879c66c140
+2025-05-13 21:37:00,530 - GesNeuAPI - INFO - usuarios:31 - Intentando crear usuario con username: testuser_nuevo y email: test_nuevo@example.com
+2025-05-13 21:37:00,806 - GesNeuAPI - INFO - usuarios:51 - Usuario creado exitosamente con ID: 8c943c62-c8c1-45d8-93a0-6fab57eb7c44
+2025-05-13 21:37:01,157 - GesNeuAPI - INFO - usuarios:31 - Intentando crear usuario con username: test_duplicado_user y email: original_user@example.com
+2025-05-13 21:37:01,442 - GesNeuAPI - INFO - usuarios:51 - Usuario creado exitosamente con ID: cb4dd26c-4e49-49f0-a8a8-308c901146bf
+2025-05-13 21:37:01,443 - GesNeuAPI - INFO - usuarios:31 - Intentando crear usuario con username: test_duplicado_user y email: duplicado_user@example.com
+2025-05-13 21:37:01,445 - GesNeuAPI - WARNING - usuarios:43 - Intento de crear usuario con username duplicado: test_duplicado_user
+2025-05-13 21:37:01,521 - GesNeuAPI - INFO - usuarios:31 - Intentando crear usuario con username: original_email_user y email: test_duplicado_email@example.com
+2025-05-13 21:37:01,806 - GesNeuAPI - INFO - usuarios:51 - Usuario creado exitosamente con ID: 865ce333-887f-4f6d-b3ed-d8b69f7fa27f
+2025-05-13 21:37:01,807 - GesNeuAPI - INFO - usuarios:31 - Intentando crear usuario con username: duplicado_email_user y email: test_duplicado_email@example.com
+2025-05-13 21:37:01,809 - GesNeuAPI - WARNING - usuarios:35 - Intento de crear usuario con email duplicado: test_duplicado_email@example.com
+2025-05-13 21:37:03,088 - GesNeuAPI - INFO - usuarios:96 - Ejecutando consulta: SELECT usuarios.activo, usuarios.fecha_baja, usuarios.creado_en, usuarios.actualizado_en, usuarios.creado_por, usuarios.actualizado_por, usuarios.username, usuarios.email, usuarios.nombre_completo, usuarios.es_superusuario, usuarios.id, usuarios.hashed_password 
+FROM usuarios
+ LIMIT :param_1 OFFSET :param_2
+2025-05-13 21:37:03,091 - GesNeuAPI - INFO - usuarios:102 - Número de usuarios encontrados: 1
+2025-05-13 21:37:03,091 - GesNeuAPI - INFO - usuarios:109 - Tipo de objeto usuario: <class 'models.usuario.Usuario'>
+2025-05-13 21:37:03,091 - GesNeuAPI - INFO - usuarios:113 - Procesando usuario 1: admin_test_7e5465
+2025-05-13 21:37:03,091 - GesNeuAPI - INFO - usuarios:142 - Usuario añadido a la respuesta: admin_test_7e5465
+2025-05-13 21:37:03,091 - GesNeuAPI - INFO - usuarios:147 - Total de usuarios en la respuesta: 1
+2025-05-13 21:37:05,684 - GesNeuAPI - INFO - usuarios:31 - Intentando crear usuario con username: user_to_delete y email: delete_me@example.com
+2025-05-13 21:37:05,974 - GesNeuAPI - INFO - usuarios:51 - Usuario creado exitosamente con ID: b82c5f9d-8b3f-4ebe-acda-44036a9c5fcf
+2025-05-13 21:37:28,508 - GesNeuAPI - INFO - usuarios:31 - Intentando crear usuario con username: testuser_nuevo y email: test_nuevo@example.com
+2025-05-13 21:37:28,783 - GesNeuAPI - INFO - usuarios:51 - Usuario creado exitosamente con ID: fc690bc6-d99e-4bd4-9bf1-00e38589c0a6
+2025-05-13 21:37:29,130 - GesNeuAPI - INFO - usuarios:31 - Intentando crear usuario con username: test_duplicado_user y email: original_user@example.com
+2025-05-13 21:37:29,410 - GesNeuAPI - INFO - usuarios:51 - Usuario creado exitosamente con ID: 7d55b75d-afe1-48b4-b1a8-a30039a1340d
+2025-05-13 21:37:29,411 - GesNeuAPI - INFO - usuarios:31 - Intentando crear usuario con username: test_duplicado_user y email: duplicado_user@example.com
+2025-05-13 21:37:29,414 - GesNeuAPI - WARNING - usuarios:43 - Intento de crear usuario con username duplicado: test_duplicado_user
+2025-05-13 21:37:29,490 - GesNeuAPI - INFO - usuarios:31 - Intentando crear usuario con username: original_email_user y email: test_duplicado_email@example.com
+2025-05-13 21:37:29,778 - GesNeuAPI - INFO - usuarios:51 - Usuario creado exitosamente con ID: 2bbcca49-7b0e-4dd3-a5bf-6ae0b83bfcf5
+2025-05-13 21:37:29,780 - GesNeuAPI - INFO - usuarios:31 - Intentando crear usuario con username: duplicado_email_user y email: test_duplicado_email@example.com
+2025-05-13 21:37:29,781 - GesNeuAPI - WARNING - usuarios:35 - Intento de crear usuario con email duplicado: test_duplicado_email@example.com
+2025-05-13 21:37:31,026 - GesNeuAPI - INFO - usuarios:96 - Ejecutando consulta: SELECT usuarios.activo, usuarios.fecha_baja, usuarios.creado_en, usuarios.actualizado_en, usuarios.creado_por, usuarios.actualizado_por, usuarios.username, usuarios.email, usuarios.nombre_completo, usuarios.es_superusuario, usuarios.id, usuarios.hashed_password 
+FROM usuarios
+ LIMIT :param_1 OFFSET :param_2
+2025-05-13 21:37:31,028 - GesNeuAPI - INFO - usuarios:102 - Número de usuarios encontrados: 1
+2025-05-13 21:37:31,028 - GesNeuAPI - INFO - usuarios:109 - Tipo de objeto usuario: <class 'models.usuario.Usuario'>
+2025-05-13 21:37:31,028 - GesNeuAPI - INFO - usuarios:113 - Procesando usuario 1: admin_test_9b8f41
+2025-05-13 21:37:31,028 - GesNeuAPI - INFO - usuarios:142 - Usuario añadido a la respuesta: admin_test_9b8f41
+2025-05-13 21:37:31,028 - GesNeuAPI - INFO - usuarios:147 - Total de usuarios en la respuesta: 1
+2025-05-13 21:37:33,572 - GesNeuAPI - INFO - usuarios:31 - Intentando crear usuario con username: user_to_delete y email: delete_me@example.com
+2025-05-13 21:37:33,852 - GesNeuAPI - INFO - usuarios:51 - Usuario creado exitosamente con ID: 86c4e306-aac5-417e-8331-d1975c7353bd
+2025-05-13 21:41:58,829 - GesNeuAPI - INFO - usuarios:31 - Intentando crear usuario con username: testuser_nuevo y email: test_nuevo@example.com
+2025-05-13 21:41:59,095 - GesNeuAPI - INFO - usuarios:51 - Usuario creado exitosamente con ID: 5385c5ab-8bac-434c-a950-ae303c0a12ce
+2025-05-13 21:41:59,427 - GesNeuAPI - INFO - usuarios:31 - Intentando crear usuario con username: test_duplicado_user y email: original_user@example.com
+2025-05-13 21:41:59,689 - GesNeuAPI - INFO - usuarios:51 - Usuario creado exitosamente con ID: de3cd379-c6c0-477e-be2e-c5701a9b557b
+2025-05-13 21:41:59,690 - GesNeuAPI - INFO - usuarios:31 - Intentando crear usuario con username: test_duplicado_user y email: duplicado_user@example.com
+2025-05-13 21:41:59,693 - GesNeuAPI - WARNING - usuarios:43 - Intento de crear usuario con username duplicado: test_duplicado_user
+2025-05-13 21:41:59,766 - GesNeuAPI - INFO - usuarios:31 - Intentando crear usuario con username: original_email_user y email: test_duplicado_email@example.com
+2025-05-13 21:42:00,031 - GesNeuAPI - INFO - usuarios:51 - Usuario creado exitosamente con ID: 6f19aa58-88fa-4619-b3ac-908b68112ac7
+2025-05-13 21:42:00,032 - GesNeuAPI - INFO - usuarios:31 - Intentando crear usuario con username: duplicado_email_user y email: test_duplicado_email@example.com
+2025-05-13 21:42:00,033 - GesNeuAPI - WARNING - usuarios:35 - Intento de crear usuario con email duplicado: test_duplicado_email@example.com
+2025-05-13 21:42:01,217 - GesNeuAPI - INFO - usuarios:96 - Ejecutando consulta: SELECT usuarios.activo, usuarios.fecha_baja, usuarios.creado_en, usuarios.actualizado_en, usuarios.creado_por, usuarios.actualizado_por, usuarios.username, usuarios.email, usuarios.nombre_completo, usuarios.es_superusuario, usuarios.id, usuarios.hashed_password 
+FROM usuarios
+ LIMIT :param_1 OFFSET :param_2
+2025-05-13 21:42:01,219 - GesNeuAPI - INFO - usuarios:102 - Número de usuarios encontrados: 1
+2025-05-13 21:42:01,219 - GesNeuAPI - INFO - usuarios:109 - Tipo de objeto usuario: <class 'models.usuario.Usuario'>
+2025-05-13 21:42:01,219 - GesNeuAPI - INFO - usuarios:113 - Procesando usuario 1: admin_test_8549a4
+2025-05-13 21:42:01,219 - GesNeuAPI - INFO - usuarios:142 - Usuario añadido a la respuesta: admin_test_8549a4
+2025-05-13 21:42:01,219 - GesNeuAPI - INFO - usuarios:147 - Total de usuarios en la respuesta: 1
+2025-05-13 21:42:03,600 - GesNeuAPI - INFO - usuarios:31 - Intentando crear usuario con username: user_to_delete y email: delete_me@example.com
+2025-05-13 21:42:03,864 - GesNeuAPI - INFO - usuarios:51 - Usuario creado exitosamente con ID: 7eeba83e-7122-417a-81e2-528b030e56d7
+2025-05-13 21:43:44,511 - GesNeuAPI - INFO - usuarios:31 - Intentando crear usuario con username: testuser_nuevo y email: test_nuevo@example.com
+2025-05-13 21:43:44,799 - GesNeuAPI - INFO - usuarios:51 - Usuario creado exitosamente con ID: 4b9dd00d-45c1-430c-8c47-a533516278ba
+2025-05-13 21:43:45,142 - GesNeuAPI - INFO - usuarios:31 - Intentando crear usuario con username: test_duplicado_user y email: original_user@example.com
+2025-05-13 21:43:45,411 - GesNeuAPI - INFO - usuarios:51 - Usuario creado exitosamente con ID: 8ed0efcd-fd99-4bb8-92fc-d1278d14bf8f
+2025-05-13 21:43:45,412 - GesNeuAPI - INFO - usuarios:31 - Intentando crear usuario con username: test_duplicado_user y email: duplicado_user@example.com
+2025-05-13 21:43:45,414 - GesNeuAPI - WARNING - usuarios:43 - Intento de crear usuario con username duplicado: test_duplicado_user
+2025-05-13 21:43:45,493 - GesNeuAPI - INFO - usuarios:31 - Intentando crear usuario con username: original_email_user y email: test_duplicado_email@example.com
+2025-05-13 21:43:45,759 - GesNeuAPI - INFO - usuarios:51 - Usuario creado exitosamente con ID: 50245ba2-8cd5-4c50-bd75-5ea138383beb
+2025-05-13 21:43:45,760 - GesNeuAPI - INFO - usuarios:31 - Intentando crear usuario con username: duplicado_email_user y email: test_duplicado_email@example.com
+2025-05-13 21:43:45,762 - GesNeuAPI - WARNING - usuarios:35 - Intento de crear usuario con email duplicado: test_duplicado_email@example.com
+2025-05-13 21:43:46,961 - GesNeuAPI - INFO - usuarios:96 - Ejecutando consulta: SELECT usuarios.activo, usuarios.fecha_baja, usuarios.creado_en, usuarios.actualizado_en, usuarios.creado_por, usuarios.actualizado_por, usuarios.username, usuarios.email, usuarios.nombre_completo, usuarios.es_superusuario, usuarios.id, usuarios.hashed_password 
+FROM usuarios
+ LIMIT :param_1 OFFSET :param_2
+2025-05-13 21:43:46,962 - GesNeuAPI - INFO - usuarios:102 - Número de usuarios encontrados: 1
+2025-05-13 21:43:46,963 - GesNeuAPI - INFO - usuarios:109 - Tipo de objeto usuario: <class 'models.usuario.Usuario'>
+2025-05-13 21:43:46,963 - GesNeuAPI - INFO - usuarios:113 - Procesando usuario 1: admin_test_2d107c
+2025-05-13 21:43:46,963 - GesNeuAPI - INFO - usuarios:142 - Usuario añadido a la respuesta: admin_test_2d107c
+2025-05-13 21:43:46,963 - GesNeuAPI - INFO - usuarios:147 - Total de usuarios en la respuesta: 1
+2025-05-13 21:43:49,394 - GesNeuAPI - INFO - usuarios:31 - Intentando crear usuario con username: user_to_delete y email: delete_me@example.com
+2025-05-13 21:43:49,660 - GesNeuAPI - INFO - usuarios:51 - Usuario creado exitosamente con ID: 8541aae5-dd2d-4a8f-8309-426aba94101b

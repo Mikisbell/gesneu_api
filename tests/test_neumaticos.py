@@ -948,3 +948,91 @@ async def test_evento_inspeccion_no_genera_alerta_sin_profundidad(client: AsyncC
     count_after = await db_session.scalar(stmt_count_after) or 0
     assert count_after == count_before, "Se generó alerta inesperada para inspección sin profundidad"
 
+
+@pytest.mark.asyncio
+async def test_evento_reencauche_salida_genera_alerta_limite_reencauches(client: AsyncClient, db_session: AsyncSession):
+    """Verifica que un evento REENCAUCHE_SALIDA genera alerta cuando se alcanza el límite de reencauches."""
+    # Preparar los datos necesarios
+    headers, neumatico_id, _, _, user_id = await setup_instalacion_prerequisites(client, db_session)
+    
+    # Obtener el neumático y su modelo
+    neumatico = await db_session.get(Neumatico, neumatico_id)
+    assert neumatico is not None
+    
+    # Modificar el modelo para permitir reencauche con límite 1
+    modelo = await db_session.get(ModeloNeumatico, neumatico.modelo_id)
+    assert modelo is not None
+    modelo.permite_reencauche = True
+    modelo.reencauches_maximos = 1
+    await db_session.commit()
+    
+    # Modificar el neumático para tener reencauches realizados = 0 (justo por debajo del límite)
+    # El evento REENCAUCHE_SALIDA incrementará este valor a 1, llegando al límite y disparando la alerta
+    neumatico.reencauches_realizados = 0
+    neumatico.es_reencauchado = False  # Será true después del evento
+    neumatico.estado_actual = EstadoNeumaticoEnum.EN_REENCAUCHE.value
+    await db_session.commit()
+    
+    # Crear proveedor de reencauche
+    proveedor = await get_or_create_proveedor_reencauche(db_session, user_id)
+    
+    # Contar alertas antes del evento
+    stmt_count_before = select(func.count(Alerta.id)).where(
+        Alerta.tipo_alerta == TipoAlertaEnum.LIMITE_REENCAUCHES_ALCANZADO.value, 
+        Alerta.neumatico_id == neumatico_id,
+        Alerta.resuelta == False
+    )
+    count_before = await db_session.scalar(stmt_count_before) or 0
+    assert count_before == 0, "No debería haber alertas antes del evento"
+    
+    # Crear evento de reencauche salida
+    url_eventos = f"{NEUMATICOS_PREFIX}/eventos"
+    
+    # Obtener el almacén donde se almacenará el neumático
+    almacen = await get_or_create_almacen_test(db_session, user_id)
+    
+    evento_reencauche_salida_payload = {
+        "neumatico_id": str(neumatico_id),
+        "tipo_evento": TipoEventoNeumaticoEnum.REENCAUCHE_SALIDA.value,
+        "profundidad_remanente_mm": 17.0,
+        "profundidad_post_reencauche_mm": 17.0,  # Campo requerido para reencauche_salida
+        "proveedor_servicio_id": str(proveedor.id),
+        "destino_almacen_id": str(almacen.id),  # Campo requerido: almacén destino
+        "costo_servicio": 150.0,
+        "numero_factura": f"FACT-{uuid.uuid4().hex[:6]}",
+        "fecha_factura": date.today().isoformat(),
+        "comentarios": "Reencauche completado, prueba de límite",
+        "usuario_id": str(user_id)
+    }
+    response = await client.post(url_eventos, json=evento_reencauche_salida_payload, headers=headers)
+    assert response.status_code == status.HTTP_201_CREATED, f"Evento reencauche salida fallido: {response.text}"
+    await db_session.commit()
+    
+    # Verificar que se creó una alerta por límite de reencauches
+    stmt_count_after = select(func.count(Alerta.id)).where(
+        Alerta.tipo_alerta == TipoAlertaEnum.LIMITE_REENCAUCHES_ALCANZADO.value, 
+        Alerta.neumatico_id == neumatico_id,
+        Alerta.resuelta == False
+    )
+    count_after = await db_session.scalar(stmt_count_after) or 0
+    assert count_after > count_before, "No se generó alerta de límite de reencauches"
+    
+    # Obtener la alerta para verificar sus propiedades
+    stmt_alerta = select(Alerta).where(
+        Alerta.tipo_alerta == TipoAlertaEnum.LIMITE_REENCAUCHES_ALCANZADO.value, 
+        Alerta.neumatico_id == neumatico_id,
+        Alerta.resuelta == False
+    )
+    result = await db_session.exec(stmt_alerta)
+    alerta = result.first()
+    assert alerta is not None
+    assert alerta.nivel_severidad == "WARN"
+    assert "límite de 1 reencauche" in alerta.descripcion
+    assert alerta.datos_contexto is not None
+    
+    # Convertir a enteros para la comparación ya que los valores podrían ser strings
+    reencauches_realizados = int(alerta.datos_contexto.get("reencauches_realizados")) if alerta.datos_contexto.get("reencauches_realizados") is not None else None
+    reencauches_maximos = int(alerta.datos_contexto.get("reencauches_maximos")) if alerta.datos_contexto.get("reencauches_maximos") is not None else None
+    
+    assert reencauches_realizados == 1
+    assert reencauches_maximos == 1

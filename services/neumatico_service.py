@@ -345,31 +345,31 @@ class NeumaticoService:
 
 
 
-    async def _handle_inspeccion(self, event_data: EventoNeumaticoCreate, db_neumatico: Neumatico) -> bool:
+    async def _handle_inspeccion(self, event_data: EventoNeumaticoCreate, db_neumatico: Neumatico):
         logger.info(f"Procesando INSPECCION para neumático {db_neumatico.id}")
+        # Validar que el neumático esté instalado
         if db_neumatico.estado_actual != EstadoNeumaticoEnum.INSTALADO:
-             raise ValidationError(f"Neumático {db_neumatico.id} debe estar INSTALADO para inspección.")
+            logger.warning(f"INSPECCION: Neumático {db_neumatico.id} no está instalado (estado: {db_neumatico.estado_actual.value})")
+            # No es un error fatal, se permite inspeccionar neumáticos en cualquier estado
 
-        # --- CORRECCIÓN AQUÍ ---
-        # La inspección es un registro puntual. No modifica el KM acumulado.
-        # Tampoco actualizaremos campos directos en Neumatico como 'profundidad_remanente_actual_mm'
-        # o 'presion_actual_psi' porque no existen en el modelo.
-        # La información de profundidad/presión de esta inspección se guarda en el EventoNeumatico.
-        # Si se necesita mostrar la "última" medición en algún lado, se debería consultar el último evento.
+        # Validar que se proporcione al menos un dato de inspección
+        if not event_data.profundidad_remanente_mm and not event_data.presion_psi:
+            raise ValidationError("Se requiere al menos un dato de inspección (profundidad o presión)")
 
-        modificado = False # Indica que no se modificaron campos directos en el objeto Neumatico
-
-        # Loguear los datos recibidos en la inspección (si existen)
+        # No hay cambios de estado en una inspección, solo se registra el evento
+        # Nota: No actualizamos la profundidad en el modelo Neumatico ya que no tiene un campo para profundidad actual
+        # Solo registramos la profundidad en el evento de inspección
         if event_data.profundidad_remanente_mm is not None:
-            logger.info(f"Inspección neumático {db_neumatico.id}: Profundidad registrada {event_data.profundidad_remanente_mm} mm.")
-        if event_data.presion_psi is not None:
-            logger.info(f"Inspección neumático {db_neumatico.id}: Presión registrada {event_data.presion_psi} PSI.")
-        # -----------------------
+            logger.info(f"Registrada profundidad de neumático {db_neumatico.id}: {event_data.profundidad_remanente_mm}mm (en evento)")
+            # Para futuras mejoras: Si se añade un campo profundidad_actual_mm al modelo Neumatico,
+            # se podría actualizar aquí
 
-        logger.info(f"Neumático {db_neumatico.id} inspeccionado. ¿Modificado directamente?: {modificado}")
-        # Devuelve False porque no cambiamos atributos directos del objeto db_neumatico
-        # El cambio principal es la creación del registro de evento asociado.
-        return modificado
+        # También se podría registrar la presión actual si se implementa ese campo
+        # db_neumatico.presion_actual_psi = event_data.presion_actual_psi
+        
+        await self.alert_service.check_and_create_alerts(db_neumatico, event_data)
+        return True
+
     
 
     async def _handle_rotacion(self, event_data: EventoNeumaticoCreate, db_neumatico: Neumatico, fecha_evento: date) -> bool:

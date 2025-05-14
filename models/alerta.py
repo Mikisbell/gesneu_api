@@ -33,6 +33,7 @@ class AlertaBase(SQLModel):
     nivel_severidad: str = Field(default='INFO', max_length=20) # ('INFO', 'WARN', 'CRITICAL')
     
     resuelta: bool = Field(default=False, index=True, nullable=False)
+    notas_resolucion: Optional[str] = Field(default=None, sa_column=Column(sqlalchemy.Text))
 
     # Foreign Keys opcionales
     neumatico_id: Optional[uuid.UUID] = Field(default=None, foreign_key="neumaticos.id", index=True)

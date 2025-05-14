@@ -19,6 +19,7 @@ from routers.neumaticos import router as neumaticos_router
 from routers.proveedores import router as proveedores_router
 from routers.tipos_vehiculo import router as tipos_vehiculo_router
 from routers.fabricantes_neumatico import router as fabricantes_router
+from routers.alertas import router as alertas_router
 
 # --- Definir el lifespan ---
 @asynccontextmanager
@@ -66,6 +67,7 @@ app.include_router(neumaticos_router, prefix=f"{api_prefix}/neumaticos", tags=["
 app.include_router(tipos_vehiculo_router, prefix=f"{api_prefix}/tipos-vehiculo", tags=["Tipos de Vehículo"]) # Añadido prefijo
 app.include_router(proveedores_router, prefix=f"{api_prefix}/proveedores", tags=["Proveedores"]) # Añadido prefijo
 app.include_router(fabricantes_router, prefix=f"{api_prefix}/fabricantes-neumatico", tags=["Fabricantes Neumático"]) # Añadido prefijo
+app.include_router(alertas_router, prefix=f"{api_prefix}/alertas", tags=["Alertas"]) # Nuevo router para alertas
 
 # --- Ruta Raíz ---
 @app.get("/", tags=["Root"])

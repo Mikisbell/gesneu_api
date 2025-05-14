@@ -1,16 +1,23 @@
 # gesneu_api2/schemas/alerta.py
-from typing import Optional, ClassVar, Dict, Any
+import uuid
+from typing import Optional, ClassVar, Dict, Any, Union
 from datetime import datetime
 from pydantic import BaseModel, Field, ConfigDict
 from .common import TipoAlertaEnum # Asegúrate que TipoAlertaEnum esté en schemas/common.py
 
 # Properties to receive via API on creation
 class AlertaBase(BaseModel):
-    neumatico_id: Optional[int] = None
-    vehiculo_id: Optional[int] = None
-    tipo_alerta: TipoAlertaEnum
-    descripcion: str = Field(..., max_length=255)
-    # fecha_creacion se manejará por defecto en el modelo con default_factory=datetime.utcnow
+    neumatico_id: Optional[uuid.UUID] = None
+    vehiculo_id: Optional[uuid.UUID] = None
+    modelo_id: Optional[uuid.UUID] = None
+    almacen_id: Optional[uuid.UUID] = None
+    parametro_id: Optional[uuid.UUID] = None
+    # Usar Union[str, TipoAlertaEnum] para aceptar ambos tipos y evitar warnings
+    tipo_alerta: Union[str, TipoAlertaEnum]
+    descripcion: str = Field(...)
+    nivel_severidad: str = Field(default='INFO')
+    datos_contexto: Optional[Dict[str, Any]] = None
+    # creado_en se manejará por defecto en el modelo con default_factory=datetime.utcnow
     # resuelta se manejará por defecto en el modelo como False
 
 class AlertaCreate(AlertaBase):
@@ -20,29 +27,22 @@ class AlertaCreate(AlertaBase):
 # Generalmente para resolver una alerta o añadir detalles
 class AlertaUpdate(BaseModel):
     resuelta: Optional[bool] = None
-    # Puedes añadir otros campos que quieras que sean actualizables, por ejemplo:
-    # descripcion: Optional[str] = Field(None, max_length=255)
-    # Para la resolución, podrías querer registrar quién y cuándo:
-    # usuario_resolucion_id: Optional[int] = None # Se asignaría en el endpoint/servicio
-    # fecha_resolucion: Optional[datetime] = None # Se asignaría en el endpoint/servicio
+    notas_resolucion: Optional[str] = None
+    gestionada_por: Optional[uuid.UUID] = None
+    timestamp_gestion: Optional[datetime] = None
 
 # Properties shared by models stored in DB
 class AlertaInDBBase(AlertaBase):
-    id: int
-    fecha_creacion: datetime
+    id: uuid.UUID
     resuelta: bool
-    fecha_resolucion: Optional[datetime] = None
-    usuario_resolucion_id: Optional[int] = None
-
-    # Configuración moderna usando model_config con ConfigDict
-        
-
+    notas_resolucion: Optional[str] = None
+    creado_en: datetime
+    actualizado_en: Optional[datetime] = None
+    creado_por: Optional[uuid.UUID] = None
+    actualizado_por: Optional[uuid.UUID] = None
+    
     model_config: ClassVar[Dict[str, Any]] = ConfigDict(
-        
-
-        from_attributes=True  # Reemplaza orm_mode=True
-        
-
+        from_attributes=True
     )
 
 # Additional properties to return via API
