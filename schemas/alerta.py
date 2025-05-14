@@ -67,3 +67,21 @@ class AlertaConDetallesResponse(Alerta):
     # neumatico_asociado: Optional[Neumatico] = None
     # vehiculo_asociado: Optional[Vehiculo] = None
     pass
+
+class AlertaRead(BaseModel):
+    id: uuid.UUID
+    creado_en: datetime
+    actualizado_en: Optional[datetime] = None
+    neumatico_id: Optional[uuid.UUID] = None
+    vehiculo_id: Optional[uuid.UUID] = None
+    modelo_id: Optional[uuid.UUID] = None
+    almacen_id: Optional[uuid.UUID] = None
+    parametro_id: Optional[uuid.UUID] = None
+    tipo_alerta: Union[str, TipoAlertaEnum]
+    descripcion: str
+    nivel_severidad: str
+    datos_contexto: Optional[Dict[str, Any]] = None
+    resuelta: bool
+    notas_resolucion: Optional[str] = None
+    creado_por: Optional[uuid.UUID] = None
+    actualizado_por: Optional[uuid.UUID] = None

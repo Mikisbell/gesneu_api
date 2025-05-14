@@ -23,7 +23,8 @@ logger = logging.getLogger(__name__)
     "/",
     response_model=List[AlertaResponse],
     status_code=status.HTTP_200_OK,
-    summary="Listar alertas con filtros"
+    summary="Listar alertas",
+    description="Obtiene todas las alertas con opción de filtrar por tipo o estado"
 )
 async def listar_alertas(
     session: AsyncSession = Depends(get_session),
@@ -119,7 +120,8 @@ async def obtener_alerta(
     "/{alerta_id}",
     response_model=AlertaResponse,
     status_code=status.HTTP_200_OK,
-    summary="Actualizar estado de una alerta"
+    summary="Actualizar estado de una alerta",
+    description="Permite marcar alertas como resueltas o actualizar su prioridad"
 )
 async def actualizar_alerta(
     alerta_update: AlertaUpdate,
@@ -194,7 +196,8 @@ async def actualizar_alerta(
 @router.get(
     "/dashboard/resumen",
     status_code=status.HTTP_200_OK,
-    summary="Obtener resumen de alertas para dashboard"
+    summary="Resumen de alertas",
+    description="Muestra métricas clave de alertas activas agrupadas por tipo y severidad"
 )
 async def obtener_resumen_alertas(
     session: AsyncSession = Depends(get_session),

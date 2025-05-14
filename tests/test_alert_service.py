@@ -75,7 +75,7 @@ async def test_check_limite_reencauches(db_session: AsyncSession):
     from sqlmodel import select
     
     query = select(Alerta).where(
-        Alerta.tipo_alerta == TipoAlertaEnum.LIMITE_REENCAUCHES_ALCANZADO.value,
+        Alerta.tipo_alerta == TipoAlertaEnum.LIMITE_REENCAUCHES.value,
         Alerta.neumatico_id == neumatico.id
     )
     result = await db_session.exec(query)
@@ -155,7 +155,7 @@ async def test_no_alerta_cuando_no_alcanza_limite_reencauches(db_session: AsyncS
     
     # Verificar que NO se creó una alerta
     query = select(Alerta).where(
-        Alerta.tipo_alerta == TipoAlertaEnum.LIMITE_REENCAUCHES_ALCANZADO.value,
+        Alerta.tipo_alerta == TipoAlertaEnum.LIMITE_REENCAUCHES.value,
         Alerta.neumatico_id == neumatico.id
     )
     result = await db_session.exec(query)
@@ -212,7 +212,7 @@ async def test_no_alerta_cuando_modelo_no_permite_reencauche(db_session: AsyncSe
     
     # Verificar que NO se creó una alerta
     query = select(Alerta).where(
-        Alerta.tipo_alerta == TipoAlertaEnum.LIMITE_REENCAUCHES_ALCANZADO.value,
+        Alerta.tipo_alerta == TipoAlertaEnum.LIMITE_REENCAUCHES.value,
         Alerta.neumatico_id == neumatico.id
     )
     result = await db_session.exec(query)
@@ -280,7 +280,7 @@ async def test_check_and_create_alerts_limite_reencauches(db_session: AsyncSessi
     
     # Verificar que se creó una alerta
     query = select(Alerta).where(
-        Alerta.tipo_alerta == TipoAlertaEnum.LIMITE_REENCAUCHES_ALCANZADO.value,
+        Alerta.tipo_alerta == TipoAlertaEnum.LIMITE_REENCAUCHES.value,
         Alerta.neumatico_id == neumatico.id
     )
     result = await db_session.exec(query)

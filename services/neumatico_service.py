@@ -367,7 +367,7 @@ class NeumaticoService:
         # También se podría registrar la presión actual si se implementa ese campo
         # db_neumatico.presion_actual_psi = event_data.presion_actual_psi
         
-        await self.alert_service.check_and_create_alerts(db_neumatico, event_data)
+        await self.alert_service.check_profundidad(db_neumatico.id)
         return True
 
     
@@ -518,7 +518,6 @@ class NeumaticoService:
                  logger.error(f"REENCAUCHE_SALIDA: Neumático {db_neumatico.id} ya alcanzó límite (Error lógico si entró a reencauche).")
                  raise ConflictError(f"Neumático {db_neumatico.id} alcanzó límite de reencauches.")
 
-
         if db_neumatico.reencauches_realizados is None:
             db_neumatico.reencauches_realizados = 0
 
@@ -535,6 +534,7 @@ class NeumaticoService:
         db_neumatico.km_instalacion = None
         db_neumatico.fecha_instalacion = None
 
+        await self.alert_service.check_reencauches(db_neumatico.id)
         logger.info(f"Neumático {db_neumatico.id} actualizado post-reencauche. Reencauche #{db_neumatico.reencauches_realizados}. KM reseteados.")
         return True
 

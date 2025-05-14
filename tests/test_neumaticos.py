@@ -978,7 +978,7 @@ async def test_evento_reencauche_salida_genera_alerta_limite_reencauches(client:
     
     # Contar alertas antes del evento
     stmt_count_before = select(func.count(Alerta.id)).where(
-        Alerta.tipo_alerta == TipoAlertaEnum.LIMITE_REENCAUCHES_ALCANZADO.value, 
+        Alerta.tipo_alerta == TipoAlertaEnum.LIMITE_REENCAUCHES.value, 
         Alerta.neumatico_id == neumatico_id,
         Alerta.resuelta == False
     )
@@ -1010,7 +1010,7 @@ async def test_evento_reencauche_salida_genera_alerta_limite_reencauches(client:
     
     # Verificar que se creó una alerta por límite de reencauches
     stmt_count_after = select(func.count(Alerta.id)).where(
-        Alerta.tipo_alerta == TipoAlertaEnum.LIMITE_REENCAUCHES_ALCANZADO.value, 
+        Alerta.tipo_alerta == TipoAlertaEnum.LIMITE_REENCAUCHES.value, 
         Alerta.neumatico_id == neumatico_id,
         Alerta.resuelta == False
     )
@@ -1019,7 +1019,7 @@ async def test_evento_reencauche_salida_genera_alerta_limite_reencauches(client:
     
     # Obtener la alerta para verificar sus propiedades
     stmt_alerta = select(Alerta).where(
-        Alerta.tipo_alerta == TipoAlertaEnum.LIMITE_REENCAUCHES_ALCANZADO.value, 
+        Alerta.tipo_alerta == TipoAlertaEnum.LIMITE_REENCAUCHES.value, 
         Alerta.neumatico_id == neumatico_id,
         Alerta.resuelta == False
     )

@@ -25,14 +25,18 @@ from models.neumatico import EstadoNeumaticoEnum
 from models.parametro_inventario import TipoParametroEnum
 from models.evento_neumatico import TipoEventoNeumaticoEnum
 from schemas.common import TipoAlertaEnum, SeveridadAlerta
+from schemas.alerta import AlertaCreate, AlertaRead
+from services.notification_service import NotificationService
+from crud.crud_alerta import alerta as crud_alerta
 
 logger = logging.getLogger(__name__)
 
 # Resto de las funciones auxiliares...
 
 class AlertService:
-    def __init__(self, session: AsyncSession):
+    def __init__(self, session: AsyncSession, bg_tasks=None):
         self.session = session
+        self.notifier = NotificationService(bg_tasks)
 
     async def _crear_alerta(
         self,
@@ -88,6 +92,15 @@ class AlertService:
         
         logger.info(f"Alerta creada: {alerta.id} - {tipo} - {severidad}")
         return alerta
+
+    async def _create_alert(self, **kwargs):
+        # Remove tipo_alerta from kwargs if it exists to avoid duplication
+        tipo_alerta = kwargs.pop('tipo_alerta', TipoAlertaEnum.LIMITE_REENCAUCHES)
+        descripcion = kwargs.pop('descripcion', 'Límite de reencauches alcanzado')
+        alerta = AlertaCreate(tipo_alerta=tipo_alerta, descripcion=descripcion, **kwargs)
+        db_alerta = await crud_alerta.create(self.session, obj_in=alerta)
+        self.notifier.enqueue_alert_notification(db_alerta)
+        return db_alerta
 
     async def _check_fin_vida_util(self, neumatico: Neumatico, evento: Optional[EventoNeumatico] = None) -> Optional[Alerta]:
         """
@@ -187,13 +200,13 @@ class AlertService:
         if neumatico.reencauches_realizados >= reencauches_maximos:
             alerta = await self._crear_alerta(
                 neumatico=neumatico,
-                tipo=TipoAlertaEnum.LIMITE_REENCAUCHES_ALCANZADO.value,
+                tipo=TipoAlertaEnum.LIMITE_REENCAUCHES,
                 severidad=SeveridadAlerta.WARN,
                 descripcion=f"Se ha alcanzado el límite de {reencauches_maximos} reencauche{'s' if reencauches_maximos > 1 else ''} permitido{'s' if reencauches_maximos > 1 else ''}.",
                 datos_contexto={
                     "reencauches_realizados": neumatico.reencauches_realizados,
                     "reencauches_maximos": reencauches_maximos,
-                    "motivos": ["LIMITE_REENCAUCHES_ALCANZADO"]
+                    "motivos": ["LIMITE_REENCAUCHES"]
                 }
             )
             await self.session.commit()
@@ -354,3 +367,73 @@ class AlertService:
             alertas.append(alerta)
             
         return alertas
+
+    async def check_profundidad(self, neumatico_id: uuid.UUID):
+        # Get the tire
+        statement = select(Neumatico).where(Neumatico.id == neumatico_id)
+        result = await self.session.exec(statement)
+        neumatico = result.one()
+        
+        # Get the minimum depth parameter for this tire model
+        statement = select(ParametroInventario).where(
+            ParametroInventario.modelo_id == neumatico.modelo_id,
+            ParametroInventario.tipo_parametro == 'PROFUNDIDAD_MINIMA'
+        )
+        result = await self.session.exec(statement)
+        parametro = result.first()
+        
+        if not parametro or not parametro.valor_numerico:
+            return  # No depth parameter set for this model
+            
+        # Get the latest inspection event for this tire
+        statement = select(EventoNeumatico).where(
+            EventoNeumatico.neumatico_id == neumatico_id,
+            EventoNeumatico.tipo_evento == TipoEventoNeumaticoEnum.INSPECCION.value
+        ).order_by(EventoNeumatico.timestamp_evento.desc()).limit(1)
+        
+        result = await self.session.exec(statement)
+        ultima_inspeccion = result.first()
+        
+        if not ultima_inspeccion or not ultima_inspeccion.profundidad_remanente_mm:
+            return  # No inspection with depth measurement found
+            
+        # Check if the depth is below the minimum
+        if ultima_inspeccion.profundidad_remanente_mm < parametro.valor_numerico:
+            await self._create_alert(
+                neumatico_id=neumatico_id,
+                tipo_alerta=TipoAlertaEnum.PROFUNDIDAD_BAJA,
+                descripcion=f'Profundidad {ultima_inspeccion.profundidad_remanente_mm}mm < {parametro.valor_numerico}mm',
+                nivel_severidad=SeveridadAlerta.WARN,
+                datos_contexto={
+                    'profundidad_actual': ultima_inspeccion.profundidad_remanente_mm,
+                    'profundidad_minima': parametro.valor_numerico,
+                    'fecha_ultima_inspeccion': ultima_inspeccion.timestamp_evento.isoformat()
+                }
+            )
+
+    async def check_reencauches(self, neumatico_id: uuid.UUID):
+        statement = select(Neumatico).where(Neumatico.id == neumatico_id)
+        result = await self.session.exec(statement)
+        neumatico = result.one()
+        if neumatico.modelo and neumatico.reencauches_realizados >= neumatico.modelo.reencauches_maximos:
+            await self._create_alert(
+                neumatico_id=neumatico_id,
+                tipo_alerta=TipoAlertaEnum.LIMITE_REENCAUCHES,
+                descripcion=f'Alcanzado límite de {neumatico.modelo.reencauches_maximos} reencauches',
+                nivel_severidad=SeveridadAlerta.WARN,
+                datos_contexto={
+                    'reencauches_realizados': neumatico.reencauches_realizados,
+                    'reencauches_maximos': neumatico.modelo.reencauches_maximos
+                }
+            )
+
+    async def _get_neumatico(self, neumatico_id):
+        statement = select(Neumatico).where(Neumatico.id == neumatico_id)
+        result = await self.session.exec(statement)
+        return result.one()
+
+    async def _get_parametro(self, modelo_id, tipo_param):
+        statement = select(ParametroInventario).where(ParametroInventario.modelo_id == modelo_id).where(ParametroInventario.tipo_parametro == tipo_param)
+        result = await self.session.exec(statement)
+        parametro = result.one()
+        return parametro

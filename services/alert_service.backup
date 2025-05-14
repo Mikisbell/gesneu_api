@@ -112,7 +112,7 @@ class AlertService:
                  return f"Profundidad medida ({profundidad:.1f}mm) <= umbral mínimo ({umbral:.1f}mm)."
             return "Alerta de profundidad baja detectada."
             
-        elif tipo_alerta == TipoAlertaEnum.LIMITE_REENCAUCHES_ALCANZADO.value:
+        elif tipo_alerta == TipoAlertaEnum.LIMITE_REENCAUCHES.value:
             reencauches_realizados = safe_context.get('reencauches_realizados')
             reencauches_maximos = safe_context.get('reencauches_maximos')
             numero_serie = safe_context.get('numero_serie', 'N/A')
@@ -453,7 +453,7 @@ class AlertService:
                 
                 # Usar los objetos UUID originales o sus versiones safe para la creación de la alerta
                 await self._crear_alerta_en_db(
-                    tipo_alerta=TipoAlertaEnum.LIMITE_REENCAUCHES_ALCANZADO.value,
+                    tipo_alerta=TipoAlertaEnum.LIMITE_REENCAUCHES.value,
                     mensaje=mensaje,
                     nivel_severidad="WARN",
                     neumatico_id=safe_uuid(neumatico.id),
