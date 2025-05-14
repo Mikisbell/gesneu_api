@@ -1,7 +1,7 @@
 # gesneu_api2/schemas/registro_odometro.py
-from typing import Optional
+from typing import Optional, ClassVar, Dict, Any
 from datetime import date, datetime # datetime para campos de timestamp si los usas
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, ConfigDict
 # Si necesitas devolver información detallada del vehículo,
 # necesitarás importar su respectivo schema.
 # from .vehiculo import VehiculoResponse # O el schema que corresponda
@@ -33,9 +33,16 @@ class RegistroOdometroInDBBase(RegistroOdometroBase):
     # created_at: datetime
     # updated_at: datetime
 
-    class Config:
-        from_attributes = True # Para Pydantic V2 (reemplaza orm_mode)
-        # orm_mode = True # Para Pydantic V1
+    # Configuración moderna usando model_config con ConfigDict
+        
+
+    model_config: ClassVar[Dict[str, Any]] = ConfigDict(
+        
+
+        from_attributes=True  # Reemplaza orm_mode=True
+        
+
+    )
 
 # Additional properties to return via API
 class RegistroOdometro(RegistroOdometroInDBBase):

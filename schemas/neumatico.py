@@ -40,3 +40,15 @@ class HistorialNeumaticoItem(SQLModel):
 
 class NeumaticoInstaladoItem(SQLModel):
     id: uuid.UUID; numero_serie: Optional[str]=None; dot: Optional[str]=None; nombre_modelo: Optional[str]=None; medida: Optional[str]=None; fabricante: Optional[str]=None; placa: Optional[str]=None; numero_economico: Optional[str]=None; tipo_vehiculo: Optional[str]=None; codigo_posicion: Optional[str]=None; profundidad_actual_mm: Optional[float]=None; presion_actual_psi: Optional[float]=None; kilometraje_neumatico_acumulado: Optional[int]=None; vida_actual: Optional[int]=None; reencauches_realizados: Optional[int]=None
+
+class NeumaticoUpdate(SQLModel):
+    """Esquema para actualizar un neumático."""
+    numero_serie: Optional[str] = None
+    dot: Optional[str] = None
+    modelo_id: Optional[uuid.UUID] = None
+    fecha_compra: Optional[date] = None
+    fecha_fabricacion: Optional[date] = None
+    costo_compra: Optional[float] = None
+    moneda_compra: Optional[str] = None
+    proveedor_compra_id: Optional[uuid.UUID] = None
+    profundidad_inicial_mm: Optional[float] = None

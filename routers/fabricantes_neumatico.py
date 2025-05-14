@@ -44,32 +44,46 @@ async def crear_fabricante(
     current_user: Usuario = Depends(get_current_active_user)
 ):
     """Crea un nuevo registro de fabricante de neumáticos."""
-    # Validar nombre duplicado usando el CRUD
-    existing_fabricante_nombre = await crud_fabricante.get_by_name(session, name=fabricante_in.nombre)
-    if existing_fabricante_nombre:
-        raise HTTPException(
-            status_code=status.HTTP_409_CONFLICT,
-            detail=f"Ya existe un fabricante con el nombre '{fabricante_in.nombre}'"
-        )
-
-    # Validar código abreviado duplicado usando el CRUD
-    if fabricante_in.codigo_abreviado:
-         existing_fabricante_codigo = await crud_fabricante.get_by_codigo_abreviado(session, codigo_abreviado=fabricante_in.codigo_abreviado)
-         if existing_fabricante_codigo:
-             raise HTTPException(
-                 status_code=status.HTTP_409_CONFLICT,
-                 detail=f"Ya existe un fabricante con el código '{fabricante_in.codigo_abreviado}'"
-             )
-
-    # Crear el fabricante usando el CRUD
-    # Añadir el usuario creador antes de pasar al CRUD si el CRUD base no lo maneja
-    fabricante_data = fabricante_in.model_dump()
-    fabricante_data['creado_por'] = current_user.id
-    # El CRUD base maneja la adición, commit y refresh
     try:
+        # Validar nombre duplicado usando el CRUD
+        existing_fabricante_nombre = await crud_fabricante.get_by_name(session, name=fabricante_in.nombre)
+        if existing_fabricante_nombre:
+            logger.warning(f"Intento de crear fabricante con nombre duplicado: {fabricante_in.nombre}")
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail=f"Ya existe un fabricante con el nombre '{fabricante_in.nombre}'"
+            )
+
+        # Validar código abreviado duplicado usando el CRUD
+        if fabricante_in.codigo_abreviado:
+            existing_fabricante_codigo = await crud_fabricante.get_by_codigo_abreviado(session, codigo_abreviado=fabricante_in.codigo_abreviado)
+            if existing_fabricante_codigo:
+                logger.warning(f"Intento de crear fabricante con código duplicado: {fabricante_in.codigo_abreviado}")
+                raise HTTPException(
+                    status_code=status.HTTP_409_CONFLICT,
+                    detail=f"Ya existe un fabricante con el código '{fabricante_in.codigo_abreviado}'"
+                )
+
+        # Crear el fabricante usando el CRUD
+        # Añadir el usuario creador antes de pasar al CRUD si el CRUD base no lo maneja
+        fabricante_data = fabricante_in.model_dump()
+        fabricante_data['creado_por'] = current_user.id
+        
+        # El CRUD base maneja la adición, commit y refresh
         db_fabricante = await crud_fabricante.create(session, obj_in=fabricante_in) # Pasar el schema directamente
         logger.info(f"Fabricante '{db_fabricante.nombre}' creado por {current_user.username}")
-        return db_fabricante
+        
+        # Convertir explícitamente a diccionario con los campos necesarios para FabricanteNeumaticoRead
+        fabricante_dict = {
+            "id": str(db_fabricante.id),
+            "nombre": db_fabricante.nombre,
+            "codigo_abreviado": db_fabricante.codigo_abreviado,
+            "activo": db_fabricante.activo,
+            "creado_en": db_fabricante.creado_en,
+            "actualizado_en": db_fabricante.actualizado_en
+        }
+        
+        return fabricante_dict
     except IntegrityError as e:
         # El CRUD base ya hizo rollback si falló el commit
         logger.warning(f"Error de integridad al crear fabricante (posible duplicado BD): {str(e)}")
@@ -146,38 +160,57 @@ async def actualizar_fabricante(
     current_user: Usuario = Depends(get_current_active_user) # Usar la dependencia centralizada
 ):
     """Actualiza los datos de un fabricante existente."""
-    # Obtener el fabricante usando el CRUD
-    db_fabricante = await crud_fabricante.get(session, id=fabricante_id)
-    if not db_fabricante:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"Fabricante con ID {fabricante_id} no encontrado para actualizar."
-        )
-
-    update_data = fabricante_update.model_dump(exclude_unset=True)
-
-    # Validar nombre duplicado (si se está actualizando el nombre)
-    if "nombre" in update_data and update_data["nombre"] != db_fabricante.nombre:
-        existing_fabricante_nombre = await crud_fabricante.get_by_name(session, name=update_data["nombre"])
-        if existing_fabricante_nombre and existing_fabricante_nombre.id != fabricante_id:
-            raise HTTPException(status.HTTP_409_CONFLICT, f"Nombre '{update_data['nombre']}' ya existe.")
-
-    # Validar código abreviado duplicado (si se está actualizando el código)
-    if "codigo_abreviado" in update_data and update_data["codigo_abreviado"] != db_fabricante.codigo_abreviado:
-        if update_data["codigo_abreviado"]:
-             existing_fabricante_codigo = await crud_fabricante.get_by_codigo_abreviado(session, codigo_abreviado=update_data["codigo_abreviado"])
-             if existing_fabricante_codigo and existing_fabricante_codigo.id != fabricante_id:
-                  raise HTTPException(status.HTTP_409_CONFLICT, f"Código '{update_data['codigo_abreviado']}' ya existe.")
-
-    # Añadir usuario actualizador antes de pasar al CRUD si el CRUD base no lo maneja
-    update_data['actualizado_en'] = datetime.now(timezone.utc)
-    update_data['actualizado_por'] = current_user.id
-
-    # Actualizar el fabricante usando el CRUD
     try:
+        # Obtener el fabricante usando el CRUD
+        db_fabricante = await crud_fabricante.get(session, id=fabricante_id)
+        if not db_fabricante:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail=f"Fabricante con ID {fabricante_id} no encontrado para actualizar."
+            )
+
+        update_data = fabricante_update.model_dump(exclude_unset=True)
+
+        # Validar nombre duplicado (si se está actualizando el nombre)
+        if "nombre" in update_data and update_data["nombre"] != db_fabricante.nombre:
+            existing_fabricante_nombre = await crud_fabricante.get_by_name(session, name=update_data["nombre"])
+            if existing_fabricante_nombre and str(existing_fabricante_nombre.id) != str(fabricante_id):
+                logger.warning(f"Intento de actualizar fabricante {fabricante_id} con nombre duplicado: {update_data['nombre']}")
+                raise HTTPException(
+                    status_code=status.HTTP_409_CONFLICT, 
+                    detail=f"Nombre '{update_data['nombre']}' ya existe."
+                )
+
+        # Validar código abreviado duplicado (si se está actualizando el código)
+        if "codigo_abreviado" in update_data and update_data["codigo_abreviado"] != db_fabricante.codigo_abreviado:
+            if update_data["codigo_abreviado"]:
+                existing_fabricante_codigo = await crud_fabricante.get_by_codigo_abreviado(session, codigo_abreviado=update_data["codigo_abreviado"])
+                if existing_fabricante_codigo and str(existing_fabricante_codigo.id) != str(fabricante_id):
+                    logger.warning(f"Intento de actualizar fabricante {fabricante_id} con código duplicado: {update_data['codigo_abreviado']}")
+                    raise HTTPException(
+                        status_code=status.HTTP_409_CONFLICT, 
+                        detail=f"Código '{update_data['codigo_abreviado']}' ya existe."
+                    )
+
+        # Añadir usuario actualizador antes de pasar al CRUD si el CRUD base no lo maneja
+        update_data['actualizado_en'] = datetime.now(timezone.utc)
+        update_data['actualizado_por'] = current_user.id
+
+        # Actualizar el fabricante usando el CRUD
         db_fabricante = await crud_fabricante.update(session, db_obj=db_fabricante, obj_in=update_data) # Pasar el diccionario de actualización
         logger.info(f"Fabricante {fabricante_id} actualizado por {current_user.username}")
-        return db_fabricante
+        
+        # Convertir explícitamente a diccionario con los campos necesarios para FabricanteNeumaticoRead
+        fabricante_dict = {
+            "id": str(db_fabricante.id),
+            "nombre": db_fabricante.nombre,
+            "codigo_abreviado": db_fabricante.codigo_abreviado,
+            "activo": db_fabricante.activo,
+            "creado_en": db_fabricante.creado_en,
+            "actualizado_en": db_fabricante.actualizado_en
+        }
+        
+        return fabricante_dict
     except IntegrityError as e:
         # El CRUD base ya hizo rollback si falló el commit
         logger.warning(f"Error de integridad al actualizar fabricante {fabricante_id}: {str(e)}")

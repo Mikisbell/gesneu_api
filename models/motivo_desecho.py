@@ -1,7 +1,8 @@
 # gesneu_api2/models/motivo_desecho.py
 import uuid
+from pydantic import ConfigDict
 from datetime import datetime, timezone # Asegurarse que timezone esté importado si se usa
-from typing import Optional, List, TYPE_CHECKING # Añadir List y TYPE_CHECKING para relaciones
+from typing import Optional, List, TYPE_CHECKING, ClassVar, Dict, Any # Añadido ClassVar, Dict, Any
 
 from sqlmodel import Field, SQLModel, Relationship # Añadir Relationship
 # Column, ForeignKey, text ya no son necesarios aquí si heredamos SQLModelTimestamp
@@ -47,6 +48,7 @@ class MotivoDesecho(SQLModelTimestamp, EstadoItem, MotivoDesechoBase, table=True
     #     sa_relationship_kwargs={'foreign_keys': '[MotivoDesecho.actualizado_por]'}
     # )
 
-    class Config:
-        from_attributes = True # Para Pydantic V2 (reemplaza orm_mode)
-        # orm_mode = True # Para Pydantic V1
+    # Configuración moderna usando model_config con ConfigDict
+    model_config: ClassVar[Dict[str, Any]] = ConfigDict(
+        from_attributes=True  # Reemplaza orm_mode=True
+    )

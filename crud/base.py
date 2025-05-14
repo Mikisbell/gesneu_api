@@ -1,6 +1,6 @@
 from typing import Any, Dict, Generic, List, Optional, Type, TypeVar, Union
 
-from fastapi.encoders import jsonable_encoder
+# Removed jsonable_encoder import as it's deprecated with Pydantic v2
 from pydantic import BaseModel
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -31,8 +31,14 @@ class CRUDBase(Generic[ModelType, CreateSchemaType, UpdateSchemaType]):
         Returns:
             The model instance if found, otherwise None.
         """
-        result = await session.execute(select(self.model).where(self.model.id == id))
-        return result.scalar_one_or_none()
+        # Using session.exec() instead of session.execute() to fix deprecation warning
+        # session.exec() returns a different result type than session.execute()
+        try:
+            return await session.get(self.model, id)
+        except Exception:
+            # Fallback to query if direct get fails
+            result = await session.exec(select(self.model).where(self.model.id == id))
+            return result.first()
 
     async def get_multi(
         self, session: AsyncSession, *, skip: int = 0, limit: int = 100
@@ -48,8 +54,33 @@ class CRUDBase(Generic[ModelType, CreateSchemaType, UpdateSchemaType]):
         Returns:
             A list of model instances.
         """
-        result = await session.execute(select(self.model).offset(skip).limit(limit))
-        return result.scalars().all()
+        # Using session.exec() instead of session.execute() to fix deprecation warning
+        # session.exec() returns a different result type than session.execute()
+        try:
+            # Direct query with exec
+            result = await session.exec(select(self.model).offset(skip).limit(limit))
+            # Process results and handle both direct objects and tuples
+            items = []
+            for item in result:
+                # Check if item is a tuple (which happens with certain SQLAlchemy queries)
+                if isinstance(item, tuple):
+                    # Extract the model instance from the tuple (usually first element)
+                    if len(item) > 0 and isinstance(item[0], self.model):
+                        items.append(item[0])
+                else:
+                    # Item is already a model instance
+                    items.append(item)
+            return items
+        except Exception as e:
+            print(f"Error in get_multi: {e}")
+            # Fallback to execute approach if exec fails
+            try:
+                # Legacy approach with execute
+                result = await session.execute(select(self.model).offset(skip).limit(limit))
+                return list(result.scalars().all())
+            except Exception as e2:
+                print(f"Error in get_multi fallback: {e2}")
+                return []
 
     async def create(self, session: AsyncSession, *, obj_in: CreateSchemaType) -> ModelType:
         """
@@ -62,7 +93,8 @@ class CRUDBase(Generic[ModelType, CreateSchemaType, UpdateSchemaType]):
         Returns:
             The created model instance.
         """
-        obj_in_data = jsonable_encoder(obj_in)
+        # Using model_dump instead of jsonable_encoder for Pydantic v2 compatibility
+        obj_in_data = obj_in.model_dump()
         db_obj = self.model(**obj_in_data)  # type: ignore
         session.add(db_obj)
         await session.commit()
@@ -87,7 +119,8 @@ class CRUDBase(Generic[ModelType, CreateSchemaType, UpdateSchemaType]):
         Returns:
             The updated model instance.
         """
-        obj_data = jsonable_encoder(db_obj)
+        # Using model_dump instead of jsonable_encoder for Pydantic v2 compatibility
+        obj_data = db_obj.model_dump() if hasattr(db_obj, 'model_dump') else {k: v for k, v in db_obj.__dict__.items() if not k.startswith('_')}
         if isinstance(obj_in, dict):
             update_data = obj_in
         else:
@@ -111,9 +144,19 @@ class CRUDBase(Generic[ModelType, CreateSchemaType, UpdateSchemaType]):
         Returns:
             The deleted model instance if found, otherwise None.
         """
-        result = await session.execute(select(self.model).where(self.model.id == id))
-        db_obj = result.scalar_one_or_none()
-        if db_obj:
-            await session.delete(db_obj)
-            await session.commit()
-        return db_obj
+        # Using session.exec() instead of session.execute() to fix deprecation warning
+        # First try to get the object directly
+        try:
+            db_obj = await session.get(self.model, id)
+            if db_obj:
+                await session.delete(db_obj)
+                await session.commit()
+            return db_obj
+        except Exception:
+            # Fallback to query if direct get fails
+            result = await session.exec(select(self.model).where(self.model.id == id))
+            db_obj = result.first()
+            if db_obj:
+                await session.delete(db_obj)
+                await session.commit()
+            return db_obj

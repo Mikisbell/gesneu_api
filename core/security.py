@@ -3,13 +3,24 @@ from jose import JWTError, jwt
 from datetime import datetime, timedelta, timezone
 from fastapi import HTTPException, status
 from core.config import settings
+import warnings
+
+# Suprimir warnings específicos de passlib
+warnings.filterwarnings("ignore", ".*trapped.*error reading bcrypt version.*")
+
 # --- Añadir importaciones para passlib ---
 from passlib.context import CryptContext
 
 # --- Crear instancia del contexto ---
 # Le decimos que use bcrypt como esquema por defecto
 # y que marque otros hashes como obsoletos automáticamente si los encontrara
-pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+# Configuración optimizada para evitar warnings
+pwd_context = CryptContext(
+    schemes=["bcrypt"],
+    deprecated="auto",
+    bcrypt__rounds=12,  # Número de rondas para bcrypt
+    bcrypt__ident="2b"  # Usar formato $2b$ (más compatible)
+)
 
 # --- Funciones Helper para Contraseñas ---
 def verify_password(plain_password: str, hashed_password: str) -> bool:

@@ -19,6 +19,8 @@ class CRUDNeumatico(CRUDBase[Neumatico, NeumaticoCreate, NeumaticoUpdate]):
         """
         # Asegúrate que la vista 'vw_neumaticos_instalados_optimizada' existe en tu BD
         view_query = text("SELECT * FROM vw_neumaticos_instalados_optimizada")
+        # Para consultas SQL directas con text(), debemos seguir usando execute()
+        # ya que exec() no funciona con consultas SQL directas
         result = await session.execute(view_query)
         # Obtener como lista de diccionarios (o RowMapping)
         instalados_data = result.mappings().all()

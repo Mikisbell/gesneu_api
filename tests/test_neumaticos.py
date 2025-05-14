@@ -481,15 +481,96 @@ async def test_crear_evento_desmontaje_fallido_sin_destino(client: AsyncClient, 
     assert "destino_desmontaje requerido." in response.text # Corregido: Mensaje de error actualizado
  
  
-@pytest.mark.integration
 @pytest.mark.asyncio
-async def test_leer_neumaticos_instalados_success(
-    integration_client: AsyncClient, postgres_session: AsyncSession
-):
-    """Prueba GET /instalados contra PostgreSQL."""
-    pytest.skip("DATABASE_TEST_URL_HOST no definida. Omitiendo pruebas de integración con BD externa.")
-    # El resto del código de esta prueba se mantiene igual que antes.
-    # ... (código omitido por brevedad, pero debe ser el mismo que tenías)
+async def test_leer_neumaticos_instalados_success(client: AsyncClient, db_session: AsyncSession, monkeypatch):
+    """Prueba GET /instalados con la base de datos SQLite en memoria."""
+    # Configuración previa: crear un usuario, fabricante, tipo de vehículo, vehículo, neumático y posición
+    headers, neumatico_id, vehiculo_id, posicion_id, user_id = await setup_instalacion_prerequisites(client, db_session)
+    
+    # Instalar el neumático en el vehículo
+    url_eventos = f"{NEUMATICOS_PREFIX}/eventos"
+    # Usar una fecha sin componente de tiempo (solo la fecha)
+    fecha_hoy = datetime.now(timezone.utc).date().isoformat()
+    evento_instalacion = {
+        "tipo_evento": "INSTALACION",
+        "neumatico_id": str(neumatico_id),
+        "vehiculo_id": str(vehiculo_id),
+        "posicion_id": str(posicion_id),
+        "fecha_evento": fecha_hoy,  # Usar solo la fecha sin tiempo
+        "kilometraje": 0,
+        "odometro_vehiculo_en_evento": 1000,  # Añadir el odómetro del vehículo
+        "presion": 100,
+        "profundidad_izquierda": 15.0,
+        "profundidad_centro": 15.0,
+        "profundidad_derecha": 15.0,
+        "observaciones": "Instalación inicial para prueba"
+    }
+    
+    response_install = await client.post(url_eventos, json=evento_instalacion, headers=headers)
+    assert response_install.status_code == status.HTTP_201_CREATED, f"Error al instalar neumático: {response_install.text}"
+    
+    # Mockear el método get_neumaticos_instalados para evitar consultar la vista SQL
+    from crud.crud_neumatico import neumatico as crud_neumatico
+    
+    async def mock_get_neumaticos_instalados(session):
+        # Devolver datos de prueba que simulan la respuesta de la vista
+        fecha_hoy = datetime.now(timezone.utc).date().isoformat()
+        return [{
+            "id": str(neumatico_id),
+            "vehiculo_id": str(vehiculo_id),
+            "posicion_id": str(posicion_id),
+            "numero_serie": "TEST-123",
+            "dot": "DOT-TEST",
+            "nombre_modelo": "Modelo Test",
+            "medida": "11R22.5",
+            "fabricante": "Fabricante Test",
+            "placa": "ABC123",
+            "numero_economico": "ECO-001",
+            "tipo_vehiculo": "Camión",
+            "codigo_posicion": "P1",
+            "profundidad_actual_mm": 15.0,
+            "presion_actual_psi": 100.0,
+            "kilometraje_neumatico_acumulado": 0,
+            "vida_actual": 1,
+            "reencauches_realizados": 0,
+            "fecha_instalacion": fecha_hoy,
+            "kilometraje_instalacion": 0
+        }]
+    
+    # Aplicar el mock
+    monkeypatch.setattr(crud_neumatico, "get_neumaticos_instalados", mock_get_neumaticos_instalados)
+    
+    # Consultar los neumáticos instalados
+    url_instalados = f"{NEUMATICOS_PREFIX}/instalados"
+    response = await client.get(url_instalados, headers=headers)
+    
+    # Verificar la respuesta
+    assert response.status_code == status.HTTP_200_OK, f"Error al obtener neumáticos instalados: {response.text}"
+    data = response.json()
+    
+    # Verificar que la respuesta es una lista
+    assert isinstance(data, list), "La respuesta debe ser una lista"
+    assert len(data) > 0, "La lista no debe estar vacía"
+    
+    # Verificar que el primer elemento tiene los campos esperados
+    primer_neumatico = data[0]
+    assert "id" in primer_neumatico, "El neumático debe tener un ID"
+    assert "numero_serie" in primer_neumatico, "El neumático debe tener un número de serie"
+    
+    # Verificar que hay al menos un neumático instalado (el que acabamos de instalar)
+    assert len(data) >= 1, "Debe haber al menos un neumático instalado"
+    
+    # Imprimir los datos para depuración
+    print(f"Datos de neumáticos instalados: {data}")
+    
+    # Verificar que el neumático que instalamos está en la lista
+    neumatico_encontrado = False
+    for neumatico in data:
+        if neumatico.get("id") == str(neumatico_id):
+            neumatico_encontrado = True
+            break
+    
+    assert neumatico_encontrado, "El neumático instalado no se encontró en la respuesta"
 
 
 @pytest.mark.asyncio

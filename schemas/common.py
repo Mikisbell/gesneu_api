@@ -1,8 +1,9 @@
 # gesneu_api2/schemas/common.py
 from enum import Enum
-from sqlmodel import SQLModel # Importar SQLModel si se usa para EstadoItem
-from datetime import datetime # Importar datetime si se usa para EstadoItem
-from typing import Optional # Importar Optional si se usa para EstadoItem
+from sqlmodel import SQLModel, Field # Importar SQLModel y Field
+from datetime import datetime
+from typing import Optional, ClassVar, Dict, Any
+from pydantic import ConfigDict # Importar ConfigDict para la nueva configuración
 
 # --- Enums Existentes ---
 class EstadoNeumaticoEnum(str, Enum):
@@ -72,10 +73,11 @@ class TipoAlertaEnum(str, Enum):
 
 # --- Clases Base de Schemas Comunes (si las tienes aquí) ---
 # Por ejemplo, si EstadoItem se define como un schema Pydantic/SQLModel aquí:
-class EstadoItem(SQLModel): # O Pydantic BaseModel si no es SQLModel
+class EstadoItem(SQLModel):
     activo: bool = True
     fecha_baja: Optional[datetime] = None
-
-    class Config:
-        from_attributes = True # Para Pydantic V2
-        # orm_mode = True # Para Pydantic V1
+    
+    # Usar ConfigDict en lugar de la clase Config
+    model_config: ClassVar[Dict[str, Any]] = ConfigDict(
+        from_attributes=True  # Equivalente a from_attributes = True en la clase Config
+    )

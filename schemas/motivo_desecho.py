@@ -1,6 +1,6 @@
 # gesneu_api2/schemas/motivo_desecho.py
-from typing import Optional
-from pydantic import BaseModel, Field
+from typing import Optional, ClassVar, Dict, Any
+from pydantic import BaseModel, Field, ConfigDict
 from .common import EstadoItem # Asumo que tienes EstadoItem en schemas/common.py
 
 # Properties to receive via API on creation
@@ -20,9 +20,16 @@ class MotivoDesechoUpdate(BaseModel):
 class MotivoDesechoInDBBase(MotivoDesechoBase, EstadoItem):
     id: int
 
-    class Config:
-        from_attributes = True # Para Pydantic V2 (reemplaza orm_mode)
-        # orm_mode = True # Para Pydantic V1
+    # Configuración moderna usando model_config con ConfigDict
+        
+
+    model_config: ClassVar[Dict[str, Any]] = ConfigDict(
+        
+
+        from_attributes=True  # Reemplaza orm_mode=True
+        
+
+    )
 
 # Additional properties to return via API
 class MotivoDesecho(MotivoDesechoInDBBase):

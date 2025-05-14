@@ -1,10 +1,11 @@
 # gesneu_api2/routers/usuarios.py
 import uuid # <--- IMPORTACIÓN AÑADIDA
-from datetime import datetime # <--- IMPORTACIÓN AÑADIDA
+from datetime import datetime, timezone # <--- IMPORTACIÓN AÑADIDA Y ACTUALIZADA
 from typing import Any, List, Optional
 from fastapi import APIRouter, Depends, HTTPException, status, Response
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.exc import IntegrityError
+import traceback
 
 from crud.crud_usuario import usuario as crud_usuario
 from schemas.usuario import UsuarioCreate, UsuarioRead, UsuarioUpdate
@@ -82,8 +83,79 @@ async def leer_usuarios(
     """
     Obtiene una lista de usuarios. Solo para superusuarios.
     """
-    usuarios = await crud_usuario.get_multi(session, skip=skip, limit=limit)
-    return usuarios
+    try:
+        # Usar un enfoque directo con SQLAlchemy raw
+        from sqlalchemy import select
+        from models.usuario import Usuario
+        import logging
+        
+        logger = logging.getLogger("GesNeuAPI")
+        
+        # Construir la consulta seleccionando el modelo completo
+        statement = select(Usuario).offset(skip).limit(limit)
+        logger.info(f"Ejecutando consulta: {statement}")
+        
+        result = await session.exec(statement)
+        
+        # CORRECCIÓN: Usar scalars().all() para obtener directamente instancias del modelo Usuario
+        usuario_models = result.scalars().all()  # Esto devuelve List[Usuario]
+        logger.info(f"Número de usuarios encontrados: {len(usuario_models)}")
+        
+        # Convertir a lista de diccionarios para la respuesta
+        usuarios_response = []
+        
+        # Imprimir el tipo de objeto para depuración
+        if usuario_models:
+            logger.info(f"Tipo de objeto usuario: {type(usuario_models[0])}")
+        
+        for i, usuario_model in enumerate(usuario_models):
+            try:
+                logger.info(f"Procesando usuario {i+1}: {usuario_model.username}")
+                
+                # 'usuario_model' es ahora una instancia de tu modelo 'Usuario'
+                usuario_dict = {
+                    "id": str(usuario_model.id),  # Correcto: accede al 'id' del modelo
+                    "username": usuario_model.username,
+                    "email": usuario_model.email,
+                    "activo": usuario_model.activo,
+                    "creado_en": usuario_model.creado_en,
+                }
+                
+                # Añadir atributos opcionales solo si existen
+                if hasattr(usuario_model, 'nombre_completo'):
+                    usuario_dict["nombre_completo"] = usuario_model.nombre_completo
+                else:
+                    usuario_dict["nombre_completo"] = None
+                    
+                # Determinar el rol basado en los permisos del usuario
+                if hasattr(usuario_model, 'es_superusuario') and usuario_model.es_superusuario:
+                    usuario_dict["rol"] = "ADMIN"
+                else:
+                    usuario_dict["rol"] = "OPERADOR"  # Valor predeterminado para usuarios no superusuarios
+                    
+                if hasattr(usuario_model, 'actualizado_en'):
+                    usuario_dict["actualizado_en"] = usuario_model.actualizado_en
+                else:
+                    usuario_dict["actualizado_en"] = None
+                    
+                usuarios_response.append(usuario_dict)
+                logger.info(f"Usuario añadido a la respuesta: {usuario_dict['username']}")
+            except Exception as e:
+                logger.error(f"Error procesando usuario {i+1}: {str(e)}")
+                # Continuar con el siguiente usuario
+        
+        logger.info(f"Total de usuarios en la respuesta: {len(usuarios_response)}")
+        return usuarios_response
+    
+    except Exception as e:
+        error_msg = f"Error en leer_usuarios: {e}"
+        stack_trace = traceback.format_exc()
+        logger.error(f"{error_msg}\n{stack_trace}")
+        
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Error interno del servidor: {str(e)}"
+        )
 
 @router.get("/{user_id}", response_model=UsuarioRead, dependencies=[Depends(get_current_active_superuser)])
 async def leer_usuario_por_id(
@@ -141,8 +213,8 @@ async def eliminar_usuario(
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Usuario no encontrado")
     
     if hasattr(db_user, 'activo') and hasattr(db_user, 'fecha_baja'):
-        # Se requiere 'from datetime import datetime'
-        update_data = {"activo": False, "fecha_baja": datetime.utcnow()} 
+        # Se requiere 'from datetime import datetime, timezone'
+        update_data = {"activo": False, "fecha_baja": datetime.now(timezone.utc)} 
         await crud_usuario.update(session, db_obj=db_user, obj_in=update_data)
     else:
         await crud_usuario.remove(session, id=user_id)

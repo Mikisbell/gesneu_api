@@ -1,7 +1,8 @@
 # gesneu_api2/models/almacen.py
 import uuid
 from datetime import datetime, timezone # Asegurarse que timezone esté importado si se usa
-from typing import Optional, List, TYPE_CHECKING # Añadir List y TYPE_CHECKING para relaciones
+from typing import Optional, List, TYPE_CHECKING, ClassVar, Dict, Any
+from pydantic import ConfigDict
 
 from sqlmodel import Field, SQLModel, Relationship # Añadir Relationship
 # Column y text ya no son necesarios aquí si heredamos SQLModelTimestamp
@@ -48,6 +49,7 @@ class Almacen(SQLModelTimestamp, EstadoItem, AlmacenBase, table=True):
     #     sa_relationship_kwargs={'foreign_keys': '[Almacen.actualizado_por]'}
     # )
 
-    class Config:
-        from_attributes = True # Para Pydantic V2 (reemplaza orm_mode)
-        # orm_mode = True # Para Pydantic V1
+    # Configuración moderna usando model_config con ConfigDict
+    model_config: ClassVar[Dict[str, Any]] = ConfigDict(
+        from_attributes=True  # Reemplaza orm_mode=True
+    )

@@ -18,8 +18,25 @@ class CRUDTipoVehiculo(CRUDBase[TipoVehiculo, TipoVehiculoCreate, TipoVehiculoUp
         Returns:
             The vehicle type instance if found, otherwise None.
         """
-        result = await session.execute(select(TipoVehiculo).where(TipoVehiculo.nombre == name))
-        return result.scalar_one_or_none()
+        try:
+            # Usar session.exec() en lugar de session.execute()
+            statement = select(TipoVehiculo).where(TipoVehiculo.nombre == name)
+            result = await session.exec(statement)
+            tipo_vehiculo = result.first()
+            
+            # Verificar que el tipo de vehículo existe y tiene un ID válido
+            if tipo_vehiculo and hasattr(tipo_vehiculo, 'id'):
+                return tipo_vehiculo
+            return None
+        except Exception as e:
+            print(f"Error en get_by_name: {e}")
+            # Fallback al método anterior si es necesario
+            try:
+                result = await session.execute(select(TipoVehiculo).where(TipoVehiculo.nombre == name))
+                return result.scalar_one_or_none()
+            except Exception as e2:
+                print(f"Error en fallback get_by_name: {e2}")
+                return None
 
     async def get_multi_active(
         self, session: AsyncSession, *, skip: int = 0, limit: int = 100

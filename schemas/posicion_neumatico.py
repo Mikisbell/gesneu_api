@@ -1,7 +1,7 @@
 # gesneu_api2/schemas/posicion_neumatico.py
-from typing import Optional
+from typing import Optional, ClassVar, Dict, Any
 from datetime import datetime
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, ConfigDict
 from .common import EstadoItem
 
 # Properties to receive via API on creation
@@ -27,9 +27,12 @@ class PosicionNeumaticoUpdate(BaseModel):
 class PosicionNeumaticoInDBBase(PosicionNeumaticoBase, EstadoItem):
     id: int
 
-    class Config:
-        orm_mode = True # Deprecated in Pydantic V2, use from_attributes = True
-        # from_attributes = True # For Pydantic V2
+    # Configuración moderna usando model_config con ConfigDict
+        
+
+    model_config: ClassVar[Dict[str, Any]] = ConfigDict(
+        from_attributes=True
+    )
 
 # Additional properties to return via API
 class PosicionNeumatico(PosicionNeumaticoInDBBase):

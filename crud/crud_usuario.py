@@ -80,9 +80,9 @@ class CRUDUsuario(CRUDBase[Usuario, UsuarioCreate, UsuarioUpdate]):
         """
         # Construct the select statement
         statement = select(Usuario).where(Usuario.email == email)
-        # Execute the statement
-        result = await session.execute(statement)
-        return result.scalar_one_or_none()
+        # Execute the statement using exec() instead of execute() to fix deprecation warning
+        result = await session.exec(statement)
+        return result.one_or_none()
 
     async def get_by_username(self, session: AsyncSession, *, username: str) -> Optional[Usuario]:
         """
@@ -97,9 +97,9 @@ class CRUDUsuario(CRUDBase[Usuario, UsuarioCreate, UsuarioUpdate]):
         """
         # Construct the select statement
         statement = select(Usuario).where(Usuario.username == username)
-        # Execute the statement
-        result = await session.execute(statement)
-        return result.scalar_one_or_none()
+        # Execute the statement using exec() instead of execute() to fix deprecation warning
+        result = await session.exec(statement)
+        return result.one_or_none()
 
 # Instance of the CRUD class for Usuario
 usuario = CRUDUsuario(Usuario)

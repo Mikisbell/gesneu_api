@@ -1,7 +1,8 @@
 # gesneu_api2/models/alerta.py
 import uuid
 from datetime import datetime, timezone 
-from typing import Optional, Dict, Any, List, TYPE_CHECKING 
+from typing import Optional, Dict, Any, List, TYPE_CHECKING, ClassVar
+from pydantic import ConfigDict
 
 import sqlalchemy # <--- IMPORTACIÓN AÑADIDA AQUÍ
 from sqlmodel import Field, SQLModel, Relationship 
@@ -72,5 +73,7 @@ class Alerta(SQLModelTimestamp, AlertaBase, table=True):
         sa_relationship_kwargs={'foreign_keys': '[Alerta.actualizado_por]'}
     )
     
-    class Config:
-        from_attributes = True 
+    # Configuración moderna usando model_config con ConfigDict
+    model_config: ClassVar[Dict[str, Any]] = ConfigDict(
+        from_attributes=True
+    )

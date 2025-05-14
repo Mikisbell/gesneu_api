@@ -7,7 +7,7 @@ from fastapi import status
 from sqlmodel import select
 from sqlmodel.ext.asyncio.session import AsyncSession
 from typing import Tuple, Dict, Optional
-from datetime import datetime, timezone # Importar datetime
+from datetime import datetime, timezone, date # Importar date
 
 # Importar modelos, schemas y helpers necesarios
 from models.usuario import Usuario
@@ -47,7 +47,14 @@ async def test_crear_leer_eliminar_vehiculo(client: AsyncClient, db_session: Asy
     # Usar la función genérica de helpers
     user_id, headers = await create_user_and_get_token(client, db_session, "crud_veh", rol="OPERADOR")
     tipo_vehiculo = await get_or_create_tipo_vehiculo(db_session)
-    vehiculo_data = {"numero_economico": f"ECO-CRUD-{uuid.uuid4().hex[:4]}", "placa": f"CRU-{uuid.uuid4().hex[:6]}", "tipo_vehiculo_id": str(tipo_vehiculo.id), "fecha_alta": "2023-01-01"}
+    # Usar tipos de datos correctos para evitar warnings de serialización de Pydantic
+    from datetime import date
+    vehiculo_data = {
+        "numero_economico": f"ECO-CRUD-{uuid.uuid4().hex[:4]}", 
+        "placa": f"CRU-{uuid.uuid4().hex[:6]}", 
+        "tipo_vehiculo_id": str(tipo_vehiculo.id),  # UUID debe enviarse como string en JSON
+        "fecha_alta": date(2023, 1, 1).isoformat()  # Fecha como ISO string
+    }
     url_base = f"{VEHICULOS_PREFIX}/" # <-- URL Corregida
     response = await client.post(url_base, json=vehiculo_data, headers=headers); assert response.status_code == status.HTTP_201_CREATED
     vehiculo_id = response.json()["id"]; vehiculo_id_uuid = uuid.UUID(vehiculo_id)
@@ -73,9 +80,19 @@ async def test_crear_vehiculo_duplicado_num_eco(client: AsyncClient, db_session:
     tipo_vehiculo = await get_or_create_tipo_vehiculo(db_session)
     num_eco_duplicado = f"ECO-DUP-{uuid.uuid4().hex[:6]}"
     url_base = f"{VEHICULOS_PREFIX}/" # <-- URL Corregida
-    vehiculo_1_data = {"numero_economico": num_eco_duplicado, "placa": f"DUP1-{uuid.uuid4().hex[:6]}", "tipo_vehiculo_id": str(tipo_vehiculo.id), "fecha_alta": "2023-01-01"}
+    vehiculo_1_data = {
+        "numero_economico": num_eco_duplicado, 
+        "placa": f"DUP1-{uuid.uuid4().hex[:6]}", 
+        "tipo_vehiculo_id": str(tipo_vehiculo.id), 
+        "fecha_alta": date(2023, 1, 1).isoformat()
+    }
     resp1 = await client.post(url_base, json=vehiculo_1_data, headers=headers); assert resp1.status_code == status.HTTP_201_CREATED
-    vehiculo_2_data = {"numero_economico": num_eco_duplicado, "placa": f"DUP2-{uuid.uuid4().hex[:6]}", "tipo_vehiculo_id": str(tipo_vehiculo.id), "fecha_alta": "2023-01-01"}
+    vehiculo_2_data = {
+        "numero_economico": num_eco_duplicado, 
+        "placa": f"DUP2-{uuid.uuid4().hex[:6]}", 
+        "tipo_vehiculo_id": str(tipo_vehiculo.id), 
+        "fecha_alta": date(2023, 1, 1).isoformat()
+    }
     resp2 = await client.post(url_base, json=vehiculo_2_data, headers=headers); assert resp2.status_code == status.HTTP_409_CONFLICT
 
 @pytest.mark.asyncio
@@ -86,9 +103,19 @@ async def test_crear_vehiculo_duplicado_placa(client: AsyncClient, db_session: A
     tipo_vehiculo = await get_or_create_tipo_vehiculo(db_session)
     placa_duplicada = f"DUP-PLA-{uuid.uuid4().hex[:6].upper()}"
     url_base = f"{VEHICULOS_PREFIX}/" # <-- URL Corregida
-    vehiculo_1_data = {"numero_economico": f"ECO1-{uuid.uuid4().hex[:6]}", "placa": placa_duplicada, "tipo_vehiculo_id": str(tipo_vehiculo.id), "fecha_alta": "2023-01-01"}
+    vehiculo_1_data = {
+        "numero_economico": f"ECO1-{uuid.uuid4().hex[:6]}", 
+        "placa": placa_duplicada, 
+        "tipo_vehiculo_id": str(tipo_vehiculo.id), 
+        "fecha_alta": date(2023, 1, 1).isoformat()
+    }
     resp1 = await client.post(url_base, json=vehiculo_1_data, headers=headers); assert resp1.status_code == status.HTTP_201_CREATED
-    vehiculo_2_data = {"numero_economico": f"ECO2-{uuid.uuid4().hex[:6]}", "placa": placa_duplicada, "tipo_vehiculo_id": str(tipo_vehiculo.id), "fecha_alta": "2023-01-01"}
+    vehiculo_2_data = {
+        "numero_economico": f"ECO2-{uuid.uuid4().hex[:6]}", 
+        "placa": placa_duplicada, 
+        "tipo_vehiculo_id": str(tipo_vehiculo.id), 
+        "fecha_alta": date(2023, 1, 1).isoformat()
+    }
     resp2 = await client.post(url_base, json=vehiculo_2_data, headers=headers); assert resp2.status_code == status.HTTP_409_CONFLICT
 
 @pytest.mark.asyncio
@@ -98,11 +125,21 @@ async def test_actualizar_vehiculo_success(client: AsyncClient, db_session: Asyn
     user_id, headers = await create_user_and_get_token(client, db_session, "update_veh", rol="OPERADOR")
     tipo_vehiculo = await get_or_create_tipo_vehiculo(db_session)
     url_base = f"{VEHICULOS_PREFIX}/" # <-- URL Corregida
-    vehiculo_initial_data = {"numero_economico": f"ECO-UPD-{uuid.uuid4().hex[:6]}", "placa": f"UPD-{uuid.uuid4().hex[:6]}", "tipo_vehiculo_id": str(tipo_vehiculo.id), "fecha_alta": "2023-01-01"}
+    vehiculo_initial_data = {
+        "numero_economico": f"ECO-UPD-{uuid.uuid4().hex[:6]}", 
+        "placa": f"UPD-{uuid.uuid4().hex[:6]}", 
+        "tipo_vehiculo_id": str(tipo_vehiculo.id), 
+        "fecha_alta": date(2023, 1, 1).isoformat()
+    }
     resp_create = await client.post(url_base, json=vehiculo_initial_data, headers=headers); assert resp_create.status_code == status.HTTP_201_CREATED
     vehiculo_id = resp_create.json()["id"]
     url_put = f"{VEHICULOS_PREFIX}/{vehiculo_id}" # <-- URL Corregida
-    update_payload = {"placa": f"UPDATED-{uuid.uuid4().hex[:6]}", "marca": "Marca Actualizada", "activo": False, "fecha_alta": "2023-01-02"}
+    update_payload = {
+        "placa": f"UPDATED-{uuid.uuid4().hex[:6]}", 
+        "marca": "Marca Actualizada", 
+        "activo": False, 
+        "fecha_alta": date(2023, 1, 2).isoformat()
+    }
     response_update = await client.put(url_put, json=update_payload, headers=headers); assert response_update.status_code == status.HTTP_200_OK
 
 @pytest.mark.asyncio
@@ -122,11 +159,19 @@ async def test_actualizar_vehiculo_duplicado_num_eco(client: AsyncClient, db_ses
     tipo_vehiculo = await get_or_create_tipo_vehiculo(db_session)
     num_eco_existente = f"ECO-EXIST-{uuid.uuid4().hex[:6]}"
     url_base = f"{VEHICULOS_PREFIX}/" # <-- URL Corregida
-    resp_a = await client.post(url_base, json={"numero_economico": num_eco_existente, "placa": f"PLAC-A-{uuid.uuid4().hex[:6]}", "tipo_vehiculo_id": str(tipo_vehiculo.id), "fecha_alta": "2023-01-01"}, headers=headers); assert resp_a.status_code == status.HTTP_201_CREATED
+    resp_a = await client.post(url_base, json={
+        "numero_economico": num_eco_existente, 
+        "placa": f"PLAC-A-{uuid.uuid4().hex[:6]}", 
+        "tipo_vehiculo_id": str(tipo_vehiculo.id), 
+        "fecha_alta": date(2023, 1, 1).isoformat()
+    }, headers=headers); assert resp_a.status_code == status.HTTP_201_CREATED
     resp_b = await client.post(url_base, json={"numero_economico": f"ECO-B-{uuid.uuid4().hex[:6]}", "placa": f"PLAC-B-{uuid.uuid4().hex[:6]}", "tipo_vehiculo_id": str(tipo_vehiculo.id), "fecha_alta": "2023-01-01"}, headers=headers); assert resp_b.status_code == status.HTTP_201_CREATED
     vehiculo_b_id = resp_b.json()["id"]
     url_put = f"{VEHICULOS_PREFIX}/{vehiculo_b_id}" # <-- URL Corregida
-    response_update = await client.put(url_put, json={"numero_economico": num_eco_existente, "fecha_alta": "2023-01-02"}, headers=headers); assert response_update.status_code == status.HTTP_409_CONFLICT
+    response_update = await client.put(url_put, json={
+        "numero_economico": num_eco_existente, 
+        "fecha_alta": date(2023, 1, 2).isoformat()
+    }, headers=headers); assert response_update.status_code == status.HTTP_409_CONFLICT
 
 @pytest.mark.asyncio
 async def test_actualizar_vehiculo_duplicado_placa(client: AsyncClient, db_session: AsyncSession):
@@ -136,11 +181,19 @@ async def test_actualizar_vehiculo_duplicado_placa(client: AsyncClient, db_sessi
     tipo_vehiculo = await get_or_create_tipo_vehiculo(db_session)
     placa_existente = f"DUP-PLA-{uuid.uuid4().hex[:6].upper()}"
     url_base = f"{VEHICULOS_PREFIX}/" # <-- URL Corregida
-    resp_a = await client.post(url_base, json={"numero_economico": f"ECO-A-{uuid.uuid4().hex[:6]}", "placa": placa_existente, "tipo_vehiculo_id": str(tipo_vehiculo.id), "fecha_alta": "2023-01-01"}, headers=headers); assert resp_a.status_code == status.HTTP_201_CREATED
+    resp_a = await client.post(url_base, json={
+        "numero_economico": f"ECO-A-{uuid.uuid4().hex[:6]}", 
+        "placa": placa_existente, 
+        "tipo_vehiculo_id": str(tipo_vehiculo.id), 
+        "fecha_alta": date(2023, 1, 1).isoformat()
+    }, headers=headers); assert resp_a.status_code == status.HTTP_201_CREATED
     resp_b = await client.post(url_base, json={"numero_economico": f"ECO-B-{uuid.uuid4().hex[:6]}", "placa": f"PLAC-B-{uuid.uuid4().hex[:6]}", "tipo_vehiculo_id": str(tipo_vehiculo.id), "fecha_alta": "2023-01-01"}, headers=headers); assert resp_b.status_code == status.HTTP_201_CREATED
     vehiculo_b_id = resp_b.json()["id"]
     url_put = f"{VEHICULOS_PREFIX}/{vehiculo_b_id}" # <-- URL Corregida
-    response_update = await client.put(url_put, json={"placa": placa_existente, "fecha_alta": "2023-01-02"}, headers=headers); assert response_update.status_code == status.HTTP_409_CONFLICT
+    response_update = await client.put(url_put, json={
+        "placa": placa_existente, 
+        "fecha_alta": date(2023, 1, 2).isoformat()
+    }, headers=headers); assert response_update.status_code == status.HTTP_409_CONFLICT
 
 @pytest.mark.asyncio
 async def test_listar_vehiculos_con_filtro_activo(client: AsyncClient, db_session: AsyncSession):

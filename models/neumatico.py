@@ -1,7 +1,9 @@
 # gesneu_api2/models/neumatico.py
 import uuid
+from pydantic import ConfigDict
+import uuid
 from datetime import date, datetime, timezone 
-from typing import Optional, List, TYPE_CHECKING 
+from typing import Optional, List, TYPE_CHECKING , ClassVar, Dict, Any
 
 from sqlmodel import Field, SQLModel, Relationship 
 from sqlalchemy import Column, text, TIMESTAMP, ForeignKey, Numeric, Date
@@ -139,5 +141,9 @@ class Neumatico(NeumaticoSchemaBase, table=True): # <--- CORREGIDO: Quitado SQLM
     
     eventos_neumatico: List["EventoNeumatico"] = Relationship(back_populates="neumatico")
 
-    class Config:
-        from_attributes = True
+    # Configuración moderna usando model_config con ConfigDict
+        
+
+    model_config: ClassVar[Dict[str, Any]] = ConfigDict(
+        from_attributes=True
+    )

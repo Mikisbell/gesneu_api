@@ -1,7 +1,7 @@
 # gesneu_api2/schemas/alerta.py
-from typing import Optional
+from typing import Optional, ClassVar, Dict, Any
 from datetime import datetime
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, ConfigDict
 from .common import TipoAlertaEnum # Asegúrate que TipoAlertaEnum esté en schemas/common.py
 
 # Properties to receive via API on creation
@@ -34,9 +34,16 @@ class AlertaInDBBase(AlertaBase):
     fecha_resolucion: Optional[datetime] = None
     usuario_resolucion_id: Optional[int] = None
 
-    class Config:
-        from_attributes = True # Para Pydantic V2 (reemplaza orm_mode)
-        # orm_mode = True # Para Pydantic V1
+    # Configuración moderna usando model_config con ConfigDict
+        
+
+    model_config: ClassVar[Dict[str, Any]] = ConfigDict(
+        
+
+        from_attributes=True  # Reemplaza orm_mode=True
+        
+
+    )
 
 # Additional properties to return via API
 class Alerta(AlertaInDBBase):

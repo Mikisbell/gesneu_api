@@ -1,11 +1,11 @@
 # gesneu_api2/models/usuario.py
 import uuid
-from typing import Optional, List # Añadir List si se usa para relaciones
+from typing import Optional, List, ClassVar, Dict, Any # Añadir ClassVar, Dict, Any para model_config
 from sqlmodel import Field, SQLModel, Relationship, Column
 from sqlalchemy import UUID as SQLAlchemyUUID, String # Importa el UUID genérico y String de SQLAlchemy
 import sqlalchemy # Importar sqlalchemy para usar sqlalchemy.String
 from .common import SQLModelTimestamp, EstadoItem # Asumiendo que SQLModelTimestamp está en common
-from sqlmodel import Field
+from pydantic import ConfigDict # Importar ConfigDict para la configuración moderna
 
 class UsuarioBase(SQLModel):
     username: str = Field(unique=True, index=True, max_length=50) # index=True aquí está bien (para Pydantic/SQLModel)
@@ -41,7 +41,8 @@ class Usuario(UsuarioBase, SQLModelTimestamp, EstadoItem, table=True):
     # vehiculos_actualizados: List["Vehiculo"] = Relationship(back_populates="actualizador")
     # neumaticos_creados: List["Neumatico"] = Relationship(back_populates="creador")
     # neumaticos_actualizados: List["Neumatico"] = Relationship(back_populates="actualizador")
-
-    class Config:
-        from_attributes = True # Para Pydantic V2 (reemplaza orm_mode)
-        # orm_mode = True # Para Pydantic V1
+    
+    # Configuración moderna usando model_config con ConfigDict
+    model_config: ClassVar[Dict[str, Any]] = ConfigDict(
+        from_attributes=True  # Equivalente a from_attributes = True en la clase Config
+    )

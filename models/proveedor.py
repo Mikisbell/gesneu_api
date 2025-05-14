@@ -1,6 +1,7 @@
 # gesneu_api2/models/proveedor.py
 import uuid
-from typing import Optional, List, TYPE_CHECKING # Añadido List y TYPE_CHECKING
+from pydantic import ConfigDict
+from typing import Optional, List, TYPE_CHECKING, ClassVar, Dict, Any # Añadido ClassVar, Dict y Any
 
 from sqlmodel import Field, SQLModel, Relationship # Añadido Relationship
 # Column, text, ForeignKey ya no son necesarios aquí para los campos de auditoría
@@ -60,6 +61,7 @@ class Proveedor(SQLModelTimestamp, ProveedorSchemaBase, table=True):
     #     sa_relationship_kwargs={'foreign_keys': '[Proveedor.actualizado_por]'}
     # )
 
-    class Config:
-        from_attributes = True # Para Pydantic V2
-        # orm_mode = True # Para Pydantic V1
+    # Configuración moderna usando model_config con ConfigDict
+    model_config: ClassVar[Dict[str, Any]] = ConfigDict(
+        from_attributes=True  # Reemplaza orm_mode=True
+    )

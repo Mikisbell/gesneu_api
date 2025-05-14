@@ -1,7 +1,7 @@
 # gesneu_api2/schemas/parametro_inventario.py
-from typing import Optional
+from typing import Optional, ClassVar, Dict, Any
 from decimal import Decimal
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, ConfigDict
 from .common import EstadoItem, TipoParametroEnum # Asegúrate que TipoParametroEnum esté en common.py
 
 # Properties to receive via API on creation
@@ -30,9 +30,16 @@ class ParametroInventarioUpdate(BaseModel):
 class ParametroInventarioInDBBase(ParametroInventarioBase, EstadoItem):
     id: int
 
-    class Config:
-        orm_mode = True # Para Pydantic V1
-        # from_attributes = True # Para Pydantic V2
+    # Configuración moderna usando model_config con ConfigDict
+        
+
+    model_config: ClassVar[Dict[str, Any]] = ConfigDict(
+        
+
+        from_attributes=True  # Reemplaza orm_mode=True, from_attributes=True
+        
+
+    )
 
 # Additional properties to return via API
 class ParametroInventario(ParametroInventarioInDBBase):

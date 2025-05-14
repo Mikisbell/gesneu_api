@@ -18,8 +18,25 @@ class CRUDProveedor(CRUDBase[Proveedor, ProveedorCreate, ProveedorUpdate]):
         Returns:
             The provider instance if found, otherwise None.
         """
-        result = await session.execute(select(Proveedor).where(Proveedor.nombre == name))
-        return result.scalar_one_or_none()
+        try:
+            # Usar session.exec() en lugar de session.execute()
+            statement = select(Proveedor).where(Proveedor.nombre == name)
+            result = await session.exec(statement)
+            proveedor = result.first()
+            
+            # Verificar que el proveedor existe y tiene un ID válido
+            if proveedor and hasattr(proveedor, 'id'):
+                return proveedor
+            return None
+        except Exception as e:
+            print(f"Error en get_by_name: {e}")
+            # Fallback al método anterior si es necesario
+            try:
+                result = await session.execute(select(Proveedor).where(Proveedor.nombre == name))
+                return result.scalar_one_or_none()
+            except Exception as e2:
+                print(f"Error en fallback get_by_name: {e2}")
+                return None
 
     async def get_multi_active(
         self, session: AsyncSession, *, skip: int = 0, limit: int = 100

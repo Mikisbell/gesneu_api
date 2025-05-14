@@ -1,7 +1,8 @@
 # gesneu_api2/models/modelo.py
 import uuid
+from pydantic import ConfigDict
 from datetime import datetime, timezone # Asegurarse que timezone esté importado si se usa
-from typing import Optional, List, TYPE_CHECKING, Any # Añadido List, TYPE_CHECKING, Any
+from typing import Optional, List, TYPE_CHECKING, Any, ClassVar, Dict # Añadido ClassVar y Dict
 from decimal import Decimal # Para campos numéricos precisos
 
 from sqlmodel import Field, SQLModel, Relationship # Añadido Relationship
@@ -72,6 +73,7 @@ class ModeloNeumatico(SQLModelTimestamp, EstadoItem, ModeloNeumaticoBase, table=
     #     sa_relationship_kwargs={'foreign_keys': '[ModeloNeumatico.actualizado_por]'}
     # )
 
-    class Config:
-        from_attributes = True # Para Pydantic V2
-        # orm_mode = True # Para Pydantic V1
+    # Configuración moderna usando model_config con ConfigDict
+    model_config: ClassVar[Dict[str, Any]] = ConfigDict(
+        from_attributes=True  # Reemplaza orm_mode=True
+    )

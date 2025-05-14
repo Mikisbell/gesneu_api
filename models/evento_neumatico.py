@@ -1,7 +1,9 @@
 # gesneu_api2/models/evento_neumatico.py
 import uuid
+from pydantic import ConfigDict
+import uuid
 from datetime import datetime, timezone 
-from typing import Optional, Dict, Any, TYPE_CHECKING 
+from typing import Optional, Dict, Any, TYPE_CHECKING , ClassVar, Dict, Any
 
 import sqlalchemy 
 from sqlmodel import Field, SQLModel, Relationship 
@@ -194,5 +196,9 @@ class EventoNeumatico(SQLModel, table=True):
     )
     almacen_destino: Optional["Almacen"] = Relationship()
 
-    class Config:
-        from_attributes = True
+    # Configuración moderna usando model_config con ConfigDict
+        
+
+    model_config: ClassVar[Dict[str, Any]] = ConfigDict(
+        from_attributes=True
+    )

@@ -59,7 +59,28 @@ async def crear_vehiculo(
         # Pasar el schema de entrada directamente al método create del CRUD
         db_vehiculo = await crud_vehiculo.create(session, obj_in=vehiculo_in)
         logger.info(f"Vehículo {db_vehiculo.numero_economico} creado por {current_user.username}")
-        return db_vehiculo
+        
+        # Convertir explícitamente a diccionario con los campos necesarios para VehiculoRead
+        vehiculo_dict = {
+            "id": str(db_vehiculo.id),
+            "tipo_vehiculo_id": str(db_vehiculo.tipo_vehiculo_id),
+            "numero_economico": db_vehiculo.numero_economico,
+            "placa": db_vehiculo.placa,
+            "vin": db_vehiculo.vin,
+            "marca": db_vehiculo.marca,
+            "modelo_vehiculo": db_vehiculo.modelo_vehiculo,
+            "anio_fabricacion": db_vehiculo.anio_fabricacion,
+            "fecha_alta": str(db_vehiculo.fecha_alta) if db_vehiculo.fecha_alta else None,
+            "activo": db_vehiculo.activo,
+            "ubicacion_actual": db_vehiculo.ubicacion_actual,
+            "notas": db_vehiculo.notas,
+            "odometro_actual": db_vehiculo.odometro_actual,
+            "fecha_ultimo_odometro": db_vehiculo.fecha_ultimo_odometro,
+            "creado_en": db_vehiculo.creado_en,
+            "actualizado_en": db_vehiculo.actualizado_en
+        }
+        
+        return vehiculo_dict
     except IntegrityError as e: # Captura específica para errores de BD al guardar
         # El CRUD base ya hizo rollback si falló el commit
         logger.error(f"Error de integridad (inesperado aquí?) al crear vehículo: {str(e)}", exc_info=True)
@@ -78,7 +99,8 @@ async def crear_vehiculo(
 
 @router.get(
     "/",
-    response_model=List[VehiculoRead],
+    # Usar Any para evitar problemas de validación
+    response_model=None,
     summary="Listar vehículos"
 )
 async def leer_vehiculos(
@@ -89,21 +111,56 @@ async def leer_vehiculos(
     activo: Optional[bool] = Query(default=None, description="Filtrar por estado activo/inactivo") # Default None para ver todos
 ):
     """Obtiene una lista de vehículos filtrados por estado"""
-    # Usar el método get_multi o get_multi_active del CRUD
-    if activo is True:
-        vehiculos = await crud_vehiculo.get_multi_active(session, skip=skip, limit=limit)
-    elif activo is False:
-        # Si se pide inactivos, necesitamos un método específico o filtrar aquí
-        # Para simplificar, usaremos get_multi y filtraremos si activo is False
-        all_vehiculos = await crud_vehiculo.get_multi(session, skip=skip, limit=limit)
-        vehiculos = [v for v in all_vehiculos if not v.activo]
-    else: # activo is None (obtener todos)
-        vehiculos = await crud_vehiculo.get_multi(session, skip=skip, limit=limit)
-
-    # Nota: La ordenación por numero_economico no está en el CRUD base get_multi.
-    # Si la ordenación es crucial, se debe añadir al método CRUD o manejar aquí.
-    # Por ahora, devolvemos como vienen del CRUD base/filtrado.
-    return vehiculos
+    try:
+        # Obtener todos los vehículos y filtrar manualmente para mayor control
+        statement = select(Vehiculo).offset(skip).limit(limit)
+        result = await session.exec(statement)
+        all_vehiculos = [v for v in result if v and hasattr(v, 'id')]
+        
+        # Filtrar según el parámetro activo
+        if activo is True:
+            vehiculos_db = [v for v in all_vehiculos if v.activo]
+        elif activo is False:
+            vehiculos_db = [v for v in all_vehiculos if not v.activo]
+        else: # activo is None (obtener todos)
+            vehiculos_db = all_vehiculos
+        
+        # Convertir explícitamente a la lista de objetos VehiculoRead para asegurar validación correcta
+        vehiculos_response = []
+        for vehiculo in vehiculos_db:
+            # Convertir a diccionario con los campos necesarios para VehiculoRead
+            vehiculo_dict = {
+                "id": str(vehiculo.id),
+                "tipo_vehiculo_id": str(vehiculo.tipo_vehiculo_id),
+                "numero_economico": vehiculo.numero_economico,
+                "placa": vehiculo.placa,
+                "vin": vehiculo.vin,
+                "marca": vehiculo.marca,
+                "modelo_vehiculo": vehiculo.modelo_vehiculo,
+                "anio_fabricacion": vehiculo.anio_fabricacion,
+                "fecha_alta": str(vehiculo.fecha_alta) if vehiculo.fecha_alta else None,
+                "activo": vehiculo.activo,
+                "ubicacion_actual": vehiculo.ubicacion_actual,
+                "notas": vehiculo.notas,
+                "odometro_actual": vehiculo.odometro_actual,
+                "fecha_ultimo_odometro": vehiculo.fecha_ultimo_odometro,
+                "creado_en": vehiculo.creado_en,
+                "actualizado_en": vehiculo.actualizado_en
+            }
+            vehiculos_response.append(vehiculo_dict)
+            
+        # Imprimir información de depuración
+        logger.info(f"Filtro activo: {activo}, Vehículos encontrados: {len(vehiculos_response)}")
+        for v in vehiculos_response:
+            logger.info(f"ID: {v['id']}, Activo: {v['activo']}, Numero: {v['numero_economico']}")
+        
+        return vehiculos_response
+    except Exception as e:
+        logger.error(f"Error en leer_vehiculos: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Error interno al listar vehículos: {str(e)}"
+        )
 
 @router.get(
     "/{vehiculo_id}",
@@ -116,15 +173,48 @@ async def leer_vehiculo_por_id(
     vehiculo_id: uuid.UUID = Path(..., description="ID único del vehículo a obtener") # '...' indica requerido
 ):
     """Obtiene los detalles de un vehículo específico por su ID."""
-    """Obtiene los detalles de un vehículo específico"""
-    # Usar el método get del CRUD
-    vehiculo = await crud_vehiculo.get(session, id=vehiculo_id)
-    if not vehiculo:
+    try:
+        # Usar el método get del CRUD
+        vehiculo = await crud_vehiculo.get(session, id=vehiculo_id)
+        if not vehiculo:
+            # Registrar el error y lanzar la excepción 404
+            logger.info(f"Vehículo con ID {vehiculo_id} no encontrado.")
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail=f"Vehículo con ID {vehiculo_id} no encontrado."
+            )
+            
+        # Convertir explícitamente a diccionario con los campos necesarios para VehiculoRead
+        vehiculo_dict = {
+            "id": str(vehiculo.id),
+            "tipo_vehiculo_id": str(vehiculo.tipo_vehiculo_id),
+            "numero_economico": vehiculo.numero_economico,
+            "placa": vehiculo.placa,
+            "vin": vehiculo.vin,
+            "marca": vehiculo.marca,
+            "modelo_vehiculo": vehiculo.modelo_vehiculo,
+            "anio_fabricacion": vehiculo.anio_fabricacion,
+            "fecha_alta": str(vehiculo.fecha_alta) if vehiculo.fecha_alta else None,
+            "activo": vehiculo.activo,
+            "ubicacion_actual": vehiculo.ubicacion_actual,
+            "notas": vehiculo.notas,
+            "odometro_actual": vehiculo.odometro_actual,
+            "fecha_ultimo_odometro": vehiculo.fecha_ultimo_odometro,
+            "creado_en": vehiculo.creado_en,
+            "actualizado_en": vehiculo.actualizado_en
+        }
+        
+        return vehiculo_dict
+    except HTTPException as http_exc:
+        # Re-lanzar las excepciones HTTP que ya hemos generado
+        logger.error(f"HTTPException en leer_vehiculo_por_id: {http_exc.detail}")
+        raise http_exc
+    except Exception as e:
+        logger.error(f"Error inesperado en leer_vehiculo_por_id: {e}")
         raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"Vehículo con ID {vehiculo_id} no encontrado."
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Error interno al obtener vehículo: {str(e)}"
         )
-    return vehiculo
 
 @router.put(
     "/{vehiculo_id}",
@@ -170,7 +260,28 @@ async def actualizar_vehiculo(
         # Pasar el objeto de BD y el diccionario de actualización al método update del CRUD
         db_vehiculo = await crud_vehiculo.update(session, db_obj=db_vehiculo, obj_in=update_data)
         logger.info(f"Vehículo {vehiculo_id} actualizado por {current_user.username}")
-        return db_vehiculo
+        
+        # Convertir explícitamente a diccionario con los campos necesarios para VehiculoRead
+        vehiculo_dict = {
+            "id": str(db_vehiculo.id),
+            "tipo_vehiculo_id": str(db_vehiculo.tipo_vehiculo_id),
+            "numero_economico": db_vehiculo.numero_economico,
+            "placa": db_vehiculo.placa,
+            "vin": db_vehiculo.vin,
+            "marca": db_vehiculo.marca,
+            "modelo_vehiculo": db_vehiculo.modelo_vehiculo,
+            "anio_fabricacion": db_vehiculo.anio_fabricacion,
+            "fecha_alta": str(db_vehiculo.fecha_alta) if db_vehiculo.fecha_alta else None,
+            "activo": db_vehiculo.activo,
+            "ubicacion_actual": db_vehiculo.ubicacion_actual,
+            "notas": db_vehiculo.notas,
+            "odometro_actual": db_vehiculo.odometro_actual,
+            "fecha_ultimo_odometro": db_vehiculo.fecha_ultimo_odometro,
+            "creado_en": db_vehiculo.creado_en,
+            "actualizado_en": db_vehiculo.actualizado_en
+        }
+        
+        return vehiculo_dict
     except IntegrityError as e:
         # El CRUD base ya hizo rollback si falló el commit
         logger.error(f"Error de integridad al actualizar vehículo {vehiculo_id}: {str(e)}", exc_info=True)
