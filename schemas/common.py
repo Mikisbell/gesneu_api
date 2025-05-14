@@ -69,6 +69,14 @@ class TipoAlertaEnum(str, Enum):
     STOCK_MINIMO = "STOCK_MINIMO"
     STOCK_MAXIMO = "STOCK_MAXIMO"
     OTRO = "OTRO"
+
+
+class SeveridadAlerta(str, Enum):
+    """Niveles de severidad para las alertas."""
+    INFO = "INFO"
+    WARN = "WARN"
+    HIGH = "HIGH"
+    CRITICAL = "CRITICAL"
 # --------------------
 
 # --- Clases Base de Schemas Comunes (si las tienes aquí) ---

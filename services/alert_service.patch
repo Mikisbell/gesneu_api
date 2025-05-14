@@ -1,0 +1,120 @@
+--- alert_service.py
++++ alert_service.py
+@@ -1,6 +1,6 @@
+ from enum import Enum
+ from datetime import datetime, timezone
+-from typing import Dict, Any, Optional
++from typing import Dict, Any, Optional, List
+ 
+ class TipoAlerta(Enum):
+     DESGASTE_IRREGULAR = "DESGASTE_IRREGULAR"
+@@ -7,6 +7,7 @@
+     PRESION_BAJA = "PRESION_BAJA"
+     PRESION_ALTA = "PRESION_ALTA"
+     LIMITE_RENCAUCHES = "LIMITE_RENCAUCHES"
++    FIN_VIDA_UTIL = "FIN_VIDA_UTIL"
+ 
+ class SeveridadAlerta(Enum):
+     INFO = "INFO"
+@@ -462,6 +463,99 @@
+         except Exception as e:
+             logger.error(f"Error al verificar límite de reencauches: {e}", exc_info=True)
+ 
++    async def _check_fin_vida_util(self, neumatico: Neumatico, evento: Optional[EventoNeumatico] = None) -> Optional[Alerta]:
++        """
++        Verifica si un neumático ha alcanzado su fin de vida útil estimada basado en:
++        - Desgaste actual (si se proporciona evento con medición)
++        - Edad del neumático
++        - Kilometraje acumulado
++        """
++        if neumatico.modelo_id is None:
++            logger.warning(f"Neumático {neumatico.id} sin modelo asignado")
++            return None
++            
++        modelo = await self.session.get(ModeloNeumatico, neumatico.modelo_id)
++        if not modelo:
++            logger.warning(f"Modelo {neumatico.modelo_id} no encontrado")
++            return None
++
++        # Verificación por desgaste (si hay evento con medición)
++        if evento and evento.profundidad_central and modelo.profundidad_inicial:
++            desgaste = ((modelo.profundidad_inicial - evento.profundidad_central) / 
++                       modelo.profundidad_inicial) * 100
++            
++            if desgaste >= 85:  # Umbral crítico
++                return await self._crear_alerta(
++                    neumatico=neumatico,
++                    tipo=TipoAlerta.FIN_VIDA_UTIL,
++                    severidad=SeveridadAlerta.HIGH,
++                    descripcion=f"Desgaste crítico ({desgaste:.1f}%)",
++                    datos_contexto={
++                        "tipo": "DESGASTE",
++                        "porcentaje": desgaste,
++                        "umbral": 85
++                    }
++                )
++            elif desgaste >= 70:  # Umbral advertencia
++                return await self._crear_alerta(
++                    neumatico=neumatico,
++                    tipo=TipoAlerta.FIN_VIDA_UTIL,
++                    severidad=SeveridadAlerta.WARN,
++                    descripcion=f"Desgaste avanzado ({desgaste:.1f}%)",
++                    datos_contexto={
++                        "tipo": "DESGASTE",
++                        "porcentaje": desgaste,
++                        "umbral": 70
++                    }
++                )
++
++        # Verificación por edad (7 años máximo)
++        fecha_inicio = neumatico.fecha_fabricacion or neumatico.fecha_compra
++        if fecha_inicio:
++            edad = (datetime.now(timezone.utc).date() - fecha_inicio).days / 365.25
++            if edad >= 7:
++                return await self._crear_alerta(
++                    neumatico=neumatico,
++                    tipo=TipoAlerta.FIN_VIDA_UTIL,
++                    severidad=SeveridadAlerta.HIGH,
++                    descripcion=f"Edad máxima alcanzada ({edad:.1f} años)",
++                    datos_contexto={
++                        "tipo": "EDAD",
++                        "edad_actual": edad,
++                        "edad_maxima": 7,
++                        "fecha_inicio": fecha_inicio.isoformat()
++                    }
++                )
++
++        # Verificación por kilometraje (80,000 km máximo)
++        if neumatico.kilometraje_acumulado >= 80000:
++            return await self._crear_alerta(
++                neumatico=neumatico,
++                tipo=TipoAlerta.FIN_VIDA_UTIL,
++                severidad=SeveridadAlerta.HIGH,
++                descripcion=f"Kilometraje máximo alcanzado ({neumatico.kilometraje_acumulado} km)",
++                datos_contexto={
++                    "tipo": "KILOMETRAJE",
++                    "km_actual": neumatico.kilometraje_acumulado,
++                    "km_maximo": 80000
++                }
++            )
++
++        return None
++
+     async def check_and_create_alerts(self, neumatico: Neumatico, evento: EventoNeumatico) -> List[Alerta]:
+         """
+         Verifica y crea alertas para un neumático después de un evento.
+@@ -482,6 +576,10 @@
+         if alerta := await self._check_presion_anormal(neumatico, evento):
+             alertas.append(alerta)
+             
++        # Verificación de fin de vida útil
++        if alerta := await self._check_fin_vida_util(neumatico, evento):
++            alertas.append(alerta)
++            
+         # Verificación de límite de reencauches (no requiere evento)
+         if alerta := await self._check_limite_reencauches(neumatico):
+             alertas.append(alerta)
+@@ -488,4 +586,4 @@
+         return alertas
+ 
+-# --- Fin del archivo ---

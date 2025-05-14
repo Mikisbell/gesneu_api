@@ -1,5 +1,6 @@
 import pytest
 import uuid
+import json
 from datetime import datetime, timezone
 from sqlmodel.ext.asyncio.session import AsyncSession
 from sqlmodel import select
@@ -541,3 +542,162 @@ async def test_no_alerta_presion_normal(db_session: AsyncSession):
     # Aserciones
     assert alerta_baja is None, "Se generó una alerta de presión baja innecesariamente"
     assert alerta_alta is None, "Se generó una alerta de presión alta innecesariamente"
+
+@pytest.mark.asyncio
+async def test_check_desgaste_irregular(db_session: AsyncSession):
+    """Prueba que se genera una alerta cuando se detecta un desgaste irregular en la inspección de un neumático."""
+    # Crear un usuario para el test
+    usuario = Usuario(
+        id=uuid.uuid4(),
+        username="test_desgaste_user",
+        email="test_desgaste@example.com",
+        hashed_password="hash",
+        nombre_completo="Test Desgaste User",
+        activo=True
+    )
+    db_session.add(usuario)
+    await db_session.commit()
+    
+    # Crear un modelo para el neumático
+    modelo = ModeloNeumatico(
+        id=uuid.uuid4(),
+        nombre_modelo="ModeloTestDesgaste",
+        medida="295/80R22.5",
+        fabricante_id=uuid.uuid4(),
+        profundidad_original_mm=18.0,
+        permite_reencauche=True,
+        reencauches_maximos=2
+    )
+    db_session.add(modelo)
+    await db_session.commit()
+    
+    # Crear un neumático
+    neumatico = Neumatico(
+        id=uuid.uuid4(),
+        numero_serie="TEST-DESGASTE-001",
+        modelo_id=modelo.id,
+        fecha_compra=datetime.now(timezone.utc).date(),
+        profundidad_inicial_mm=18.0,
+        reencauches_realizados=0,
+        es_reencauchado=False,
+        estado_actual="EN_STOCK"
+    )
+    db_session.add(neumatico)
+    await db_session.commit()
+    
+    # Crear un evento de inspección con diferentes profundidades que indican desgaste irregular
+    evento = EventoNeumatico(
+        id=uuid.uuid4(),
+        neumatico_id=neumatico.id,
+        tipo_evento=TipoEventoNeumaticoEnum.INSPECCION.value,  # Usar .value para el enum
+        timestamp_evento=datetime.now(timezone.utc),
+        profundidad_remanente_mm=10.0,  # Profundidad promedio
+        profundidad_banda_izq=12.0,     # Profundidad en la banda izquierda
+        profundidad_banda_der=8.0,      # Profundidad en la banda derecha
+        profundidad_centro=10.0,         # Profundidad en el centro
+        notas="Se observa desgaste irregular en los bordes laterales del neumático",
+        usuario_id=usuario.id
+    )
+    db_session.add(evento)
+    await db_session.commit()
+    
+    # Crear el servicio y ejecutar el método de verificación de desgaste irregular
+    alert_service = AlertService(db_session)
+    alerta = await alert_service._check_desgaste_irregular(neumatico, evento)
+    
+    # Verificar que se creó una alerta
+    assert alerta is not None, "No se generó la alerta de desgaste irregular"
+    assert alerta.nivel_severidad == "WARN"
+    assert "Desgaste irregular detectado" in alerta.descripcion
+    
+    # Verificar el contexto de la alerta
+    assert alerta.datos_contexto is not None
+    
+    # Verificar que se detectaron motivos de desgaste irregular
+    motivos = alerta.datos_contexto.get("motivos", [])
+    assert len(motivos) > 0, "No se detectaron motivos de desgaste irregular"
+    
+    # Verificar que se incluyó el comentario en el contexto
+    assert "comentarios" in alerta.datos_contexto
+    assert "desgaste irregular" in alerta.datos_contexto["comentarios"].lower()
+
+@pytest.mark.asyncio
+async def test_check_desgaste_irregular_comentarios(db_session: AsyncSession):
+    """Prueba que se genera una alerta cuando se detecta un desgaste irregular por los comentarios de la inspección."""
+    # Crear un usuario para el test
+    usuario = Usuario(
+        id=uuid.uuid4(),
+        username="test_desgaste_user2",
+        email="test_desgaste2@example.com",
+        hashed_password="hash",
+        nombre_completo="Test Desgaste User 2",
+        activo=True
+    )
+    db_session.add(usuario)
+    await db_session.commit()
+    
+    # Crear un modelo para el neumático
+    modelo = ModeloNeumatico(
+        id=uuid.uuid4(),
+        nombre_modelo="ModeloTestDesgaste2",
+        medida="295/80R22.5",
+        fabricante_id=uuid.uuid4(),
+        profundidad_original_mm=18.0,
+        permite_reencauche=True,
+        reencauches_maximos=2
+    )
+    db_session.add(modelo)
+    await db_session.commit()
+    
+    # Crear un neumático
+    neumatico = Neumatico(
+        id=uuid.uuid4(),
+        numero_serie="TEST-DESGASTE-002",
+        modelo_id=modelo.id,
+        fecha_compra=datetime.now(timezone.utc).date(),
+        profundidad_inicial_mm=18.0,
+        reencauches_realizados=0,
+        es_reencauchado=False,
+        estado_actual="EN_STOCK"
+    )
+    db_session.add(neumatico)
+    await db_session.commit()
+    
+    # Crear un evento de inspección donde solo los comentarios indican desgaste (sin diferencia en profundidades)
+    evento = EventoNeumatico(
+        id=uuid.uuid4(),
+        neumatico_id=neumatico.id,
+        tipo_evento=TipoEventoNeumaticoEnum.INSPECCION.value,  # Usar .value para el enum
+        timestamp_evento=datetime.now(timezone.utc),
+        profundidad_remanente_mm=10.0,  # Profundidad promedio uniforme
+        profundidad_banda_izq=10.0,     # Misma profundidad en todas las bandas
+        profundidad_banda_der=10.0,
+        profundidad_centro=10.0,
+        notas="Se observa desgaste central pronunciado, posible sobrepresión",
+        usuario_id=usuario.id
+    )
+    db_session.add(evento)
+    await db_session.commit()
+    
+    # Crear el servicio y ejecutar el método de verificación de desgaste irregular
+    alert_service = AlertService(db_session)
+    alerta = await alert_service._check_desgaste_irregular(neumatico, evento)
+    
+    # Verificar que se creó una alerta
+    assert alerta is not None, "No se generó la alerta de desgaste irregular a partir de los comentarios"
+    assert alerta.nivel_severidad == "WARN"
+    assert "Desgaste irregular detectado" in alerta.descripcion
+    
+    # Verificar el contexto de la alerta
+    assert alerta.datos_contexto is not None
+    
+    # Verificar que se detectaron motivos de desgaste irregular
+    motivos = alerta.datos_contexto.get("motivos", [])
+    assert len(motivos) > 0, "No se detectaron motivos de desgaste irregular"
+    
+    # Verificar que se incluyó el comentario en el contexto
+    assert "comentarios" in alerta.datos_contexto
+    assert "desgaste central" in alerta.datos_contexto["comentarios"].lower()
+    
+    # Verificar que se detectó el motivo en los comentarios
+    assert any("desgaste central" in str(motivo).lower() for motivo in motivos)
