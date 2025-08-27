@@ -17,8 +17,9 @@ from ges_neu_api.core.base_models import BaseModel
 
 # Use TYPE_CHECKING for model imports to avoid circular imports
 if TYPE_CHECKING:
-    from ges_neu_api.catalogos.models import ModeloNeumatico, PosicionNeumatico, BitacoraOperaciones
-    from ges_neu_api.vehiculos.models import Vehiculo
+    from ges_neu_api.catalogos.models import ModeloNeumatico, PosicionNeumatico, BitacoraOperaciones, Proveedor, MotivoDesecho, Almacen, TipoRuta
+    from ges_neu_api.vehiculos.models import Vehiculo, PosicionNeumatico as VehiculoPosicionNeumatico
+    from ges_neu_api.auth.models.usuario import Usuario
 
 # Enums
 class EstadoNeumaticoEnum(str, Enum):
@@ -624,20 +625,13 @@ class EventoNeumatico(SQLModel, table=True):
 # This helps avoid circular imports while still providing type hints
 if not TYPE_CHECKING:
     from ges_neu_api.catalogos.models import (
-        ModeloNeumatico, 
-        PosicionNeumatico, 
-        BitacoraOperaciones,
-        Proveedor,
-        Almacen,
-        MotivoDesecho,
-        BitacoraOperacionNeumatico,
-        GarantiasNeumaticos,
-        TipoRuta
+        ModeloNeumatico, PosicionNeumatico, BitacoraOperaciones, 
+        Proveedor, MotivoDesecho, Almacen, TipoRuta
     )
     from ges_neu_api.vehiculos.models import Vehiculo
-    from ges_neu_api.auth.models import Usuario
+    from ges_neu_api.auth.models.usuario import Usuario
     
-    # Rebuild models to resolve forward references
+    # Rebuild models to handle forward references
     Neumatico.model_rebuild()
     EventoNeumatico.model_rebuild()
     

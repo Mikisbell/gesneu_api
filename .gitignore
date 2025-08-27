@@ -1,0 +1,62 @@
+# Entornos virtuales
+venv/
+env/
+.venv/
+ENV/
+
+# Archivos de entorno
+.env
+!.env.example
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+dist/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
+.pytest_cache/
+.coverage
+htmlcov/
+
+# IDEs y editores
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+.DS_Store
+
+# Docker
+*.sqlite3
+*.sqlite
+
+# Logs
+*.log
+logs/
+
+# Directorios de datos
+data/
+
+# Archivos de desarrollo local
+.local/
+
+# Archivos de configuración local
+*.local
+
+# Archivos de base de datos
+*.db
+*.sql
+*.sqlite3
+
+# Directorios de dependencias
+node_modules/
+bower_components/
+
+# Archivos de sistema operativo
+Thumbs.db

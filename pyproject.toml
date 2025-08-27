@@ -1,116 +1,91 @@
-[project]
-name = "ges_neu_api"
+[tool.poetry]
+name = "ges-neu-api"
 version = "0.1.0"
-description = "API para el sistema GES_NEU - Gestión de Neumáticos"
-authors = [
-    {name = "Equipo de Desarrollo GES_NEU", email = "desarrollo@gesneu.com"}
-]
-requires-python = ">=3.10"
-classifiers = [
-    "Development Status :: 3 - Alpha",
-    "Intended Audience :: Developers",
-    "License :: OSI Approved :: MIT License",
-    "Programming Language :: Python :: 3.10",
-    "Programming Language :: Python :: 3.11",
-]
-dependencies = [
-    "fastapi>=0.95.0",
-    "uvicorn>=0.21.0",
-    "sqlalchemy[asyncio]>=2.0.0",
-    "pydantic>=1.10.0",
-    "python-jose[cryptography]>=3.3.0",
-    "passlib[bcrypt]>=1.7.4",
-    "python-multipart>=0.0.5",
-    "python-dotenv>=0.21.0",
-    "alembic>=1.7.0",
-    "pymysql>=1.0.0",
-]
+description = "API de Gestión de Neumáticos"
+authors = ["Tu Nombre <tu@email.com>"]
+readme = "README.md"
+packages = [{include = "ges_neu_api"}]
 
-[project.optional-dependencies]
-dev = [
-    "pytest>=7.0.0",
-    "pytest-asyncio>=0.20.0",
-    "pytest-cov>=3.0.0",
-    "pytest-mock>=3.10.0",
-    "pytest-xdist>=3.0.0",
-    "pytest-sugar>=0.9.5",
-    "black>=22.0.0",
-    "isort>=5.10.0",
-    "flake8>=4.0.0",
-    "mypy>=0.910",
-    "types-python-dateutil>=2.8.0",
-    "types-pyyaml>=6.0.0",
-    "sphinx>=5.0.0",
-    "sphinx-rtd-theme>=1.0.0",
-    "sphinx-autodoc-typehints>=1.15.0",
-    "ipython>=8.0.0",
-    "pre-commit>=2.20.0",
-    "factory-boy>=3.2.0",
-    "coverage>=6.0.0",
-    "codecov>=2.1.0",
-]
+[tool.poetry.dependencies]
+python = "^3.10"
+
+# HTTP y ASGI
+fastapi = "^0.111.0"
+uvicorn = {extras = ["standard"], version = "^0.24.0"}
+python-multipart = "^0.0.7"
+
+# Autenticación y seguridad
+python-jose = {extras = ["cryptography"], version = "^3.3.0"}
+passlib = {extras = ["bcrypt"], version = "^1.7.4"}
+
+email-validator = "^2.1.0.post1"
+
+# Base de datos
+sqlalchemy = "^2.0.23"
+sqlmodel = "^0.0.16"
+psycopg2-binary = "^2.9.9"
+asyncpg = "^0.28.0"
+alembic = "^1.12.1"
+
+# Utilidades
+python-dotenv = "^1.0.0"
+python-slugify = "^8.0.1"
+pydantic = "^2.4.2"
+pydantic-settings = "^2.0.3"
+
+# Monitoreo y métricas
+prometheus-fastapi-instrumentator = "^7.1.0"
+opentelemetry-api = "^1.25.0"
+opentelemetry-sdk = "^1.25.0"
+opentelemetry-instrumentation-fastapi = "^0.46b0"
+opentelemetry-instrumentation-sqlalchemy = "^0.46b0"
+opentelemetry-exporter-otlp = "^1.25.0"
+
+[tool.poetry.group.dev.dependencies]
+pytest = "^7.4.3"
+pytest-asyncio = "^0.21.1"
+pytest-cov = "^4.1.0"
+httpx = "^0.25.1"
+black = "^23.9.1"
+isort = "^5.12.0"
+mypy = "^1.6.0"
+flake8 = "^6.1.0"
+pre-commit = "^3.5.0"
 
 [build-system]
-requires = ["setuptools>=61.0.0", "wheel"]
-build-backend = "setuptools.build_meta"
-
-[tool.setuptools]
-packages = ["ges_neu_api"]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
 
 [tool.black]
-line-length = 100
+line-length = 88
 target-version = ['py310']
 include = '\.pyi?$'
 
 [tool.isort]
 profile = "black"
-line_length = 100
+line_length = 88
 multi_line_output = 3
 include_trailing_comma = true
 force_grid_wrap = 0
 use_parentheses = true
 ensure_newline_before_comments = true
 
-[tool.mypy]
-python_version = "3.10"
-warn_return_any = true
-warn_unused_configs = true
-disallow_untyped_defs = true
-check_untyped_defs = true
-disallow_incomplete_defs = true
-disallow_untyped_decorators = true
-no_implicit_optional = true
-warn_redundant_casts = true
-warn_unused_ignores = true
-warn_no_return = true
-warn_unreachable = true
-strict_equality = true
-
 [tool.pytest.ini_options]
 testpaths = ["tests"]
-python_files = ["test_*.py"]
-python_classes = ["Test*"]
-python_functions = ["test_*"]
+python_files = "test_*.py"
+python_functions = "test_*"
+python_classes = "Test*"
 addopts = "-v --cov=ges_neu_api --cov-report=term-missing"
-asyncio_mode = "auto"
-log_cli = true
-log_cli_level = "INFO"
-log_cli_format = "%(asctime)s [%(levelname)8s] %(message)s (%(filename)s:%(lineno)s)"
-log_cli_date_format = "%Y-%m-%d %H:%M:%S"
 
-[coverage.run]
+[tool.coverage.run]
 source = ["ges_neu_api"]
 omit = [
     "**/__init__.py",
-    "**/tests/*",
-    "**/migrations/*",
-    "**/alembic/*"
+    "**/tests/**",
+    "**/migrations/**",
 ]
 
-[coverage.report]
-show_missing = true
-skip_covered = true
-skip_empty = true
+[tool.coverage.report]
 exclude_lines = [
     "pragma: no cover",
     "def __repr__",
@@ -118,5 +93,28 @@ exclude_lines = [
     "if __name__ == .__main__.:",
     "pass",
     "raise ImportError",
-    "@abstractmethod"
 ]
+
+[tool.mypy]
+python_version = "3.10"
+warn_return_any = true
+warn_unused_configs = true
+disallow_untyped_defs = true
+disallow_incomplete_defs = true
+check_untyped_defs = true
+disallow_untyped_decorators = true
+no_implicit_optional = true
+warn_redundant_casts = true
+warn_unused_ignores = true
+warn_no_return = true
+warn_unreachable = true
+disallow_untyped_calls = true
+
+[[tool.mypy.overrides]]
+module = [
+    "sqlalchemy.*",
+    "alembic.*",
+    "pydantic.*",
+    "fastapi.*",
+]
+ignore_missing_imports = true

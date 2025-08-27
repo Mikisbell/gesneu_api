@@ -3,6 +3,7 @@
 from typing import Optional
 from uuid import UUID
 from pydantic import BaseModel, EmailStr
+from datetime import datetime
 
 # Schema base con los campos comunes que comparten otros schemas
 class UsuarioBase(BaseModel):
@@ -31,6 +32,14 @@ class UsuarioUpdate(BaseModel):
 # Hereda de UsuarioBase y añade el ID, pero NUNCA la contraseña.
 class UsuarioRead(UsuarioBase):
     id: UUID
+    ultimo_login: Optional[datetime] = None
+    creado_en: datetime
+    creado_por: Optional[UUID] = None
+    actualizado_en: Optional[datetime] = None
+    actualizado_por: Optional[UUID] = None
+    
+    class Config:
+        from_attributes = True
 
 # Schema para el token de seguridad
 class Token(BaseModel):

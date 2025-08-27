@@ -20,7 +20,7 @@ from ges_neu_api.core.base_models import BaseModel
 if TYPE_CHECKING:
     from ges_neu_api.catalogos.models import BitacoraOperacionNeumatico, ModeloVehiculo, PosicionNeumatico, BitacoraOperaciones
     from ges_neu_api.neumaticos.models import Neumatico
-    from ges_neu_api.usuarios.models import Usuario
+    from ges_neu_api.auth.models.usuario import Usuario
     from typing import List
 
 class TipoVehiculo(SQLModel, table=True):
@@ -313,7 +313,13 @@ class Vehiculo(BaseModel, table=True):
 if not TYPE_CHECKING:
     from ges_neu_api.catalogos.models import ModeloVehiculo, PosicionNeumatico, BitacoraOperaciones
     from ges_neu_api.neumaticos.models import Neumatico
-    from ges_neu_api.usuarios.models import Usuario
+    from ges_neu_api.auth.models.usuario import Usuario
+    
+    # Reconstruir modelos para manejar referencias circulares
+    TipoVehiculo.model_rebuild()
+    Vehiculo.model_rebuild()
+    ConfiguracionEje.model_rebuild()
+    PosicionNeumatico.model_rebuild()
 
 
 class ConfiguracionEje(BaseModel, table=True):

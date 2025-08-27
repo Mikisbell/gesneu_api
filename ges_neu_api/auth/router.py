@@ -5,7 +5,7 @@ Este módulo define los endpoints relacionados con la autenticación
 y gestión de usuarios, utilizando los servicios inyectados.
 """
 from datetime import timedelta, datetime, timezone
-from typing import Any, TYPE_CHECKING
+from typing import Any
 
 from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordRequestForm
@@ -13,7 +13,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from ..core.config import settings
 from ..core.database import get_session
-from .schemas import Token, UsuarioCreate, UsuarioRead, Usuario as UsuarioSchema
+from .schemas import Token, UsuarioCreate, UsuarioRead
 from .service import AuthService, UserService, get_current_user
 from .dependencies import CurrentAuthService, get_auth_service
 from .models.usuario import Usuario
@@ -31,31 +31,29 @@ async def login_for_access_token(
     - **username**: Nombre de usuario
     - **password**: Contraseña
     """
-    user = await auth_service.authenticate_user(form_data.username, form_data.password)
-    if not user:
+    access_token = await auth_service.authenticate_user(form_data.username, form_data.password)
+    if not access_token:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Usuario o contraseña incorrectos",
+            detail="Incorrect username or password",
             headers={"WWW-Authenticate": "Bearer"},
         )
+    return {"access_token": access_token, "token_type": "bearer"}
+
+@router.get(
+    "/usuarios/me/", 
+    response_model=UsuarioRead,
+    summary="Obtener información del usuario actual"
+)
+async def read_users_me(
+    current_user: Usuario = Depends(get_current_user)
+) -> UsuarioRead:
+    """
+    Obtiene la información del usuario actualmente autenticado.
     
-    access_token_expires = timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES)
-    access_token = auth_service.create_access_token(
-        data={"sub": user.username}, 
-        expires_delta=access_token_expires
-    )
-    
-    return {
-        "access_token": access_token, 
-        "token_type": "bearer",
-        "user": {
-            "id": str(user.id),
-            "username": user.username,
-            "email": user.email,
-            "nombre_completo": user.nombre_completo,
-            "activo": user.activo
-        }
-    }
+    Requiere autenticación con un token JWT válido.
+    """
+    return current_user
 
 @router.post(
     "/usuarios/", 
@@ -64,11 +62,9 @@ async def login_for_access_token(
     summary="Crear un nuevo usuario"
 )
 async def create_user(
-    *,
-    db: AsyncSession = Depends(get_session),
-    user_service: UserService = Depends(lambda: UserService(db)),
-    user_in: UsuarioCreate,
-):
+    user: UsuarioCreate,
+    user_service: UserService = Depends(lambda: UserService(db=get_session()))
+) -> UsuarioRead:
     """
     Crea un nuevo usuario.
     
@@ -79,7 +75,7 @@ async def create_user(
     - **apellido**: Apellido del usuario (opcional)
     """
     # Verificar si el usuario ya existe
-    existing_user = await user_service.get_user_by_username(username=user_in.username)
+    existing_user = await user_service.get_user_by_username(username=user.username)
     if existing_user:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
@@ -87,9 +83,9 @@ async def create_user(
         )
     
     # Verificar si el email ya está en uso
-    if user_in.email:
-        existing_email = await db.execute(
-            select(Usuario).where(Usuario.email == user_in.email)
+    if user.email:
+        existing_email = await get_session().execute(
+            select(Usuario).where(Usuario.email == user.email)
         )
         if existing_email.scalars().first():
             raise HTTPException(
@@ -98,29 +94,14 @@ async def create_user(
             )
     
     # Crear el diccionario de datos del usuario
-    user_data = user_in.dict()
+    user_data = user.dict()
     
     try:
         # Crear el usuario usando el servicio
-        user = await user_service.create_user(user_data)
-        return user
+        db_user = await user_service.create_user(user_data)
+        return db_user
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Error al crear el usuario"
         )
-
-@router.get(
-    "/usuarios/me/", 
-    response_model=UsuarioRead,
-    summary="Obtener información del usuario actual"
-)
-async def read_users_me(
-    current_user: Usuario = Depends(get_current_user)
-) -> Any:
-    """
-    Obtiene la información del usuario actualmente autenticado.
-    
-    Requiere autenticación con un token JWT válido.
-    """
-    return current_user

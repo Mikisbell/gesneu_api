@@ -319,7 +319,7 @@ class UserService(UserServiceContract):
 async def get_current_user(
     db: AsyncSession = Depends(get_session),
     token: str = Depends(oauth2_scheme)
-) -> "Usuario":
+) -> "UsuarioRead":
     """
     Obtiene el usuario actual a partir del token JWT.
     

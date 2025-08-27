@@ -1,169 +1,187 @@
 """
-Módulo de monitoreo para la aplicación.
+Módulo de monitoreo para la API.
 
-Proporciona utilidades para monitorear el rendimiento de la aplicación,
-incluyendo decoradores para medir el tiempo de ejecución de funciones.
+Este módulo configura el monitoreo de la aplicación usando Prometheus para métricas
+y OpenTelemetry para trazas distribuidas.
 """
-import functools
-import logging
-import time
-from typing import Any, Callable, Optional, TypeVar, cast
+import os
+from typing import Any, Dict, Optional
 
-from fastapi import Request, Response
+from fastapi import FastAPI, Request, Response
+from prometheus_client import (
+    CONTENT_TYPE_LATEST,
+    Counter,
+    Gauge,
+    Histogram,
+    generate_latest,
+    make_asgi_app,
+)
+from prometheus_client.registry import CollectorRegistry
 from starlette.middleware.base import BaseHTTPMiddleware, RequestResponseEndpoint
+from starlette.types import ASGIApp
 
-# Configuración de logging
-logger = logging.getLogger(__name__)
+from .logging_config import get_logger
 
-# Tipo genérico para preservar la firma de la función decorada
-F = TypeVar('F', bound=Callable[..., Any])
+logger = get_logger(__name__)
 
-def monitor_performance(
-    name: Optional[str] = None,
-    log_level: int = logging.DEBUG,
-    log_args: bool = False,
-    log_result: bool = False
-) -> Callable[[F], F]:
-    """
-    Decorador para monitorear el rendimiento de una función.
-    
-    Registra el tiempo de ejecución de la función decorada y opcionalmente
-    los argumentos y el resultado.
-    
-    Args:
-        name: Nombre personalizado para la función en los logs. Si es None, se usará el nombre de la función.
-        log_level: Nivel de logging a utilizar (logging.DEBUG, logging.INFO, etc.)
-        log_args: Si es True, registra los argumentos de la función
-        log_result: Si es True, registra el resultado de la función
-        
-    Returns:
-        La función decorada con capacidades de monitoreo
-    """
-    def decorator(func: F) -> F:
-        func_name = name or func.__name__
-        
-        @functools.wraps(func)
-        async def async_wrapper(*args: Any, **kwargs: Any) -> Any:
-            start_time = time.perf_counter()
-            
-            try:
-                # Ejecutar la función
-                result = await func(*args, **kwargs)
-                return result
-                
-            finally:
-                # Calcular tiempo de ejecución
-                end_time = time.perf_counter()
-                execution_time = (end_time - start_time) * 1000  # en milisegundos
-                
-                # Construir mensaje de log
-                log_parts = [f"{func_name} ejecutado en {execution_time:.2f}ms"]
-                
-                if log_args:
-                    args_repr = [repr(a) for a in args]
-                    kwargs_repr = [f"{k}={v!r}" for k, v in kwargs.items()]
-                    signature = ", ".join(args_repr + kwargs_repr)
-                    log_parts.append(f"args: {signature}")
-                
-                if log_result and 'result' in locals():
-                    result_repr = repr(result) if result is not None else "None"
-                    log_parts.append(f"result: {result_repr}")
-                
-                # Registrar el mensaje
-                logger.log(log_level, " | ".join(log_parts))
-        
-        @functools.wraps(func)
-        def sync_wrapper(*args: Any, **kwargs: Any) -> Any:
-            start_time = time.perf_counter()
-            
-            try:
-                # Ejecutar la función
-                result = func(*args, **kwargs)
-                return result
-                
-            finally:
-                # Calcular tiempo de ejecución
-                end_time = time.perf_counter()
-                execution_time = (end_time - start_time) * 1000  # en milisegundos
-                
-                # Construir mensaje de log
-                log_parts = [f"{func_name} ejecutado en {execution_time:.2f}ms"]
-                
-                if log_args:
-                    args_repr = [repr(a) for a in args]
-                    kwargs_repr = [f"{k}={v!r}" for k, v in kwargs.items()]
-                    signature = ", ".join(args_repr + kwargs_repr)
-                    log_parts.append(f"args: {signature}")
-                
-                if log_result and 'result' in locals():
-                    result_repr = repr(result) if result is not None else "None"
-                    log_parts.append(f"result: {result_repr}")
-                
-                # Registrar el mensaje
-                logger.log(log_level, " | ".join(log_parts))
-        
-        # Devolver el wrapper apropiado basado en si la función es asíncrona o no
-        if getattr(func, "__code__", None) and func.__code__.co_flags & 0x80:
-            return cast(F, async_wrapper)
-        return cast(F, sync_wrapper)
-    
-    return decorator
+# Inicializar el registro de métricas
+METRICS_REGISTRY = CollectorRegistry()
+
+# Definir métricas
+REQUEST_COUNT = Counter(
+    "http_requests_total",
+    "Total de solicitudes HTTP",
+    ["method", "endpoint", "http_status"],
+    registry=METRICS_REGISTRY,
+)
+
+REQUEST_LATENCY = Histogram(
+    "http_request_duration_seconds",
+    "Tiempo de respuesta de las solicitudes HTTP en segundos",
+    ["method", "endpoint"],
+    registry=METRICS_REGISTRY,
+)
+
+REQUESTS_IN_PROGRESS = Gauge(
+    "http_requests_in_progress",
+    "Número de solicitudes HTTP en progreso",
+    ["method", "endpoint"],
+    registry=METRICS_REGISTRY,
+)
+
+EXCEPTIONS_COUNT = Counter(
+    "http_exceptions_total",
+    "Total de excepciones por tipo",
+    ["exception_type", "endpoint"],
+    registry=METRICS_REGISTRY,
+)
 
 
-class RequestLoggingMiddleware(BaseHTTPMiddleware):
-    """
-    Middleware para registrar información detallada sobre las solicitudes HTTP.
-    
-    Registra información como el método HTTP, la ruta, el código de estado
-    y el tiempo de procesamiento de cada solicitud.
-    """
-    
+class PrometheusMiddleware(BaseHTTPMiddleware):
+    """Middleware para registrar métricas de Prometheus."""
+
     async def dispatch(
         self, request: Request, call_next: RequestResponseEndpoint
     ) -> Response:
-        # Registrar información de la solicitud
         method = request.method
-        url = str(request.url)
-        client = request.client.host if request.client else "unknown"
+        endpoint = request.url.path
         
-        logger.info(f"Inicio de solicitud: {method} {url} desde {client}")
+        # Registrar solicitud en progreso
+        REQUESTS_IN_PROGRESS.labels(method=method, endpoint=endpoint).inc()
         
-        # Medir tiempo de procesamiento
-        start_time = time.perf_counter()
+        # Medir tiempo de respuesta
+        with REQUEST_LATENCY.labels(method=method, endpoint=endpoint).time():
+            try:
+                response = await call_next(request)
+                status_code = response.status_code
+            except Exception as e:
+                # Registrar excepción
+                EXCEPTIONS_COUNT.labels(
+                    exception_type=type(e).__name__, 
+                    endpoint=endpoint
+                ).inc()
+                raise
+            finally:
+                # Decrementar contador de solicitudes en progreso
+                REQUESTS_IN_PROGRESS.labels(method=method, endpoint=endpoint).dec()
         
-        try:
-            # Procesar la solicitud
-            response = await call_next(request)
-            return response
-            
-        except Exception as e:
-            # Registrar errores no manejados
-            logger.error(f"Error en la solicitud {method} {url}: {str(e)}", exc_info=True)
-            raise
-            
-        finally:
-            # Calcular y registrar tiempo de procesamiento
-            end_time = time.perf_counter()
-            processing_time = (end_time - start_time) * 1000  # en milisegundos
-            
-            # Obtener código de estado (si hay una respuesta)
-            status_code = getattr(response, 'status_code', 500) if 'response' in locals() else 500
-            
-            logger.info(
-                f"Fin de solicitud: {method} {url} - "
-                f"Estatus: {status_code} | "
-                f"Tiempo: {processing_time:.2f}ms"
-            )
+        # Registrar solicitud completada
+        REQUEST_COUNT.labels(
+            method=method, 
+            endpoint=endpoint, 
+            http_status=status_code
+        ).inc()
+        
+        return response
 
 
-def setup_monitoring(app):
-    """
-    Configura el monitoreo para la aplicación FastAPI.
+def setup_metrics(app: FastAPI) -> None:
+    """Configura las métricas de Prometheus en la aplicación FastAPI."""
+    # Agregar middleware de métricas
+    app.add_middleware(PrometheusMiddleware)
+    
+    # Agregar endpoint de métricas
+    metrics_app = make_asgi_app(registry=METRICS_REGISTRY)
+    
+    @app.get("/metrics")
+    async def metrics() -> Response:
+        """Endpoint para exponer las métricas de Prometheus."""
+        return Response(
+            content=generate_latest(registry=METRICS_REGISTRY),
+            media_type=CONTENT_TYPE_LATEST,
+        )
+    
+    logger.info("Métricas de Prometheus configuradas en /metrics")
+
+
+def setup_tracing(app: FastAPI, service_name: str) -> None:
+    """Configura el tracing distribuido con OpenTelemetry.
     
     Args:
         app: Instancia de FastAPI
+        service_name: Nombre del servicio para el tracing
     """
-    # Añadir middleware de logging de solicitudes
-    app.add_middleware(RequestLoggingMiddleware)
+    try:
+        from opentelemetry import trace
+        from opentelemetry.exporter.otlp.proto.grpc.trace_exporter import OTLPSpanExporter
+        from opentelemetry.instrumentation.fastapi import FastAPIInstrumentor
+        from opentelemetry.instrumentation.sqlalchemy import SQLAlchemyInstrumentor
+        from opentelemetry.sdk.resources import Resource
+        from opentelemetry.sdk.trace import TracerProvider
+        from opentelemetry.sdk.trace.export import BatchSpanProcessor
+        
+        # Configurar proveedor de trazas
+        resource = Resource(attributes={"service.name": service_name})
+        trace.set_tracer_provider(TracerProvider(resource=resource))
+        
+        # Configurar exportador OTLP (para Jaeger/OpenTelemetry Collector)
+        otlp_endpoint = os.getenv("OTLP_ENDPOINT")
+        if otlp_endpoint:
+            otlp_exporter = OTLPSpanExporter(endpoint=otlp_endpoint)
+            span_processor = BatchSpanProcessor(otlp_exporter)
+            trace.get_tracer_provider().add_span_processor(span_processor)
+            
+            # Instrumentar FastAPI
+            FastAPIInstrumentor.instrument_app(app)
+            
+            # Instrumentar SQLAlchemy si es necesario
+            SQLAlchemyInstrumentor().instrument()
+            
+            logger.info(f"Tracing configurado con OTLP en {otlp_endpoint}")
+        else:
+            logger.warning("OTLP_ENDPOINT no configurado. El tracing no estará habilitado.")
+            
+    except ImportError:
+        logger.warning("OpenTelemetry no está instalado. El tracing no estará habilitado.")
+    except Exception as e:
+        logger.error(f"Error al configurar el tracing: {e}")
+
+
+def setup_health_check(app: FastAPI) -> None:
+    """Configura el endpoint de health check."""
     
-    logger.info("Monitoreo configurado correctamente")
+    @app.get("/health")
+    async def health_check() -> Dict[str, str]:
+        """Endpoint de health check."""
+        return {"status": "ok"}
+    
+    logger.info("Health check configurado en /health")
+
+
+def setup_monitoring(app: FastAPI, service_name: str) -> None:
+    """Configura todo el sistema de monitoreo.
+    
+    Args:
+        app: Instancia de FastAPI
+        service_name: Nombre del servicio para el tracing
+    """
+    # Configurar métricas
+    setup_metrics(app)
+    
+    # Configurar tracing
+    setup_tracing(app, service_name)
+    
+    # Configurar health check
+    setup_health_check(app)
+    
+    logger.info("Sistema de monitoreo configurado correctamente")

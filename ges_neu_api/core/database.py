@@ -9,33 +9,38 @@ from sqlmodel import SQLModel, create_engine
 from .config import settings
 
 # Configuración de la conexión asíncrona
-DATABASE_URL = settings.DATABASE_URL.replace("postgresql://", "postgresql+asyncpg://")
-SYNC_DATABASE_URL = settings.DATABASE_URL
+DATABASE_URL = settings.SQLALCHEMY_DATABASE_URI
+SYNC_DATABASE_URL = DATABASE_URL.replace("postgresql+asyncpg://", "postgresql://")
 
 # Creamos el motor asíncrono
 engine = create_async_engine(
     DATABASE_URL,
-    echo=True,
+    echo=settings.APP_DEBUG,
     future=True,
     pool_pre_ping=True,
+    pool_size=settings.DB_POOL_SIZE,
+    max_overflow=settings.DB_MAX_OVERFLOW,
     pool_recycle=300,
 )
 
 # Creamos el motor síncrono
 sync_engine = create_engine(
     SYNC_DATABASE_URL,
-    echo=True,  # Cambiar a False en producción
+    echo=settings.APP_DEBUG,
     pool_pre_ping=True,
-    pool_size=5,
-    max_overflow=10,
-)
-
-# Configuramos la fábrica de sesiones asíncronas
-async_session_maker = async_sessionmaker(
-    engine, class_=AsyncSession, expire_on_commit=False, autoflush=False
+    pool_size=settings.DB_POOL_SIZE,
+    max_overflow=settings.DB_MAX_OVERFLOW,
 )
 
 # Configuración de sesiones
+async_session_maker = async_sessionmaker(
+    bind=engine,
+    class_=AsyncSession,
+    expire_on_commit=False,
+    autoflush=False,
+    autocommit=False,
+)
+
 SyncSessionLocal = sessionmaker(
     autocommit=False,
     autoflush=False,
@@ -78,50 +83,13 @@ from sqlalchemy.exc import SQLAlchemyError
 
 from .exceptions import BusinessRuleError
 
-# Configuración de la conexión a la base de datos (debería venir de variables de entorno)
-DATABASE_URL = "postgresql+asyncpg://postgres:postgres@localhost/ges_neu_db"
-SYNC_DATABASE_URL = "postgresql://postgres:postgres@localhost/ges_neu_db"
-
-# Configuración de motores
-engine = create_async_engine(
-    DATABASE_URL,
-    echo=True,  # Cambiar a False en producción
-    pool_pre_ping=True,
-    pool_size=5,
-    max_overflow=10,
-)
-
-sync_engine = create_engine(
-    SYNC_DATABASE_URL,
-    echo=True,  # Cambiar a False en producción
-    pool_pre_ping=True,
-    pool_size=5,
-    max_overflow=10,
-)
-
-# Configuración de sesiones
-AsyncSessionLocal = async_sessionmaker(
-    autocommit=False,
-    autoflush=False,
-    bind=engine,
-    class_=AsyncSession,
-    expire_on_commit=False,
-)
-
-SyncSessionLocal = sessionmaker(
-    autocommit=False,
-    autoflush=False,
-    bind=sync_engine,
-    expire_on_commit=False,
-)
-
 # Tipo genérico para transacciones
 T = TypeVar('T')
 
 @asynccontextmanager
 async def get_db() -> AsyncGenerator[AsyncSession, None]:
     """Obtiene una sesión de base de datos asíncrona."""
-    async with AsyncSessionLocal() as session:
+    async with async_session_maker() as session:
         try:
             yield session
             await session.commit()

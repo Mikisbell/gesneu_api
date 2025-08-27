@@ -135,3 +135,87 @@ Este proyecto está bajo la Licencia MIT. Ver el archivo `LICENSE` para más det
 ## 📞 Contacto
 
 Para consultas técnicas, contactar a [soporte@gesneu.com](mailto:soporte@gesneu.com)
+
+# GES_NEU_API - Sistema de Gestión de Neumáticos
+
+API RESTful para gestión de neumáticos con FastAPI y SQLModel.
+
+## 🚀 Inicio rápido
+
+### Requisitos
+- Python 3.10+
+- PostgreSQL 12+
+- `psql`
+
+### Configuración
+
+1. **Clonar y configurar entorno**
+   ```bash
+   git clone <repo-url>
+   cd ges_neu_api
+   python -m venv venv
+   source venv/bin/activate  # Linux/macOS
+   # .\venv\Scripts\activate  # Windows
+   pip install -r requirements.txt
+   ```
+
+2. **Base de datos**
+   ```bash
+   cp .env.example .env
+   # Editar .env si es necesario
+   chmod +x scripts/setup_db.sh
+   ./scripts/setup_db.sh
+   ```
+
+3. **Migraciones**
+   ```bash
+   chmod +x scripts/migrate.sh
+   ./scripts/migrate.sh up
+   ```
+
+4. **Iniciar servidor**
+   ```bash
+   uvicorn ges_neu_api.main:app --reload
+   ```
+
+## 📚 Documentación
+- Swagger: `http://localhost:8000/docs`
+- ReDoc: `http://localhost:8000/redoc`
+
+## 🔄 Comandos útiles
+
+```bash
+# Crear migración
+./scripts/migrate.sh create nombre_migracion
+
+# Aplicar migraciones
+./scripts/migrate.sh up
+
+# Revertir migración
+./scripts/migrate.sh down
+
+# Estado de migraciones
+./scripts/migrate.sh status
+```
+
+## 🧪 Pruebas
+```bash
+pytest
+pytest --cov=ges_neu_api tests/
+```
+
+## 🏗 Estructura
+```
+ges_neu_api/
+├── alembic/          # Migraciones
+├── ges_neu_api/      # Código fuente
+│   ├── auth/         # Autenticación
+│   ├── catalogos/    # Catálogos del sistema
+│   ├── core/         # Configuración base
+│   └── main.py       # Punto de entrada
+├── scripts/         # Scripts de utilidad
+└── tests/           # Pruebas
+```
+
+## 📝 Licencia
+MIT

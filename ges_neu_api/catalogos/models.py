@@ -21,7 +21,7 @@ from ges_neu_api.core.base_models import BaseModel
 # Use string literals for type hints to avoid circular imports
 if TYPE_CHECKING:
     from ges_neu_api.vehiculos.models import PosicionNeumatico, Vehiculo
-    from ges_neu_api.usuarios.models import Usuario
+    from ges_neu_api.auth.models.usuario import Usuario
     from .models import ModeloNeumatico
 
 class TipoAccionOperacion(str, Enum):
