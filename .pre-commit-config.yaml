@@ -1,0 +1,84 @@
+# See https://pre-commit.com for more information
+# See https://pre-commit.com/hooks.html for more hooks
+repos:
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v4.5.0
+    hooks:
+      - id: check-added-large-files  # Prevent giant files from being committed
+      - id: check-ast                # Check that files parse as valid Python
+      - id: check-merge-conflict     # Check for files with merge conflicts
+      - id: check-yaml               # Validate YAML files
+      - id: end-of-file-fixer        # Ensure files end with a newline
+      - id: trailing-whitespace      # Trim trailing whitespace
+
+  - repo: https://github.com/psf/black
+    rev: 23.9.1
+    hooks:
+      - id: black
+        language_version: python3
+        args: [--line-length=100]
+
+  - repo: https://github.com/pycqa/isort
+    rev: 5.12.0
+    hooks:
+      - id: isort
+        name: isort (python)
+        args: [--profile=black, --line-length=100]
+
+  - repo: https://github.com/pycqa/flake8
+    rev: 6.1.0
+    hooks:
+      - id: flake8
+        additional_dependencies: [flake8-bugbear==23.9.11]
+        args: [--max-line-length=100, --extend-ignore=E203]
+
+  - repo: https://github.com/pre-commit/mirrors-mypy
+    rev: v1.5.1
+    hooks:
+      - id: mypy
+        additional_dependencies:
+          - types-python-dateutil
+          - types-pyyaml
+          - types-requests
+          - sqlalchemy2-stubs
+        args: [--strict, --ignore-missing-imports]
+        exclude: ^tests/
+
+  - repo: https://github.com/pre-commit/mirrors-prettier
+    rev: v3.0.3
+    hooks:
+      - id: prettier
+        types_or: [yaml, json, markdown, html, javascript]
+
+  - repo: https://github.com/compilerla/conventional-pre-commit
+    rev: v3.0.0
+    hooks:
+      - id: conventional-pre-commit
+        stages: [commit-msg]
+        args: []  # Use all supported types
+
+ci:
+  # Skip some checks in CI that are better suited for local development
+  skip: [mypy]  # Run mypy separately in CI with more detailed output
+
+# Configuration for specific file types
+default_language_version:
+  python: python3.10
+
+# Files to exclude from all hooks
+exclude: |
+  (?x)
+  ^(
+    .*/\..*|  # Hidden files and directories
+    .*/\.git/.*|  # Git directory
+    .*/migrations/.*|  # Database migrations
+    .*/node_modules/.*|  # Node.js modules
+    .*/venv/.*|  # Python virtual environment
+    .*/build/.*|  # Build directories
+    .*/dist/.*|  # Distribution directories
+    .*/.pytest_cache/.*|  # Pytest cache
+    .*/__pycache__/.*  # Python cache
+  )$
+  
+# Run all hooks in parallel where possible
+default_install_hook_types: [pre-commit, commit-msg]

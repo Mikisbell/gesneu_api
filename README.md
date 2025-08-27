@@ -1,0 +1,137 @@
+# GES_NEU API
+
+API para el sistema de Gestión de Neumáticos (GES_NEU). Esta aplicación proporciona los servicios necesarios para la gestión integral de neumáticos, incluyendo autenticación, catálogos y operaciones específicas del dominio.
+
+## 🏗️ Arquitectura
+
+La aplicación sigue una arquitectura modular basada en los siguientes principios:
+
+### Estructura de Módulos
+
+```
+ges_neu_api/
+├── core/                 # Código compartido y componentes centrales
+│   ├── config.py        # Configuración de la aplicación
+│   ├── database.py      # Configuración de la base de datos
+│   ├── security.py      # Utilidades de seguridad
+│   ├── monitoring.py    # Monitoreo y métricas
+│   └── contracts.py     # Contratos (Protocols) para inyección de dependencias
+│
+├── modules/             # Módulos de la aplicación
+│   ├── auth/           # Autenticación y gestión de usuarios
+│   │   ├── models/     # Modelos de base de datos
+│   │   ├── schemas/    # Esquemas Pydantic
+│   │   ├── service.py  # Lógica de negocio
+│   │   └── router.py   # Rutas de la API
+│   │
+│   └── catalogos/      # Catálogos del sistema
+│       └── ...
+│
+├── tests/              # Pruebas automatizadas
+├── alembic/            # Migraciones de base de datos
+└── main.py             # Punto de entrada de la aplicación
+```
+
+### Principios de Diseño
+
+1. **Separación de Responsabilidades**: Cada módulo maneja una única área funcional.
+2. **Inyección de Dependencias**: Uso de la inyección nativa de FastAPI.
+3. **Tipado Estático**: Validación de tipos en tiempo de desarrollo.
+4. **Monitoreo Integrado**: Métricas y registro de operaciones.
+5. **Documentación Automática**: OpenAPI/Swagger integrado.
+
+## 🚀 Requisitos Previos
+
+- Python 3.10 o superior
+- MySQL 8.0 o superior
+- pip (gestor de paquetes de Python)
+
+## ⚙️ Configuración del Entorno
+
+1. **Clonar el repositorio**:
+   ```bash
+   git clone <url-del-repositorio>
+   cd ges_neu_api
+   ```
+
+2. **Crear y activar un entorno virtual**:
+   ```bash
+   python -m venv venv
+   source venv/bin/activate  # En Windows: .\venv\Scripts\activate
+   ```
+
+3. **Instalar dependencias**:
+   ```bash
+   pip install -e ".[dev]"
+   ```
+
+4. **Configurar variables de entorno**:
+   Copiar el archivo `.env.example` a `.env` y configurar las variables necesarias.
+
+## 🛠️ Ejecución
+
+### Entorno de Desarrollo
+
+```bash
+# Iniciar el servidor de desarrollo
+uvicorn ges_neu_api.main:app --reload
+```
+
+La documentación de la API estará disponible en:
+- Swagger UI: http://localhost:8000/api/v1/docs
+- ReDoc: http://localhost:8000/api/v1/redoc
+
+### Ejecución en Producción
+
+Se recomienda usar Gunicorn con Uvicorn para entornos de producción:
+
+```bash
+gunicorn -w 4 -k uvicorn.workers.UvicornWorker ges_neu_api.main:app
+```
+
+## 🧪 Pruebas
+
+Para ejecutar las pruebas:
+
+```bash
+# Ejecutar todas las pruebas
+pytest
+
+# Ejecutar pruebas con cobertura
+pytest --cov=ges_neu_api --cov-report=term-missing
+
+# Generar reporte HTML de cobertura
+pytest --cov=ges_neu_api --cov-report=html
+```
+
+## 📚 Documentación
+
+La documentación técnica se genera automáticamente usando Sphinx. Para generarla:
+
+```bash
+cd docs
+make html
+```
+
+## 🛡️ Seguridad
+
+- Autenticación basada en JWT (JSON Web Tokens)
+- Contraseñas almacenadas con hash bcrypt
+- CORS configurado de forma segura
+- Validación de entrada en todos los endpoints
+
+## 🤝 Contribución
+
+1. Hacer fork del repositorio
+2. Crear una rama para la nueva característica (`git checkout -b feature/nueva-caracteristica`)
+3. Hacer commit de los cambios (`git commit -am 'Añadir nueva característica'`)
+4. Hacer push a la rama (`git push origin feature/nueva-caracteristica`)
+5. Crear un Pull Request
+
+## 📄 Licencia
+
+Este proyecto está bajo la Licencia MIT. Ver el archivo `LICENSE` para más detalles.
+
+## 📞 Contacto
+
+Para consultas técnicas, contactar a [soporte@gesneu.com](mailto:soporte@gesneu.com)
