@@ -12,7 +12,8 @@ import sys
 from pathlib import Path
 from typing import Any, Dict, Optional
 
-from pydantic import BaseSettings, Field
+from pydantic import Field
+from pydantic_settings import BaseSettings
 
 # Directorio base para los logs
 LOG_DIR = Path("logs")
@@ -67,17 +68,17 @@ class LoggingSettings(BaseSettings):
 
 
 def get_logger(name: Optional[str] = None) -> logging.Logger:
-    ""
-    Obtiene un logger con la configuración establecida.
-    
-    Args:
-        name: Nombre del logger. Si es None, devuelve el logger raíz.
-    """
+    # """
+    # Obtiene un logger con la configuración establecida.
+    # 
+    # Args:
+    #     name: Nombre del logger. Si es None, devuelve el logger raíz.
+    # """
     return logging.getLogger(name or __name__)
 
 
 def setup_logging() -> None:
-    """Configura el sistema de logging de la aplicación."""
+    # Configures the application logging system.
     try:
         settings = LoggingSettings()
         
@@ -111,7 +112,7 @@ def setup_logging() -> None:
 
 # Configuración de logging estructurado para JSON
 class StructuredLogFormatter(logging.Formatter):
-    """Formateador de logs en formato JSON estructurado."""
+    # # Formatter for structured JSON logs.
     
     def format(self, record: logging.LogRecord) -> str:
         log_record: Dict[str, Any] = {
@@ -132,13 +133,13 @@ class StructuredLogFormatter(logging.Formatter):
         return self._to_json(log_record)
     
     def _to_json(self, data: Dict[str, Any]) -> str:
-        """Convierte un diccionario a JSON de forma segura."""
+        # # Converts a dictionary to JSON safely.
         import json
         return json.dumps(data, ensure_ascii=False, default=str)
 
 
 def setup_structured_logging() -> None:
-    """Configura el logging estructurado en formato JSON."""
+    # Configures structured logging in JSON format.
     try:
         settings = LoggingSettings()
         

@@ -56,6 +56,42 @@ EXCEPTIONS_COUNT = Counter(
     registry=METRICS_REGISTRY,
 )
 
+import time
+from functools import wraps
+
+# Add a simple decorator for service method monitoring
+def monitor_service_method(func):
+    """
+    Decorator to monitor the execution time of a service method.
+    Logs the duration and can optionally integrate with OpenTelemetry spans.
+    """
+    @wraps(func)
+    async def wrapper(*args, **kwargs):
+        start_time = time.perf_counter()
+        
+        # Optional: OpenTelemetry span integration
+        span = None
+        if "opentelemetry.trace" in globals(): # Check if OpenTelemetry is available
+            tracer = opentelemetry.trace.get_tracer(__name__)
+            span = tracer.start_span(f"service.{func.__name__}")
+            
+        try:
+            result = await func(*args, **kwargs)
+            return result
+        except Exception as e:
+            if span:
+                span.record_exception(e)
+                span.set_status(opentelemetry.trace.Status(opentelemetry.trace.StatusCode.ERROR, str(e)))
+            raise
+        finally:
+            end_time = time.perf_counter()
+            duration = (end_time - start_time) * 1000 # duration in milliseconds
+            logger.info(f"Service method '{func.__name__}' executed in {duration:.2f}ms",
+                        extra={"method_name": func.__name__, "duration_ms": duration})
+            if span:
+                span.end()
+    return wrapper
+
 
 class PrometheusMiddleware(BaseHTTPMiddleware):
     """Middleware para registrar métricas de Prometheus."""
@@ -175,9 +211,6 @@ def setup_monitoring(app: FastAPI, service_name: str) -> None:
         app: Instancia de FastAPI
         service_name: Nombre del servicio para el tracing
     """
-    # Configurar métricas
-    setup_metrics(app)
-    
     # Configurar tracing
     setup_tracing(app, service_name)
     

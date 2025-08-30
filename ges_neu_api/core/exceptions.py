@@ -44,6 +44,15 @@ class AppException(HTTPException):
         super().__init__(status_code=self.status_code, detail=message)
 
 
+class BadRequestException(AppException):
+    """Excepción para solicitudes incorrectas o inválidas."""
+    status_code = status.HTTP_400_BAD_REQUEST
+    code = "bad_request"
+    
+    def __init__(self, message: str = "Solicitud incorrecta", **kwargs):
+        super().__init__(message=message, **kwargs)
+
+
 class NotFoundException(AppException):
     """Excepción para recursos no encontrados."""
     status_code = status.HTTP_404_NOT_FOUND

@@ -4,14 +4,18 @@
 
 ## 📋 Tabla de Contenidos
 
-- [Código de Conducta](#código-de-conducta)
-- [¿Cómo Contribuir?](#cómo-contribuir)
-- [Configuración del Entorno](#configuración-del-entorno)
-- [Convenciones de Código](#convenciones-de-código)
-- [Flujo de Trabajo](#flujo-de-trabajo)
-- [Enviando Cambios](#enviando-cambios)
-- [Reportando Errores](#reportando-errores)
-- [Solicitando Características](#solicitando-características)
+- [Guía de Contribución](#guía-de-contribución)
+  - [📋 Tabla de Contenidos](#-tabla-de-contenidos)
+  - [Código de Conducta](#código-de-conducta)
+  - [¿Cómo Contribuir?](#cómo-contribuir)
+  - [Configuración del Entorno](#configuración-del-entorno)
+  - [Convenciones de Código](#convenciones-de-código)
+    - [Estilo de Código](#estilo-de-código)
+    - [Estructura de Commits](#estructura-de-commits)
+  - [Flujo de Trabajo](#flujo-de-trabajo)
+  - [Enviando Cambios](#enviando-cambios)
+  - [Reportando Errores](#reportando-errores)
+  - [Solicitando Características](#solicitando-características)
 
 ## Código de Conducta
 

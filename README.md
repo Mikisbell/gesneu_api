@@ -1,6 +1,17 @@
-# GES_NEU API
+# 🚛 GES_NEU API
 
 API para el sistema de Gestión de Neumáticos (GES_NEU). Esta aplicación proporciona los servicios necesarios para la gestión integral de neumáticos, incluyendo autenticación, catálogos y operaciones específicas del dominio.
+
+## 📌 Estado Actual
+
+### Módulos Implementados
+- **Autenticación**: Gestión de usuarios, roles y permisos (Completo ✅)
+- **Estructura Base**: Configuración de la aplicación, logging y manejo de errores (Completo ✅)
+
+### Próximos Módulos
+- 🚧 Catálogos
+- 🚧 Vehículos
+- 🚧 Neumáticos
 
 ## 🏗️ Arquitectura
 
@@ -11,211 +22,124 @@ La aplicación sigue una arquitectura modular basada en los siguientes principio
 ```
 ges_neu_api/
 ├── core/                 # Código compartido y componentes centrales
+│   ├── __init__.py
 │   ├── config.py        # Configuración de la aplicación
 │   ├── database.py      # Configuración de la base de datos
 │   ├── security.py      # Utilidades de seguridad
-│   ├── monitoring.py    # Monitoreo y métricas
-│   └── contracts.py     # Contratos (Protocols) para inyección de dependencias
-│
+│   ├── contracts.py     # Contratos (Protocols) para inyección de dependencias
+│   ├── exceptions.py    # Manejo de excepciones globales
+│   ├── logging_config.py # Configuración de logging estructurado
+│   └── monitoring.py    # Monitoreo y métricas de la aplicación
+
 ├── modules/             # Módulos de la aplicación
-│   ├── auth/           # Autenticación y gestión de usuarios
-│   │   ├── models/     # Modelos de base de datos
-│   │   ├── schemas/    # Esquemas Pydantic
-│   │   ├── service.py  # Lógica de negocio
-│   │   └── router.py   # Rutas de la API
-│   │
-│   └── catalogos/      # Catálogos del sistema
-│       └── ...
-│
-├── tests/              # Pruebas automatizadas
-├── alembic/            # Migraciones de base de datos
-└── main.py             # Punto de entrada de la aplicación
+│   ├── __init__.py
+│   ├── auth/            # Módulo de autenticación
+│   │   ├── __init__.py
+│   │   ├── models.py    # Modelos de datos
+│   │   ├── schemas.py   # Esquemas de validación
+│   │   ├── service.py   # Lógica de negocio
+│   │   └── router.py    # Endpoints de la API
+│   └── catalogos/       # Módulo de catálogos
+│   └── vehiculos/       # Módulo de vehículos
+│   └── neumaticos/      # Módulo de neumáticos
+
+├── tests/               # Pruebas automatizadas
+│   └── auth/            # Pruebas del módulo de autenticación
+
+├── migrations/          # Migraciones de base de datos (Alembic)
+├── scripts/             # Scripts de utilidad
+├── start_server.sh      # Script para iniciar el servidor
+└── .env.example         # Plantilla de variables de entorno
 ```
 
-### Principios de Diseño
+## 🚀 Guía Rápida
 
-1. **Separación de Responsabilidades**: Cada módulo maneja una única área funcional.
-2. **Inyección de Dependencias**: Uso de la inyección nativa de FastAPI.
-3. **Tipado Estático**: Validación de tipos en tiempo de desarrollo.
-4. **Monitoreo Integrado**: Métricas y registro de operaciones.
-5. **Documentación Automática**: OpenAPI/Swagger integrado.
+### Requisitos Previos
+- Python 3.11+
+- Docker y Docker Compose (opcional, solo para desarrollo con contenedores)
+- Poetry (gestión de dependencias)
 
-## 🚀 Requisitos Previos
+### Configuración Inicial
 
-- Python 3.10 o superior
-- MySQL 8.0 o superior
-- pip (gestor de paquetes de Python)
-
-## ⚙️ Configuración del Entorno
-
-1. **Clonar el repositorio**:
-   ```bash
-   git clone <url-del-repositorio>
-   cd ges_neu_api
-   ```
-
-2. **Crear y activar un entorno virtual**:
-   ```bash
-   python -m venv venv
-   source venv/bin/activate  # En Windows: .\venv\Scripts\activate
-   ```
-
-3. **Instalar dependencias**:
-   ```bash
-   pip install -e ".[dev]"
-   ```
-
-4. **Configurar variables de entorno**:
-   Copiar el archivo `.env.example` a `.env` y configurar las variables necesarias.
-
-## 🛠️ Ejecución
-
-### Entorno de Desarrollo
-
-```bash
-# Iniciar el servidor de desarrollo
-uvicorn ges_neu_api.main:app --reload
-```
-
-La documentación de la API estará disponible en:
-- Swagger UI: http://localhost:8000/api/v1/docs
-- ReDoc: http://localhost:8000/api/v1/redoc
-
-### Ejecución en Producción
-
-Se recomienda usar Gunicorn con Uvicorn para entornos de producción:
-
-```bash
-gunicorn -w 4 -k uvicorn.workers.UvicornWorker ges_neu_api.main:app
-```
-
-## 🧪 Pruebas
-
-Para ejecutar las pruebas:
-
-```bash
-# Ejecutar todas las pruebas
-pytest
-
-# Ejecutar pruebas con cobertura
-pytest --cov=ges_neu_api --cov-report=term-missing
-
-# Generar reporte HTML de cobertura
-pytest --cov=ges_neu_api --cov-report=html
-```
-
-## 📚 Documentación
-
-La documentación técnica se genera automáticamente usando Sphinx. Para generarla:
-
-```bash
-cd docs
-make html
-```
-
-## 🛡️ Seguridad
-
-- Autenticación basada en JWT (JSON Web Tokens)
-- Contraseñas almacenadas con hash bcrypt
-- CORS configurado de forma segura
-- Validación de entrada en todos los endpoints
-
-## 🤝 Contribución
-
-1. Hacer fork del repositorio
-2. Crear una rama para la nueva característica (`git checkout -b feature/nueva-caracteristica`)
-3. Hacer commit de los cambios (`git commit -am 'Añadir nueva característica'`)
-4. Hacer push a la rama (`git push origin feature/nueva-caracteristica`)
-5. Crear un Pull Request
-
-## 📄 Licencia
-
-Este proyecto está bajo la Licencia MIT. Ver el archivo `LICENSE` para más detalles.
-
-## 📞 Contacto
-
-Para consultas técnicas, contactar a [soporte@gesneu.com](mailto:soporte@gesneu.com)
-
-# GES_NEU_API - Sistema de Gestión de Neumáticos
-
-API RESTful para gestión de neumáticos con FastAPI y SQLModel.
-
-## 🚀 Inicio rápido
-
-### Requisitos
-- Python 3.10+
-- PostgreSQL 12+
-- `psql`
-
-### Configuración
-
-1. **Clonar y configurar entorno**
+1. **Clonar el repositorio**
    ```bash
    git clone <repo-url>
    cd ges_neu_api
-   python -m venv venv
-   source venv/bin/activate  # Linux/macOS
-   # .\venv\Scripts\activate  # Windows
-   pip install -r requirements.txt
    ```
 
-2. **Base de datos**
+2. **Configurar entorno virtual**
+   ```bash
+   python -m venv .venv
+   source .venv/bin/activate  # En Windows: .venv\Scripts\activate
+   ```
+
+3. **Instalar dependencias**
+   ```bash
+   pip install poetry
+   poetry install
+   ```
+
+4. **Configurar variables de entorno**
    ```bash
    cp .env.example .env
-   # Editar .env si es necesario
-   chmod +x scripts/setup_db.sh
-   ./scripts/setup_db.sh
+   # Editar .env con tus configuraciones
    ```
 
-3. **Migraciones**
-   ```bash
-   chmod +x scripts/migrate.sh
-   ./scripts/migrate.sh up
-   ```
+### Iniciar el Servidor
 
-4. **Iniciar servidor**
-   ```bash
-   uvicorn ges_neu_api.main:app --reload
-   ```
-
-## 📚 Documentación
-- Swagger: `http://localhost:8000/docs`
-- ReDoc: `http://localhost:8000/redoc`
-
-## 🔄 Comandos útiles
+Para desarrollo local:
 
 ```bash
-# Crear migración
-./scripts/migrate.sh create nombre_migracion
+# Dar permisos de ejecución al script
+chmod +x start_server.sh
 
-# Aplicar migraciones
-./scripts/migrate.sh up
-
-# Revertir migración
-./scripts/migrate.sh down
-
-# Estado de migraciones
-./scripts/migrate.sh status
+# Iniciar el servidor
+./start_server.sh
 ```
 
-## 🧪 Pruebas
-```bash
-pytest
-pytest --cov=ges_neu_api tests/
+El servidor estará disponible en: http://localhost:8001
+
+### Documentación de la API
+
+- **Swagger UI**: http://localhost:8001/docs
+- **Documentación Redoc**: http://localhost:8001/redoc
+
+## 🔍 Estructura de Código
+
+### Importaciones
+
+El proyecto utiliza importaciones relativas para un mejor manejo de paquetes:
+
+```python
+# Ejemplo de importación relativa
+from .core.config import settings
+from .modules.auth.router import router as auth_router
 ```
 
-## 🏗 Estructura
+## 🛠️ Desarrollo
+
+### Estructura de un Módulo
+
+Cada módulo sigue esta estructura:
+
 ```
-ges_neu_api/
-├── alembic/          # Migraciones
-├── ges_neu_api/      # Código fuente
-│   ├── auth/         # Autenticación
-│   ├── catalogos/    # Catálogos del sistema
-│   ├── core/         # Configuración base
-│   └── main.py       # Punto de entrada
-├── scripts/         # Scripts de utilidad
-└── tests/           # Pruebas
+modules/
+  └── modulo/
+      ├── __init__.py
+      ├── models.py      # Modelos SQLAlchemy
+      ├── schemas.py     # Esquemas Pydantic
+      ├── service.py     # Lógica de negocio
+      ├── router.py      # Endpoints de la API
+      └── dependencies.py # Dependencias específicas del módulo
 ```
+
+### Convenciones de Código
+
+- Usar type hints en todas las funciones
+- Documentar con docstrings siguiendo el formato Google Style
+- Mantener las importaciones ordenadas y agrupadas
+- Usar nombres descriptivos para variables y funciones
 
 ## 📝 Licencia
-MIT
+
+Este proyecto está bajo la licencia MIT. Ver el archivo `LICENSE` para más detalles.

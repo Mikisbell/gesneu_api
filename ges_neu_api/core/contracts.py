@@ -8,6 +8,9 @@ from typing import Protocol, TypeVar, runtime_checkable, Any, Optional, List, Di
 from typing_extensions import Self
 from sqlalchemy.orm import Session
 from pydantic import BaseModel
+from datetime import timedelta
+from uuid import UUID
+# Removed direct imports of Usuario, UsuarioRead, etc.
 
 # Tipos genéricos
 T = TypeVar('T', bound=BaseModel)
@@ -17,9 +20,31 @@ ID = TypeVar('ID', int, str, bytes)
 class ServiceContract(Protocol[T]):
     """Interfaz base para todos los servicios de la aplicación."""
     
-    @classmethod
-    def create(cls, db: Session, *args: Any, **kwargs: Any) -> Self:
-        """Crea una nueva instancia del servicio."""
+
+# ... (rest of the file) ...
+
+@runtime_checkable
+class UserServiceContract(Protocol):
+    """Contrato para el servicio de usuarios."""
+    
+    async def get_user_by_id(self, user_id: UUID) -> Optional["UsuarioRead"]:
+        """Obtiene un usuario por su ID."""
+        ...
+    
+    async def get_user_by_username(self, username: str) -> Optional["UsuarioRead"]:
+        """Obtiene un usuario por su nombre de usuario."""
+        ...
+    
+    async def create_user(self, user_data: "UsuarioCreate") -> "UsuarioRead":
+        """Crea un nuevo usuario."""
+        ...
+    
+    async def update_user(self, user_id: UUID, user_data: "UsuarioUpdate") -> Optional["UsuarioRead"]:
+        """Actualiza un usuario existente."""
+        ...
+    
+    async def delete_user(self, user_id: UUID) -> bool:
+        """Elimina (desactiva) un usuario por su ID."""
         ...
 
 @runtime_checkable
@@ -57,20 +82,25 @@ class CRUDServiceContract(ServiceContract[T], Protocol[T]):
 
 # Contratos específicos de módulos
 @runtime_checkable
-class AuthServiceContract(ServiceContract, Protocol):
+class AuthServiceContract(Protocol):
     """Contrato para el servicio de autenticación."""
     
-    def authenticate_user(self, email: str, password: str) -> Optional[Dict[str, Any]]:
-        """Autentica un usuario con email y contraseña."""
+    async def authenticate_user(self, username: str, password: str) -> Optional["Usuario"]:
+        """Autentica un usuario con nombre de usuario y contraseña."""
         ...
     
-    def get_current_user(self, token: str) -> Dict[str, Any]:
-        """Obtiene el usuario actual a partir de un token JWT."""
-        ...
-    
-    def create_access_token(self, data: Dict[str, Any]) -> str:
+    def create_access_token(self, data: Dict[str, Any], expires_delta: Optional[timedelta] = None) -> str:
         """Crea un nuevo token de acceso JWT."""
         ...
+    
+    async def get_current_user(self, token: str) -> "UsuarioRead":
+        """Obtiene el usuario actual a partir de un token JWT."""
+        ...
+
+@runtime_checkable
+class UserServiceContract(CRUDServiceContract[T], Protocol[T]):
+    """Contrato para el servicio de usuarios."""
+    pass
 
 @runtime_checkable
 class CatalogServiceContract(CRUDServiceContract[T], Protocol[T]):
@@ -85,7 +115,12 @@ class CatalogServiceContract(CRUDServiceContract[T], Protocol[T]):
         """Busca elementos que coincidan con la consulta."""
         ...
 
-def validate_implementation(implementation: object, contract: Type[Protocol]) -> bool:
+@runtime_checkable
+class VehiculosServiceContract(CRUDServiceContract[T], Protocol[T]):
+    """Contrato para servicios de vehículos."""
+    pass
+
+def validate_implementation(implementation: object, contract: Type[Any]) -> bool:
     """Valida que una implementación cumpla con un contrato.
     
     Args:

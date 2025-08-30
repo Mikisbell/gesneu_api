@@ -83,9 +83,9 @@ alembic upgrade head
 echo -e "\n${GREEN}👤 Creando usuario administrador por defecto...${NC}"
 python3 -c "
 import asyncio
-from ges_neu_api.core.config import settings
+from core.config import settings
 from ges_neu_api.auth.service import create_user
-from ges_neu_api.auth.schemas import UserCreate
+from ges_neu_api.modules.auth.schemas import UserCreate
 
 async def create_admin():
     admin = UserCreate(

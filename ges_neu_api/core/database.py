@@ -81,7 +81,7 @@ from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine, async_sess
 from sqlalchemy.orm import Session, sessionmaker
 from sqlalchemy.exc import SQLAlchemyError
 
-from .exceptions import BusinessRuleError
+from .exceptions import AppException
 
 # Tipo genérico para transacciones
 T = TypeVar('T')

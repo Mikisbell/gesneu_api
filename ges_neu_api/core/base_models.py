@@ -45,32 +45,58 @@ class BaseModel(SQLModel):
     
     id: UUID = Field(
         default_factory=uuid4,
-        sa_column=Column(PG_UUID(as_uuid=True), primary_key=True, server_default=text("gen_random_uuid()")),
+        sa_column=Column(
+            PG_UUID(as_uuid=True),
+            primary_key=True,
+            server_default=text("gen_random_uuid()")
+        ),
         description="Unique identifier"
     )
+    
     activo: bool = Field(
         default=True,
-        sa_column=Column(Boolean, nullable=False, server_default=text("true")),
+        sa_column=Column(
+            Boolean,
+            nullable=False,
+            server_default=text("true")
+        ),
         description="Indicates if the record is active"
     )
+    
     creado_en: datetime = Field(
         default_factory=datetime.utcnow,
-        sa_column=Column(DateTime(timezone=True), nullable=False, server_default=text("now()")),
+        sa_column=Column(
+            DateTime(timezone=True),
+            nullable=False,
+            server_default=text("now()")
+        ),
         description="Creation timestamp"
     )
+    
     creado_por: Optional[UUID] = Field(
         default=None,
-        sa_column=Column(PG_UUID(as_uuid=True), ForeignKey("public.usuarios.id", ondelete="SET NULL")),
+        sa_column=Column(
+            PG_UUID(as_uuid=True),
+            ForeignKey("public.usuarios.id", ondelete="SET NULL")
+        ),
         description="User who created the record"
     )
+    
     actualizado_en: Optional[datetime] = Field(
         default=None,
-        sa_column=Column(DateTime(timezone=True)),
+        sa_column=Column(
+            DateTime(timezone=True),
+            onupdate=text("now()")
+        ),
         description="Last update timestamp"
     )
+    
     actualizado_por: Optional[UUID] = Field(
         default=None,
-        sa_column=Column(PG_UUID(as_uuid=True), ForeignKey("public.usuarios.id", ondelete="SET NULL")),
+        sa_column=Column(
+            PG_UUID(as_uuid=True),
+            ForeignKey("public.usuarios.id", ondelete="SET NULL")
+        ),
         description="User who last updated the record"
     )
 

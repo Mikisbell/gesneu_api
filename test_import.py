@@ -13,7 +13,7 @@ print(f"Ruta del proyecto añadida al path: {project_root}")
 
 print("\n--- 1. Intentando importar 'Usuario' ---")
 try:
-    from ges_neu_api.auth.models.usuario import Usuario
+    from ges_neu_api.modules.auth.models.usuario import Usuario
     print("✅ ¡ÉXITO! Se pudo importar la clase 'Usuario'.")
 except ImportError as e:
     print(f"❌ ¡FALLÓ! No se pudo importar la clase 'Usuario'.")
@@ -24,7 +24,7 @@ except Exception as e:
 
 print("\n--- 2. Intentando importar 'Fabricante' y 'ModeloNeumatico' ---")
 try:
-    from ges_neu_api.catalogos.models import Fabricante, ModeloNeumatico
+    from ges_neu_api.modules.neumaticos.models import Fabricante, ModeloNeumatico
     print("✅ ¡ÉXITO! Se pudieron importar las clases de 'catalogos'.")
 except ImportError as e:
     print(f"❌ ¡FALLÓ! No se pudieron importar las clases de 'catalogos'.")

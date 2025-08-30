@@ -37,3 +37,4 @@ factory-boy>=3.2.0
 # Para pruebas de cobertura
 coverage>=6.0.0
 codecov>=2.1.0
+aiosqlite>=0.20.0
