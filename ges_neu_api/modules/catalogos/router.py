@@ -4,228 +4,27 @@ from uuid import UUID
 from typing import List, Optional
 
 from fastapi import APIRouter, Depends, status, Query, HTTPException
+from sqlalchemy.ext.asyncio import AsyncSession
 
 # Application imports
-from ges_neu_api.modules.auth.schemas import UserRead
-from ..auth.dependencies import get_current_user
+from ges_neu_api.core.database import get_db
 from ges_neu_api.modules.catalogos.schemas import (
-    FabricanteCreate, FabricanteRead, FabricanteUpdate,
-    ModeloNeumaticoCreate, ModeloNeumaticoRead, ModeloNeumaticoUpdate,
     ProveedorCreate, ProveedorRead, ProveedorUpdate,
     MotivoDesechoCreate, MotivoDesechoRead, MotivoDesechoUpdate,
     AlmacenCreate, AlmacenRead, AlmacenUpdate,
-    ParametroInventarioCreate, ParametroInventarioRead, ParametroInventarioUpdate,
-    CatalogoItemCreate, CatalogoItemRead, CatalogoItemUpdate
+    ParametroInventarioCreate, ParametroInventarioRead, ParametroInventarioUpdate
 )
-from .dependencies import get_catalogos_service
-from .service import CatalogosService
+from .service import CatalogService
 
 
-router = APIRouter(tags=["Catálogos"])
+router = APIRouter(tags=["catalogos"])
 
 # --- Dependencies ---
 
+def get_catalog_service() -> CatalogService:
+    """Dependency para obtener el servicio de catálogos."""
+    return CatalogService()
 
-
-# --- Endpoints para Fabricantes ---
-
-@router.post(
-    "/fabricantes/", 
-    response_model=FabricanteRead, 
-    status_code=status.HTTP_201_CREATED,
-    summary="Crear un nuevo fabricante",
-    dependencies=[Depends(get_current_user)]  # Requiere autenticación
-)
-async def create_fabricante(
-    fabricante_in: FabricanteCreate,
-    service: CatalogosService = Depends(get_catalogos_service)
-):
-    """
-    Crea un nuevo fabricante.
-    
-    Requiere permisos de administrador.
-    """
-    return await service.create_fabricante(fabricante_in, service.current_user)
-
-@router.get(
-    "/fabricantes/", 
-    response_model=List[FabricanteRead],
-    summary="Listar fabricantes",
-    dependencies=[Depends(get_current_user)]  # Requiere autenticación
-)
-async def read_fabricantes(
-    skip: int = Query(0, ge=0),
-    limit: int = Query(100, ge=1, le=100),
-    activo: Optional[bool] = Query(None),
-    service: CatalogosService = Depends(get_catalogos_service)
-):
-    """
-    Lista todos los fabricantes con paginación.
-    
-    - **skip**: Número de registros a saltar (paginación)
-    - **limit**: Número máximo de registros a devolver (máx. 100)
-    - **activo**: Filtrar por estado activo/inactivo (opcional)
-    """
-    return await service.get_all_fabricantes(
-        user=service.current_user,
-        skip=skip, limit=limit, activo=activo
-    )
-
-@router.get(
-    "/fabricantes/{fabricante_id}",
-    response_model=FabricanteRead,
-    summary="Obtener un fabricante por ID",
-    dependencies=[Depends(get_current_user)]  # Requiere autenticación
-)
-async def read_fabricante(
-    fabricante_id: UUID,
-    service: CatalogosService = Depends(get_catalogos_service)
-):
-    """
-    Obtiene los detalles de un fabricante por su ID.
-    """
-    return await service.get_fabricante_by_id(fabricante_id, service.current_user)
-
-@router.put(
-    "/fabricantes/{fabricante_id}",
-    response_model=FabricanteRead,
-    summary="Actualizar un fabricante",
-    dependencies=[Depends(get_current_user)]  # Requiere autenticación
-)
-async def update_fabricante(
-    fabricante_id: UUID,
-    fabricante_in: FabricanteUpdate,
-    service: CatalogosService = Depends(get_catalogos_service)
-):
-    """
-    Actualiza un fabricante existente.
-    
-    Requiere permisos de administrador.
-    """
-    return await service.update_fabricante(
-        fabricante_id=fabricante_id,
-        fabricante_update=fabricante_in,
-        user=service.current_user
-    )
-
-@router.delete(
-    "/fabricantes/{fabricante_id}",
-    status_code=status.HTTP_204_NO_CONTENT,
-    summary="Eliminar un fabricante",
-    dependencies=[Depends(get_current_user)]  # Requiere autenticación
-)
-async def delete_fabricante(
-    fabricante_id: UUID,
-    service: CatalogosService = Depends(get_catalogos_service)
-):
-    """
-    Elimina un fabricante.
-    
-    Requiere permisos de administrador.
-    """
-    await service.delete_fabricante(fabricante_id, service.current_user)
-    return None
-
-# --- Endpoints para Modelos ---
-
-@router.post(
-    "/modelos/", 
-    response_model=ModeloNeumaticoRead, 
-    status_code=status.HTTP_201_CREATED,
-    summary="Crear un nuevo modelo",
-    dependencies=[Depends(get_current_user)]  # Requiere autenticación
-)
-async def create_modelo(
-    modelo_in: ModeloNeumaticoCreate,
-    service: CatalogosService = Depends(get_catalogos_service)
-):
-    """
-    Crea un nuevo modelo.
-    
-    Requiere permisos de administrador.
-    """
-    return await service.create_modelo(modelo_in, service.current_user)
-
-@router.get(
-    "/modelos/", 
-    response_model=List[ModeloNeumaticoRead],
-    summary="Listar modelos",
-    dependencies=[Depends(get_current_user)]  # Requiere autenticación
-)
-async def read_modelos(
-    skip: int = Query(0, ge=0),
-    limit: int = Query(100, ge=1, le=100),
-    fabricante_id: Optional[UUID] = Query(None),
-    activo: Optional[bool] = Query(None),
-    service: CatalogosService = Depends(get_catalogos_service)
-):
-    """
-    Lista todos los modelos con paginación.
-    
-    - **skip**: Número de registros a saltar (paginación)
-    - **limit**: Número máximo de registros a devolver (máx. 100)
-    - **fabricante_id**: Filtrar por ID de fabricante (opcional)
-    - **activo**: Filtrar por estado activo/inactivo (opcional)
-    """
-    return await service.get_all_modelos(
-        user=service.current_user,
-        skip=skip, limit=limit, fabricante_id=fabricante_id, activo=activo
-    )
-
-@router.get(
-    "/modelos/{modelo_id}",
-    response_model=ModeloNeumaticoRead,
-    summary="Obtener un modelo por ID",
-    dependencies=[Depends(get_current_user)]  # Requiere autenticación
-)
-async def read_modelo(
-    modelo_id: UUID,
-    service: CatalogosService = Depends(get_catalogos_service)
-):
-    """
-    Obtiene los detalles de un modelo por su ID.
-    """
-    return await service.get_modelo_by_id(modelo_id, service.current_user)
-
-@router.put(
-    "/modelos/{modelo_id}",
-    response_model=ModeloNeumaticoRead,
-    summary="Actualizar un modelo",
-    dependencies=[Depends(get_current_user)]  # Requiere autenticación
-)
-async def update_modelo(
-    modelo_id: UUID,
-    modelo_in: ModeloNeumaticoUpdate,
-    service: CatalogosService = Depends(get_catalogos_service)
-):
-    """
-    Actualiza un modelo existente.
-    
-    Requiere permisos de administrador.
-    """
-    return await service.update_modelo(
-        modelo_id=modelo_id,
-        modelo_update=modelo_in,
-        user=service.current_user
-    )
-
-@router.delete(
-    "/modelos/{modelo_id}",
-    status_code=status.HTTP_204_NO_CONTENT,
-    summary="Eliminar un modelo",
-    dependencies=[Depends(get_current_user)]  # Requiere autenticación
-)
-async def delete_modelo(
-    modelo_id: UUID,
-    service: CatalogosService = Depends(get_catalogos_service)
-):
-    """
-    Elimina un modelo.
-    
-    Requiere permisos de administrador.
-    """
-    await service.delete_modelo(modelo_id, service.current_user)
-    return None
 
 # --- Endpoints para Proveedores ---
 
@@ -233,174 +32,308 @@ async def delete_modelo(
     "/proveedores/", 
     response_model=ProveedorRead, 
     status_code=status.HTTP_201_CREATED,
-    summary="Crear un nuevo proveedor",
-    dependencies=[Depends(get_current_user)]  # Requiere autenticación
+    summary="Crear un nuevo proveedor"
 )
 async def create_proveedor(
-    proveedor_in: ProveedorCreate,
-    service: CatalogosService = Depends(get_catalogos_service)
+    proveedor_data: ProveedorCreate,
+    db: AsyncSession = Depends(get_db),
+    service: CatalogService = Depends(get_catalog_service)
 ):
-    """
-    Crea un nuevo proveedor.
-    
-    Requiere permisos de administrador.
-    """
-    return await service.create_proveedor(proveedor_in, service.current_user)
+    """Crear un nuevo proveedor."""
+    return await service.create_proveedor(db, proveedor_data)
 
 @router.get(
     "/proveedores/", 
     response_model=List[ProveedorRead],
-    summary="Listar proveedores",
-    dependencies=[Depends(get_current_user)]  # Requiere autenticación
+    summary="Listar proveedores"
 )
-async def read_proveedores(
+async def get_proveedores(
     skip: int = Query(0, ge=0),
     limit: int = Query(100, ge=1, le=100),
-    activo: Optional[bool] = Query(None),
-    service: CatalogosService = Depends(get_catalogos_service)
+    db: AsyncSession = Depends(get_db),
+    service: CatalogService = Depends(get_catalog_service)
 ):
-    """
-    Lista todos los proveedores con paginación.
-    
-    - **skip**: Número de registros a saltar (paginación)
-    - **limit**: Número máximo de registros a devolver (máx. 100)
-    - **activo**: Filtrar por estado activo/inactivo (opcional)
-    """
-    return await service.get_all_proveedores(
-        user=service.current_user,
-        skip=skip, limit=limit, activo=activo
-    )
+    """Obtener lista de proveedores."""
+    return await service.get_proveedores(db, skip, limit)
 
 @router.get(
-    "/proveedores/{proveedor_id}",
+    "/proveedores/{proveedor_id}", 
     response_model=ProveedorRead,
-    summary="Obtener un proveedor por ID",
-    dependencies=[Depends(get_current_user)]  # Requiere autenticación
+    summary="Obtener proveedor por ID"
 )
-async def read_proveedor(
+async def get_proveedor(
     proveedor_id: UUID,
-    service: CatalogosService = Depends(get_catalogos_service)
+    db: AsyncSession = Depends(get_db),
+    service: CatalogService = Depends(get_catalog_service)
 ):
-    """
-    Obtiene los detalles de un proveedor por su ID.
-    """
-    return await service.get_proveedor_by_id(proveedor_id, service.current_user)
+    """Obtener un proveedor por ID."""
+    proveedor = await service.get_proveedor(db, proveedor_id)
+    if not proveedor:
+        raise HTTPException(status_code=404, detail="Proveedor no encontrado")
+    return proveedor
 
 @router.put(
-    "/proveedores/{proveedor_id}",
+    "/proveedores/{proveedor_id}", 
     response_model=ProveedorRead,
-    summary="Actualizar un proveedor",
-    dependencies=[Depends(get_current_user)]  # Requiere autenticación
+    summary="Actualizar proveedor"
 )
 async def update_proveedor(
     proveedor_id: UUID,
-    proveedor_in: ProveedorUpdate,
-    service: CatalogosService = Depends(get_catalogos_service)
+    proveedor_data: ProveedorUpdate,
+    db: AsyncSession = Depends(get_db),
+    service: CatalogService = Depends(get_catalog_service)
 ):
-    """
-    Actualiza un proveedor existente.
-    
-    Requiere permisos de administrador.
-    """
-    return await service.update_proveedor(
-        proveedor_id=proveedor_id,
-        proveedor_update=proveedor_in,
-        user=service.current_user
-    )
+    """Actualizar un proveedor."""
+    proveedor = await service.update_proveedor(db, proveedor_id, proveedor_data)
+    if not proveedor:
+        raise HTTPException(status_code=404, detail="Proveedor no encontrado")
+    return proveedor
 
 @router.delete(
-    "/proveedores/{proveedor_id}",
+    "/proveedores/{proveedor_id}", 
     status_code=status.HTTP_204_NO_CONTENT,
-    summary="Eliminar un proveedor",
-    dependencies=[Depends(get_current_user)]  # Requiere autenticación
+    summary="Eliminar proveedor"
 )
 async def delete_proveedor(
     proveedor_id: UUID,
-    service: CatalogosService = Depends(get_catalogos_service)
+    db: AsyncSession = Depends(get_db),
+    service: CatalogService = Depends(get_catalog_service)
 ):
-    """
-    Elimina un proveedor.
-    
-    Requiere permisos de administrador.
-    """
-    await service.delete_proveedor(proveedor_id, service.current_user)
-    return None
+    """Eliminar un proveedor (soft delete)."""
+    success = await service.delete_proveedor(db, proveedor_id)
+    if not success:
+        raise HTTPException(status_code=404, detail="Proveedor no encontrado")
 
-# --- Endpoints para Catálogo de Ítems ---
+# --- Endpoints para Motivos de Desecho ---
 
 @router.post(
-    "/items/",
-    response_model=CatalogoItemRead,
+    "/motivos-desecho/", 
+    response_model=MotivoDesechoRead, 
     status_code=status.HTTP_201_CREATED,
-    summary="Crear un nuevo ítem en el catálogo",
-    dependencies=[Depends(get_current_user)]
+    summary="Crear un nuevo motivo de desecho"
 )
-async def create_catalogo_item(
-    item_in: CatalogoItemCreate,
-    service: CatalogosService = Depends(get_catalogos_service)
+async def create_motivo_desecho(
+    motivo_data: MotivoDesechoCreate,
+    db: AsyncSession = Depends(get_db),
+    service: CatalogService = Depends(get_catalog_service)
 ):
-    """
-    Crea un nuevo ítem en el catálogo.
-    
-    Los usuarios solo pueden crear ítems para sí mismos a menos que sean administradores.
-    """
-    return await service.create_catalogo_item(item_in, service.current_user)
+    """Crear un nuevo motivo de desecho."""
+    return await service.create_motivo_desecho(db, motivo_data)
 
 @router.get(
-    "/items/{item_id}",
-    response_model=CatalogoItemRead,
-    summary="Obtener un ítem del catálogo por ID",
-    dependencies=[Depends(get_current_user)]
+    "/motivos-desecho/", 
+    response_model=List[MotivoDesechoRead],
+    summary="Listar motivos de desecho"
 )
-async def get_catalogo_item(
-    item_id: UUID,
-    service: CatalogosService = Depends(get_catalogos_service)
+async def get_motivos_desecho(
+    skip: int = Query(0, ge=0),
+    limit: int = Query(100, ge=1, le=100),
+    db: AsyncSession = Depends(get_db),
+    service: CatalogService = Depends(get_catalog_service)
 ):
-    """
-    Obtiene un ítem del catálogo por su ID.
-    
-    Los usuarios solo pueden ver sus propios ítems a menos que sean administradores.
-    """
-    return await service.get_catalogo_item(item_id, service.current_user)
+    """Obtener lista de motivos de desecho."""
+    return await service.get_motivos_desecho(db, skip, limit)
+
+@router.get(
+    "/motivos-desecho/{motivo_id}", 
+    response_model=MotivoDesechoRead,
+    summary="Obtener motivo de desecho por ID"
+)
+async def get_motivo_desecho(
+    motivo_id: UUID,
+    db: AsyncSession = Depends(get_db),
+    service: CatalogService = Depends(get_catalog_service)
+):
+    """Obtener un motivo de desecho por ID."""
+    motivo = await service.get_motivo_desecho(db, motivo_id)
+    if not motivo:
+        raise HTTPException(status_code=404, detail="Motivo de desecho no encontrado")
+    return motivo
 
 @router.put(
-    "/items/{item_id}",
-    response_model=CatalogoItemRead,
-    summary="Actualizar un ítem del catálogo",
-    dependencies=[Depends(get_current_user)]
+    "/motivos-desecho/{motivo_id}", 
+    response_model=MotivoDesechoRead,
+    summary="Actualizar motivo de desecho"
 )
-async def update_catalogo_item(
-    item_id: UUID,
-    item_in: CatalogoItemUpdate,
-    service: CatalogosService = Depends(get_catalogos_service)
+async def update_motivo_desecho(
+    motivo_id: UUID,
+    motivo_data: MotivoDesechoUpdate,
+    db: AsyncSession = Depends(get_db),
+    service: CatalogService = Depends(get_catalog_service)
 ):
-    """
-    Actualiza un ítem del catálogo.
-    
-    Los usuarios solo pueden actualizar sus propios ítems a menos que sean administradores.
-    """
-    return await service.update_catalogo_item(
-        item_id=item_id,
-        item_update=item_in,
-        user=service.current_user
-    )
+    """Actualizar un motivo de desecho."""
+    motivo = await service.update_motivo_desecho(db, motivo_id, motivo_data)
+    if not motivo:
+        raise HTTPException(status_code=404, detail="Motivo de desecho no encontrado")
+    return motivo
 
 @router.delete(
-    "/items/{item_id}",
+    "/motivos-desecho/{motivo_id}", 
     status_code=status.HTTP_204_NO_CONTENT,
-    summary="Eliminar un ítem del catálogo",
-    dependencies=[Depends(get_current_user)]
+    summary="Eliminar motivo de desecho"
 )
-async def delete_catalogo_item(
-    item_id: UUID,
-    service: CatalogosService = Depends(get_catalogos_service)
+async def delete_motivo_desecho(
+    motivo_id: UUID,
+    db: AsyncSession = Depends(get_db),
+    service: CatalogService = Depends(get_catalog_service)
 ):
-    """
-    Elimina un ítem del catálogo.
-    
-    Los usuarios solo pueden eliminar sus propios ítems a menos que sean administradores.
-    """
-    await service.delete_catalogo_item(item_id, service.current_user)
-    return None
+    """Eliminar un motivo de desecho (soft delete)."""
+    success = await service.delete_motivo_desecho(db, motivo_id)
+    if not success:
+        raise HTTPException(status_code=404, detail="Motivo de desecho no encontrado")
 
-# ... (otros endpoints para Motivos, Almacenes, etc. seguirían el mismo patrón) ...
+# --- Endpoints para Almacenes ---
+
+@router.post(
+    "/almacenes/", 
+    response_model=AlmacenRead, 
+    status_code=status.HTTP_201_CREATED,
+    summary="Crear un nuevo almacén"
+)
+async def create_almacen(
+    almacen_data: AlmacenCreate,
+    db: AsyncSession = Depends(get_db),
+    service: CatalogService = Depends(get_catalog_service)
+):
+    """Crear un nuevo almacén."""
+    return await service.create_almacen(db, almacen_data)
+
+@router.get(
+    "/almacenes/", 
+    response_model=List[AlmacenRead],
+    summary="Listar almacenes"
+)
+async def get_almacenes(
+    skip: int = Query(0, ge=0),
+    limit: int = Query(100, ge=1, le=100),
+    db: AsyncSession = Depends(get_db),
+    service: CatalogService = Depends(get_catalog_service)
+):
+    """Obtener lista de almacenes."""
+    return await service.get_almacenes(db, skip, limit)
+
+@router.get(
+    "/almacenes/{almacen_id}", 
+    response_model=AlmacenRead,
+    summary="Obtener almacén por ID"
+)
+async def get_almacen(
+    almacen_id: UUID,
+    db: AsyncSession = Depends(get_db),
+    service: CatalogService = Depends(get_catalog_service)
+):
+    """Obtener un almacén por ID."""
+    almacen = await service.get_almacen(db, almacen_id)
+    if not almacen:
+        raise HTTPException(status_code=404, detail="Almacén no encontrado")
+    return almacen
+
+@router.put(
+    "/almacenes/{almacen_id}", 
+    response_model=AlmacenRead,
+    summary="Actualizar almacén"
+)
+async def update_almacen(
+    almacen_id: UUID,
+    almacen_data: AlmacenUpdate,
+    db: AsyncSession = Depends(get_db),
+    service: CatalogService = Depends(get_catalog_service)
+):
+    """Actualizar un almacén."""
+    almacen = await service.update_almacen(db, almacen_id, almacen_data)
+    if not almacen:
+        raise HTTPException(status_code=404, detail="Almacén no encontrado")
+    return almacen
+
+@router.delete(
+    "/almacenes/{almacen_id}", 
+    status_code=status.HTTP_204_NO_CONTENT,
+    summary="Eliminar almacén"
+)
+async def delete_almacen(
+    almacen_id: UUID,
+    db: AsyncSession = Depends(get_db),
+    service: CatalogService = Depends(get_catalog_service)
+):
+    """Eliminar un almacén (soft delete)."""
+    success = await service.delete_almacen(db, almacen_id)
+    if not success:
+        raise HTTPException(status_code=404, detail="Almacén no encontrado")
+
+# --- Endpoints para Parámetros de Inventario ---
+
+@router.post(
+    "/parametros-inventario/", 
+    response_model=ParametroInventarioRead, 
+    status_code=status.HTTP_201_CREATED,
+    summary="Crear un nuevo parámetro de inventario"
+)
+async def create_parametro_inventario(
+    parametro_data: ParametroInventarioCreate,
+    db: AsyncSession = Depends(get_db),
+    service: CatalogService = Depends(get_catalog_service)
+):
+    """Crear un nuevo parámetro de inventario."""
+    return await service.create_parametro_inventario(db, parametro_data)
+
+@router.get(
+    "/parametros-inventario/", 
+    response_model=List[ParametroInventarioRead],
+    summary="Listar parámetros de inventario"
+)
+async def get_parametros_inventario(
+    skip: int = Query(0, ge=0),
+    limit: int = Query(100, ge=1, le=100),
+    db: AsyncSession = Depends(get_db),
+    service: CatalogService = Depends(get_catalog_service)
+):
+    """Obtener lista de parámetros de inventario."""
+    return await service.get_parametros_inventario(db, skip, limit)
+
+@router.get(
+    "/parametros-inventario/{parametro_id}", 
+    response_model=ParametroInventarioRead,
+    summary="Obtener parámetro de inventario por ID"
+)
+async def get_parametro_inventario(
+    parametro_id: UUID,
+    db: AsyncSession = Depends(get_db),
+    service: CatalogService = Depends(get_catalog_service)
+):
+    """Obtener un parámetro de inventario por ID."""
+    parametro = await service.get_parametro_inventario(db, parametro_id)
+    if not parametro:
+        raise HTTPException(status_code=404, detail="Parámetro de inventario no encontrado")
+    return parametro
+
+@router.put(
+    "/parametros-inventario/{parametro_id}", 
+    response_model=ParametroInventarioRead,
+    summary="Actualizar parámetro de inventario"
+)
+async def update_parametro_inventario(
+    parametro_id: UUID,
+    parametro_data: ParametroInventarioUpdate,
+    db: AsyncSession = Depends(get_db),
+    service: CatalogService = Depends(get_catalog_service)
+):
+    """Actualizar un parámetro de inventario."""
+    parametro = await service.update_parametro_inventario(db, parametro_id, parametro_data)
+    if not parametro:
+        raise HTTPException(status_code=404, detail="Parámetro de inventario no encontrado")
+    return parametro
+
+@router.delete(
+    "/parametros-inventario/{parametro_id}", 
+    status_code=status.HTTP_204_NO_CONTENT,
+    summary="Eliminar parámetro de inventario"
+)
+async def delete_parametro_inventario(
+    parametro_id: UUID,
+    db: AsyncSession = Depends(get_db),
+    service: CatalogService = Depends(get_catalog_service)
+):
+    """Eliminar un parámetro de inventario (soft delete)."""
+    success = await service.delete_parametro_inventario(db, parametro_id)
+    if not success:
+        raise HTTPException(status_code=404, detail="Parámetro de inventario no encontrado")

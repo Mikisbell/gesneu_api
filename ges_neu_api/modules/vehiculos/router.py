@@ -7,7 +7,7 @@ from .schemas import VehiculoCreate, VehiculoUpdate, VehiculoRead
 from .service import VehiculosService
 from .dependencies import get_vehiculos_service
 
-router = APIRouter(tags=["Vehículos"])
+router = APIRouter(tags=["vehiculos"])
 
 @router.post(
     "/", 

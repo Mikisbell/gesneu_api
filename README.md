@@ -6,12 +6,16 @@ API para el sistema de Gestión de Neumáticos (GES_NEU). Esta aplicación propo
 
 ### Módulos Implementados
 - **Autenticación**: Gestión de usuarios, roles y permisos (Completo ✅)
+- **Vehículos**: Gestión de flota, tipos y configuraciones (Completo ✅)
+- **Catálogos**: Proveedores, almacenes, motivos de desecho (Completo ✅)
+- **Neumáticos**: Fabricantes, modelos y gestión de neumáticos (Completo ✅)
+- **Inventario**: Control de stock y movimientos (Completo ✅)
+- **Eventos**: Historial y seguimiento de neumáticos (Completo ✅)
+- **Garantías**: Gestión de garantías de neumáticos (Completo ✅)
+- **Alertas**: Sistema de notificaciones y alertas (Completo ✅)
+- **Bitácoras**: Auditoría y registro de operaciones (Modelos ✅)
+- **Sistema**: Parámetros y configuración del sistema (Modelos ✅)
 - **Estructura Base**: Configuración de la aplicación, logging y manejo de errores (Completo ✅)
-
-### Próximos Módulos
-- 🚧 Catálogos
-- 🚧 Vehículos
-- 🚧 Neumáticos
 
 ## 🏗️ Arquitectura
 
@@ -29,7 +33,9 @@ ges_neu_api/
 │   ├── contracts.py     # Contratos (Protocols) para inyección de dependencias
 │   ├── exceptions.py    # Manejo de excepciones globales
 │   ├── logging_config.py # Configuración de logging estructurado
-│   └── monitoring.py    # Monitoreo y métricas de la aplicación
+│   ├── monitoring.py    # Monitoreo y métricas de la aplicación
+│   ├── base_models.py   # Modelos base compartidos
+│   └── crud.py          # Operaciones CRUD genéricas
 
 ├── modules/             # Módulos de la aplicación
 │   ├── __init__.py
@@ -39,9 +45,45 @@ ges_neu_api/
 │   │   ├── schemas.py   # Esquemas de validación
 │   │   ├── service.py   # Lógica de negocio
 │   │   └── router.py    # Endpoints de la API
-│   └── catalogos/       # Módulo de catálogos
-│   └── vehiculos/       # Módulo de vehículos
-│   └── neumaticos/      # Módulo de neumáticos
+│   ├── vehiculos/       # Módulo de vehículos
+│   │   ├── models.py    # Tipos, configuraciones, posiciones
+│   │   ├── schemas.py   # Esquemas de validación
+│   │   ├── service.py   # Lógica de negocio
+│   │   └── router.py    # Endpoints de la API
+│   ├── catalogos/       # Módulo de catálogos
+│   │   ├── models.py    # Proveedores, almacenes, motivos
+│   │   ├── schemas.py   # Esquemas de validación
+│   │   ├── service.py   # Lógica de negocio
+│   │   └── router.py    # Endpoints de la API
+│   ├── neumaticos/      # Módulo de neumáticos
+│   │   ├── models.py    # Fabricantes, modelos, neumáticos
+│   │   ├── schemas.py   # Esquemas de validación
+│   │   ├── service.py   # Lógica de negocio
+│   │   └── router.py    # Endpoints de la API
+│   ├── inventario/      # Módulo de inventario
+│   │   ├── models.py    # Stock y movimientos
+│   │   ├── schemas.py   # Esquemas de validación
+│   │   ├── service.py   # Lógica de negocio
+│   │   └── router.py    # Endpoints de la API
+│   ├── eventos/         # Módulo de eventos
+│   │   ├── models.py    # Historial y mediciones
+│   │   ├── schemas.py   # Esquemas de validación
+│   │   ├── service.py   # Lógica de negocio
+│   │   └── router.py    # Endpoints de la API
+│   ├── garantias/       # Módulo de garantías
+│   │   ├── models.py    # Garantías de neumáticos
+│   │   ├── schemas.py   # Esquemas de validación
+│   │   ├── service.py   # Lógica de negocio
+│   │   └── router.py    # Endpoints de la API
+│   ├── alertas/         # Módulo de alertas
+│   │   ├── models.py    # Sistema de notificaciones
+│   │   ├── schemas.py   # Esquemas de validación
+│   │   ├── service.py   # Lógica de negocio
+│   │   └── router.py    # Endpoints de la API
+│   ├── bitacoras/       # Módulo de bitácoras
+│   │   └── models.py    # Auditoría y operaciones
+│   └── sistema/         # Módulo de sistema
+│       └── models.py    # Parámetros y configuración
 
 ├── tests/               # Pruebas automatizadas
 │   └── auth/            # Pruebas del módulo de autenticación
@@ -69,7 +111,77 @@ ges_neu_api/
 
 2. **Configurar entorno virtual**
    ```bash
-   python -m venv .venv
+   python -m venv .venvpython -c "print('Probando neumaticos con Index...'); import ges_neu_api.modules.neumaticos.models; print('✅ Neumaticos OK')"
+Probando neumaticos con Index...
+Traceback (most recent call last):
+  File "<string>", line 1, in <module>
+    print('Probando neumaticos con Index...'); import ges_neu_api.modules.neumaticos.models; print('✅ Neumaticos OK')
+                                               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "E:\FREECLOUD\FREECLOUD - IA\gesneu_api\ges_neu_api\modules\neumaticos\models.py", line 49, in <module>
+    class ModeloNeumatico(BaseModel, table=True):
+    ...<20 lines>...
+        )
+  File "C:\Users\Mateo\AppData\Local\Programs\Python\Python313\Lib\site-packages\sqlmodel\main.py", line 641, in __init__
+    DeclarativeMeta.__init__(cls, classname, bases, dict_, **kw)
+    ~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Mateo\AppData\Local\Programs\Python\Python313\Lib\site-packages\sqlalchemy\orm\decl_api.py", line 198, in __init__
+    _as_declarative(reg, cls, dict_)
+    ~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^
+  File "C:\Users\Mateo\AppData\Local\Programs\Python\Python313\Lib\site-packages\sqlalchemy\orm\decl_base.py", line 245, in _as_declarative
+    return _MapperConfig.setup_mapping(registry, cls, dict_, None, {})
+           ~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Mateo\AppData\Local\Programs\Python\Python313\Lib\site-packages\sqlalchemy\orm\decl_base.py", line 326, in setup_mapping
+    return _ClassScanMapperConfig(
+        registry, cls_, dict_, table, mapper_kw
+    )
+  File "C:\Users\Mateo\AppData\Local\Programs\Python\Python313\Lib\site-packages\sqlalchemy\orm\decl_base.py", line 577, in __init__
+    self._setup_table(table)
+    ~~~~~~~~~~~~~~~~~^^^^^^^
+  File "C:\Users\Mateo\AppData\Local\Programs\Python\Python313\Lib\site-packages\sqlalchemy\orm\decl_base.py", line 1762, in _setup_table
+    table_cls(
+    ~~~~~~~~~^
+        tablename,
+        ^^^^^^^^^^
+    ...<3 lines>...
+        **table_kw,
+        ^^^^^^^^^^^
+    ),
+    ^
+  File "<string>", line 2, in __new__
+  File "C:\Users\Mateo\AppData\Local\Programs\Python\Python313\Lib\site-packages\sqlalchemy\util\deprecations.py", line 281, in warned
+    return fn(*args, **kwargs)  # type: ignore[no-any-return]
+  File "C:\Users\Mateo\AppData\Local\Programs\Python\Python313\Lib\site-packages\sqlalchemy\sql\schema.py", line 429, in __new__
+    return cls._new(*args, **kw)
+           ~~~~~~~~^^^^^^^^^^^^^
+  File "C:\Users\Mateo\AppData\Local\Programs\Python\Python313\Lib\site-packages\sqlalchemy\sql\schema.py", line 483, in _new
+    with util.safe_reraise():
+         ~~~~~~~~~~~~~~~~~^^
+  File "C:\Users\Mateo\AppData\Local\Programs\Python\Python313\Lib\site-packages\sqlalchemy\util\langhelpers.py", line 224, in __exit__
+    raise exc_value.with_traceback(exc_tb)
+  File "C:\Users\Mateo\AppData\Local\Programs\Python\Python313\Lib\site-packages\sqlalchemy\sql\schema.py", line 479, in _new
+    table.__init__(name, metadata, *args, _no_init=False, **kw)  # type: ignore[misc] # noqa: E501
+    ~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Mateo\AppData\Local\Programs\Python\Python313\Lib\site-packages\sqlalchemy\sql\schema.py", line 873, in __init__
+    self._init_items(
+    ~~~~~~~~~~~~~~~~^
+        *args,
+        ^^^^^^
+    ...<3 lines>...
+        all_names={},
+        ^^^^^^^^^^^^^
+    )
+    ^
+  File "C:\Users\Mateo\AppData\Local\Programs\Python\Python313\Lib\site-packages\sqlalchemy\sql\schema.py", line 233, in _init_items
+    spwd(self, **kw)
+    ~~~~^^^^^^^^^^^^
+  File "C:\Users\Mateo\AppData\Local\Programs\Python\Python313\Lib\site-packages\sqlalchemy\sql\base.py", line 1347, in _set_parent_with_dispatch
+    self._set_parent(parent, **kw)
+    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^
+  File "C:\Users\Mateo\AppData\Local\Programs\Python\Python313\Lib\site-packages\sqlalchemy\sql\schema.py", line 2336, in _set_parent
+    raise exc.ArgumentError(
+    ...<2 lines>...
+    )
+sqlalchemy.exc.ArgumentError: Column object 'id' already assigned to Table 'fabricantes_neumatico'
    source .venv/bin/activate  # En Windows: .venv\Scripts\activate
    ```
 

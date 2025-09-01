@@ -7,7 +7,7 @@ This module provides base classes and utilities that are used throughout the app
 """
 
 from .config import settings
-from .database import Base, get_session, init_db, engine, async_session_maker
+from .database import Base, get_session, init_db, sync_engine, SyncSessionLocal
 from .base_models import BaseModel, EstadoNeumaticoEnum
 
 __all__ = [
@@ -15,8 +15,8 @@ __all__ = [
     'Base',
     'get_session',
     'init_db',
-    'engine',
-    'async_session_maker',
+    'sync_engine',
+    'SyncSessionLocal',
     'BaseModel',
     'EstadoNeumaticoEnum',
 ]

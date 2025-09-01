@@ -25,40 +25,32 @@ class LadoVehiculoEnum(str, Enum):
     INDETERMINADO = "INDETERMINADO"
 
 if TYPE_CHECKING:
-    from ..auth.models.usuario import Usuario
+    from ..auth.models import Usuario
     from ..neumaticos.models import Neumatico
-    from .bitacora.models import BitacoraOperaciones
-    from .alertas.models import Alerta
-    from .eventos.models import EventosNeumaticos
-    from .bitacora_neumaticos.models import BitacoraOperacionesNeumaticos
-    from .modelos_neumatico.models import ModelosNeumatico
-    from .modelos_posiciones.models import ModelosPosicionesPermitidas
+    from ..eventos.models import EventosNeumaticos
 
 class TiposVehiculo(SQLModel, table=True):
     __tablename__ = 'tipos_vehiculo'
     __table_args__ = (
         CheckConstraint('ejes_standard >= 1 AND ejes_standard <= 10', name='tipos_vehiculo_ejes_standard_check'),
-        UniqueConstraint('nombre', name='idx_tipos_vehiculo_nombre'),
-        {'comment': 'Define los diferentes tipos de vehículos con sus configuraciones de ejes estándar.'}
+        {'extend_existing': True}
     )
 
     id: UUID = Field(default_factory=uuid4, sa_column=Column(PG_UUID(as_uuid=True), primary_key=True, server_default=text('public.gen_random_uuid()')))
     nombre: str = Field(sa_column=Column(String(100), nullable=False))
-    ejes_standard: int = Field(sa_column=Column(SmallInteger, nullable=False, server_default=text('2')))
-    activo: bool = Field(sa_column=Column(Boolean, nullable=False, server_default=text('true')))
-    creado_en: datetime = Field(sa_column=Column(DateTime(timezone=True), nullable=False, server_default=text('now()')))
     descripcion: Optional[str] = Field(default=None, sa_column=Column(Text))
     categoria_principal: Optional[str] = Field(default=None, sa_column=Column(String(50)))
     subtipo: Optional[str] = Field(default=None, sa_column=Column(String(50)))
+    ejes_standard: int = Field(sa_column=Column(SmallInteger, nullable=False, server_default=text('2')))
+    activo: bool = Field(sa_column=Column(Boolean, nullable=False, server_default=text('true')))
+    creado_en: datetime = Field(sa_column=Column(DateTime(timezone=True), nullable=False, server_default=text('now()')))
     creado_por: Optional[UUID] = Field(default=None, foreign_key="usuarios.id")
     actualizado_en: Optional[datetime] = Field(default=None, sa_column=Column(DateTime(timezone=True)))
     actualizado_por: Optional[UUID] = Field(default=None, foreign_key="usuarios.id")
-
-    # Relationships
-    creado_por_usuario: Optional["Usuario"] = Relationship(back_populates="tipos_vehiculo_creados")
-    actualizado_por_usuario: Optional["Usuario"] = Relationship(back_populates="tipos_vehiculo_actualizados")
-    configuraciones_eje: List["ConfiguracionesEje"] = Relationship(back_populates="tipo_vehiculo")
-    vehiculos: List["Vehiculos"] = Relationship(back_populates="tipo_vehiculo")
+    
+    # Relationships comentadas para evitar conflictos de metadata
+    # vehiculos: List["Vehiculos"] = Relationship(back_populates="tipo_vehiculo")
+    # configuraciones_eje: List["ConfiguracionesEje"] = Relationship(back_populates="tipo_vehiculo")
 
 
 class ConfiguracionesEje(SQLModel, table=True):
@@ -85,11 +77,9 @@ class ConfiguracionesEje(SQLModel, table=True):
     actualizado_en: Optional[datetime] = Field(default=None, sa_column=Column(DateTime(timezone=True)))
     actualizado_por: Optional[UUID] = Field(default=None, foreign_key="usuarios.id")
 
-    # Relationships
-    creado_por_usuario: Optional["Usuario"] = Relationship(back_populates="configuraciones_eje_creadas")
-    actualizado_por_usuario: Optional["Usuario"] = Relationship(back_populates="configuraciones_eje_actualizadas")
-    tipo_vehiculo: "TiposVehiculo" = Relationship(back_populates="configuraciones_eje")
-    posiciones_neumatico: List["PosicionesNeumatico"] = Relationship(back_populates="configuracion_eje")
+    # Relationships comentadas para evitar conflictos de metadata
+    # tipo_vehiculo: "TiposVehiculo" = Relationship(back_populates="configuraciones_eje")
+    # posiciones_neumatico: List["PosicionesNeumatico"] = Relationship(back_populates="configuracion_eje")
 
 
 class PosicionesNeumatico(SQLModel, table=True):
@@ -115,13 +105,8 @@ class PosicionesNeumatico(SQLModel, table=True):
     actualizado_en: Optional[datetime] = Field(default=None, sa_column=Column(DateTime(timezone=True)))
     actualizado_por: Optional[UUID] = Field(default=None, foreign_key="usuarios.id")
 
-    # Relationships
-    creado_por_usuario: Optional["Usuario"] = Relationship(back_populates="posiciones_neumatico_creadas")
-    actualizado_por_usuario: Optional["Usuario"] = Relationship(back_populates="posiciones_neumatico_actualizadas")
-    configuracion_eje: "ConfiguracionesEje" = Relationship(back_populates="posiciones_neumatico")
-    bitacora_operaciones_neumaticos: List["BitacoraOperacionesNeumaticos"] = Relationship(back_populates="posicion_neumatico")
-    eventos_neumaticos: List["EventosNeumaticos"] = Relationship(back_populates="posicion")
-    modelos_posiciones_permitidas: List["ModelosPosicionesPermitidas"] = Relationship(back_populates="posicion_neumatico")
+    # Relationships comentadas para evitar conflictos de metadata
+    # configuracion_eje: "ConfiguracionesEje" = Relationship(back_populates="posiciones_neumatico")
 
 
 class Vehiculos(SQLModel, table=True):
@@ -133,39 +118,35 @@ class Vehiculos(SQLModel, table=True):
         UniqueConstraint('numero_economico', name='vehiculos_numero_economico_key'),
         UniqueConstraint('placa', name='vehiculos_placa_key'),
         UniqueConstraint('vin', name='vehiculos_vin_key'),
-        {'comment': 'Vehículos de la flota que utilizan neumáticos'}
+        {'extend_existing': True}
     )
 
     id: UUID = Field(default_factory=uuid4, sa_column=Column(PG_UUID(as_uuid=True), primary_key=True, server_default=text('public.gen_random_uuid()')))
     tipo_vehiculo_id: UUID = Field(foreign_key="tipos_vehiculo.id", nullable=False)
-    numero_economico: str = Field(sa_column=Column(String(50), nullable=False))
-    fecha_alta: date = Field(sa_column=Column(Date, nullable=False, server_default=text('CURRENT_DATE')))
-    activo: bool = Field(sa_column=Column(Boolean, nullable=False, server_default=text('true')))
-    creado_en: datetime = Field(sa_column=Column(DateTime(timezone=True), nullable=False, server_default=text('now()')))
-    placa: Optional[str] = Field(default=None, sa_column=Column(DOMAIN('placa_vehiculo', VARCHAR(), constraint_name='placa_vehiculo_check', not_null=False, check=text("VALUE::text ~ '^[A-Z0-9]{1,7}-?[A-Z0-9]{1,7}$'::text"))))
+    placa: Optional[str] = Field(default=None, sa_column=Column(String(15)))
     vin: Optional[str] = Field(default=None, sa_column=Column(String(17)))
+    numero_economico: str = Field(sa_column=Column(String(50), nullable=False))
     marca: Optional[str] = Field(default=None, sa_column=Column(String(50)))
     modelo_vehiculo: Optional[str] = Field(default=None, sa_column=Column(String(50)))
     anio_fabricacion: Optional[int] = Field(default=None, sa_column=Column(SmallInteger))
+    fecha_alta: date = Field(sa_column=Column(Date, nullable=False, server_default=text('CURRENT_DATE')))
     fecha_baja: Optional[date] = Field(default=None, sa_column=Column(Date))
+    activo: bool = Field(sa_column=Column(Boolean, nullable=False, server_default=text('true')))
     odometro_actual: Optional[int] = Field(default=None, sa_column=Column(Integer))
     fecha_ultimo_odometro: Optional[datetime] = Field(default=None, sa_column=Column(DateTime(timezone=True)))
     ubicacion_actual: Optional[str] = Field(default=None, sa_column=Column(String(100)))
     notas: Optional[str] = Field(default=None, sa_column=Column(Text))
+    creado_en: datetime = Field(sa_column=Column(DateTime(timezone=True), nullable=False, server_default=text('now()')))
     creado_por: Optional[UUID] = Field(default=None, foreign_key="usuarios.id")
     actualizado_en: Optional[datetime] = Field(default=None, sa_column=Column(DateTime(timezone=True)))
     actualizado_por: Optional[UUID] = Field(default=None, foreign_key="usuarios.id")
-    peso_carga_maxima_diseno_ton: Optional[Decimal] = Field(default=None, sa_column=Column(Numeric(5, 2), comment='Capacidad máxima de carga de diseño del vehículo en toneladas.'))
+    peso_carga_maxima_diseno_ton: Optional[Decimal] = Field(default=None, sa_column=Column(Numeric(5, 2)))
 
-    # Relationships
-    creado_por_usuario: Optional["Usuario"] = Relationship(back_populates="vehiculos_creados")
-    actualizado_por_usuario: Optional["Usuario"] = Relationship(back_populates="vehiculos_actualizados")
-    tipo_vehiculo: "TiposVehiculo" = Relationship(back_populates="vehiculos")
-    bitacora_operaciones: List["BitacoraOperaciones"] = Relationship(back_populates="vehiculo")
-    neumaticos: List["Neumatico"] = Relationship(back_populates="ubicacion_actual_vehiculo")
-    registros_odometro: List["RegistrosOdometro"] = Relationship(back_populates="vehiculo")
-    alertas: List["Alerta"] = Relationship(back_populates="vehiculo")
-    eventos_neumaticos: List["EventosNeumaticos"] = Relationship(back_populates="vehiculo")
+    # Relationships comentadas para evitar conflictos de metadata
+    # tipo_vehiculo: "TiposVehiculo" = Relationship(back_populates="vehiculos")
+    # neumaticos: List["Neumatico"] = Relationship(back_populates="ubicacion_actual_vehiculo")
+    # registros_odometro: List["RegistrosOdometro"] = Relationship(back_populates="vehiculo")
+    # eventos_neumaticos: List["EventosNeumaticos"] = Relationship(back_populates="vehiculo")
 
 
 class RegistrosOdometro(SQLModel, table=True):
@@ -184,9 +165,8 @@ class RegistrosOdometro(SQLModel, table=True):
     creado_por: Optional[UUID] = Field(default=None, foreign_key="usuarios.id")
     notas: Optional[str] = Field(default=None, sa_column=Column(Text))
 
-    # Relationships
-    creado_por_usuario: Optional["Usuario"] = Relationship(back_populates="registros_odometro")
-    vehiculo: "Vehiculos" = Relationship(back_populates="registros_odometro")
+    # Relationships comentadas para evitar conflictos de metadata
+    # vehiculo: "Vehiculos" = Relationship(back_populates="registros_odometro")
 
 
 # Rebuild models for forward references

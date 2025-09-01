@@ -99,6 +99,15 @@ class ConflictException(AppException):
         super().__init__(message=message, **kwargs)
 
 
+class BusinessRuleError(AppException):
+    """Excepción para errores de reglas de negocio."""
+    status_code = status.HTTP_422_UNPROCESSABLE_ENTITY
+    code = "business_rule_error"
+    
+    def __init__(self, message: str = "Error de regla de negocio", **kwargs):
+        super().__init__(message=message, **kwargs)
+
+
 async def global_exception_handler(request, exc):
     """Manejador global de excepciones.
     

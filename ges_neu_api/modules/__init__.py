@@ -11,13 +11,25 @@ from . import auth
 from . import catalogos
 from . import neumaticos
 from . import vehiculos
+from . import inventario
+from . import eventos
+from . import garantias
+from . import alertas
+from . import bitacoras
+from . import sistema
 
 # Lista de módulos disponibles
 __all__ = [
     'auth',
     'catalogos',
     'neumaticos',
-    'vehiculos'
+    'vehiculos',
+    'inventario',
+    'eventos',
+    'garantias',
+    'alertas',
+    'bitacoras',
+    'sistema'
 ]
 
 # Versión del paquete

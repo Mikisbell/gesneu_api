@@ -2,7 +2,7 @@ from typing import Optional, List, Type, Dict, Any
 from uuid import UUID
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from ges_neu_api.core.contracts import VehiculosServiceContract
+from .contracts import VehiculosServiceContract
 from .crud import crud_vehiculo, crud_tipos_vehiculo, crud_configuraciones_eje, crud_posiciones_neumatico, crud_registros_odometro
 from .models import Vehiculos, TiposVehiculo, ConfiguracionesEje, PosicionesNeumatico, RegistrosOdometro
 from .schemas import (

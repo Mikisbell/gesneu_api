@@ -8,24 +8,22 @@ from sqlmodel import SQLModel, create_engine
 # Importamos nuestro objeto 'settings' desde el archivo config.py
 from .config import settings
 
-# Configuración de la conexión asíncrona
+# Configuración de la conexión
 DATABASE_URL = settings.SQLALCHEMY_DATABASE_URI
-SYNC_DATABASE_URL = DATABASE_URL.replace("postgresql+asyncpg://", "postgresql://")
 
-# Creamos el motor asíncrono
-engine = create_async_engine(
+# Motor asíncrono (principal para FastAPI)
+async_engine = create_async_engine(
     DATABASE_URL,
     echo=settings.APP_DEBUG,
-    future=True,
     pool_pre_ping=True,
     pool_size=settings.DB_POOL_SIZE,
     max_overflow=settings.DB_MAX_OVERFLOW,
-    pool_recycle=300,
 )
 
-# Creamos el motor síncrono
+# Motor síncrono (para migraciones y scripts)
+sync_database_url = DATABASE_URL.replace("postgresql+asyncpg", "postgresql+psycopg2")
 sync_engine = create_engine(
-    SYNC_DATABASE_URL,
+    sync_database_url,
     echo=settings.APP_DEBUG,
     pool_pre_ping=True,
     pool_size=settings.DB_POOL_SIZE,
@@ -33,12 +31,10 @@ sync_engine = create_engine(
 )
 
 # Configuración de sesiones
-async_session_maker = async_sessionmaker(
-    bind=engine,
+AsyncSessionLocal = async_sessionmaker(
+    bind=async_engine,
     class_=AsyncSession,
     expire_on_commit=False,
-    autoflush=False,
-    autocommit=False,
 )
 
 SyncSessionLocal = sessionmaker(
@@ -54,21 +50,49 @@ Base = declarative_base()
 # Configuración para SQLModel
 SQLModel.metadata.schema = "public"
 
-async def get_session() -> AsyncSession:
+async def get_session():
     """
     Proveedor de dependencia para obtener una sesión de base de datos asíncrona.
     """
-    async with async_session_maker() as session:
+    async with AsyncSessionLocal() as session:
         try:
             yield session
         finally:
             await session.close()
 
-async def init_db():
+def get_sync_session():
+    """
+    Proveedor de dependencia para obtener una sesión de base de datos síncrona.
+    """
+    db = SyncSessionLocal()
+    try:
+        yield db
+    finally:
+        db.close()
+
+async def test_connection():
+    """Prueba la conexión a la base de datos."""
+    try:
+        async with AsyncSessionLocal() as session:
+            from sqlalchemy import text
+            result = await session.execute(text("SELECT 1"))
+            print("✅ Conexión a base de datos exitosa")
+            return True
+    except Exception as e:
+        print(f"❌ Error de conexión: {e}")
+        return False
+
+def init_db():
     """
     Inicializa la base de datos creando todas las tablas.
     """
-    async with engine.begin() as conn:
+    SQLModel.metadata.create_all(bind=sync_engine)
+
+async def init_async_db():
+    """
+    Inicializa la base de datos de forma asíncrona.
+    """
+    async with async_engine.begin() as conn:
         await conn.run_sync(SQLModel.metadata.create_all)
 
 
@@ -81,7 +105,7 @@ from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine, async_sess
 from sqlalchemy.orm import Session, sessionmaker
 from sqlalchemy.exc import SQLAlchemyError
 
-from .exceptions import AppException
+from .exceptions import AppException, BusinessRuleError
 
 # Tipo genérico para transacciones
 T = TypeVar('T')
@@ -89,7 +113,7 @@ T = TypeVar('T')
 @asynccontextmanager
 async def get_db() -> AsyncGenerator[AsyncSession, None]:
     """Obtiene una sesión de base de datos asíncrona."""
-    async with async_session_maker() as session:
+    async with AsyncSessionLocal() as session:
         try:
             yield session
             await session.commit()

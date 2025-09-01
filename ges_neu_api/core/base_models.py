@@ -5,10 +5,10 @@ from typing import Optional, List, Dict, Any, Type, TypeVar, Generic
 from uuid import UUID, uuid4
 
 from pydantic import ConfigDict
-from sqlalchemy import Column, ForeignKey, text, CheckConstraint, Integer, Numeric, String, Boolean, Date, DateTime
+from sqlalchemy import Column, ForeignKey, text, CheckConstraint, Integer, Numeric, String, Boolean, Date, DateTime, TIMESTAMP
 from sqlalchemy.types import SmallInteger, Enum as SQLAlchemyEnum
 from sqlalchemy.dialects.postgresql import UUID as PG_UUID, JSONB
-from sqlmodel import SQLModel, Field, Relationship
+from sqlmodel import SQLModel, Field
 
 # Shared enums between models
 class EstadoNeumaticoEnum(str, Enum):
@@ -66,7 +66,7 @@ class BaseModel(SQLModel):
     creado_en: datetime = Field(
         default_factory=datetime.utcnow,
         sa_column=Column(
-            DateTime(timezone=True),
+            TIMESTAMP,
             nullable=False,
             server_default=text("now()")
         ),
@@ -77,7 +77,7 @@ class BaseModel(SQLModel):
         default=None,
         sa_column=Column(
             PG_UUID(as_uuid=True),
-            ForeignKey("public.usuarios.id", ondelete="SET NULL")
+            ForeignKey("usuarios.id", ondelete="SET NULL")
         ),
         description="User who created the record"
     )
@@ -85,7 +85,7 @@ class BaseModel(SQLModel):
     actualizado_en: Optional[datetime] = Field(
         default=None,
         sa_column=Column(
-            DateTime(timezone=True),
+            TIMESTAMP,
             onupdate=text("now()")
         ),
         description="Last update timestamp"
@@ -95,7 +95,7 @@ class BaseModel(SQLModel):
         default=None,
         sa_column=Column(
             PG_UUID(as_uuid=True),
-            ForeignKey("public.usuarios.id", ondelete="SET NULL")
+            ForeignKey("usuarios.id", ondelete="SET NULL")
         ),
         description="User who last updated the record"
     )

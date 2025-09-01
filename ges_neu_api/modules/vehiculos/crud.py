@@ -26,7 +26,9 @@ class CRUDVehiculo:
         return list(result.scalars().all())
 
     async def create(self, db: AsyncSession, obj_in: SQLModel) -> SQLModel:
-        db_obj = self.model.from_orm(obj_in) # Use from_orm for SQLModel
+        # Convert Pydantic model to SQLModel instance
+        obj_data = obj_in.dict() if hasattr(obj_in, 'dict') else obj_in
+        db_obj = self.model(**obj_data)
         db.add(db_obj)
         await db.commit()
         await db.refresh(db_obj)

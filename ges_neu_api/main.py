@@ -22,9 +22,15 @@ from .core.monitoring import setup_monitoring, setup_metrics
 
 # Module imports - Usando rutas absolutas
 from .modules.auth.router import router as auth_router
-from .modules.catalogos.router import router as catalogos_router
 from .modules.vehiculos.router import router as vehiculos_router
 from .modules.neumaticos.router import router as neumaticos_router
+from .modules.catalogos.router import router as catalogos_router
+from .modules.inventario.router import router as inventario_router
+from .modules.eventos.router import router as eventos_router
+from .modules.garantias.router import router as garantias_router
+from .modules.alertas.router import router as alertas_router
+from .modules.bitacoras.router import router as bitacoras_router
+from .modules.sistema.router import router as sistema_router
 
 # Configuración de logging
 logger = get_logger(__name__)
@@ -86,10 +92,16 @@ setup_metrics(app)
 app.add_exception_handler(HTTPException, global_exception_handler)
 
 # Incluir rutas
-app.include_router(auth_router, prefix=f"{settings.API_V1_STR}/auth", tags=["Autenticación"])
-app.include_router(catalogos_router, prefix=f"{settings.API_V1_STR}/catalogos", tags=["Catálogos"])
-app.include_router(vehiculos_router, prefix=f"{settings.API_V1_STR}/vehiculos", tags=["Vehículos"])
-app.include_router(neumaticos_router, prefix=f"{settings.API_V1_STR}/neumaticos", tags=["Neumáticos"])
+app.include_router(auth_router, prefix=f"{settings.API_V1_STR}/auth", tags=["auth"])
+app.include_router(catalogos_router, prefix=f"{settings.API_V1_STR}/catalogos", tags=["catalogos"])
+app.include_router(vehiculos_router, prefix=f"{settings.API_V1_STR}/vehiculos", tags=["vehiculos"])
+app.include_router(neumaticos_router, prefix=f"{settings.API_V1_STR}/neumaticos", tags=["neumaticos"])
+app.include_router(inventario_router, prefix=f"{settings.API_V1_STR}/inventario", tags=["inventario"])
+app.include_router(eventos_router, prefix=f"{settings.API_V1_STR}/eventos", tags=["eventos"])
+app.include_router(garantias_router, prefix=f"{settings.API_V1_STR}/garantias", tags=["garantias"])
+app.include_router(alertas_router, prefix=f"{settings.API_V1_STR}/alertas", tags=["alertas"])
+app.include_router(bitacoras_router, prefix=f"{settings.API_V1_STR}/bitacoras", tags=["bitacoras"])
+app.include_router(sistema_router, prefix=f"{settings.API_V1_STR}/sistema", tags=["sistema"])
 
 @app.get("/")
 async def root():
@@ -101,10 +113,15 @@ async def root():
         "redoc": "/redoc"
     }
 
-@app.get(f"{settings.API_V1_STR}/health")
+@app.get("/health")
 async def health_check():
     """Endpoint de verificación de salud de la API."""
     return {"status": "ok", "environment": settings.APP_ENV}
+
+@app.get(f"{settings.API_V1_STR}/health")
+async def health_check_v1():
+    """Endpoint de verificación de salud de la API v1."""
+    return {"status": "ok", "environment": settings.APP_ENV, "version": APP_VERSION}
 
 # Middleware para registrar solicitudes
 @app.middleware("http")

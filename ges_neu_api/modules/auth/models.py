@@ -3,12 +3,17 @@ Modelos del módulo de autenticación.
 """
 from __future__ import annotations
 from datetime import datetime
-from typing import List, Optional, Dict, Any
+from typing import List, Optional, Dict, Any, TYPE_CHECKING
 from uuid import UUID, uuid4
 
 import sqlalchemy as sa
 from sqlalchemy.dialects.postgresql import UUID as PG_UUID, JSONB
+from sqlalchemy.orm import Mapped
 from sqlmodel import Field, Relationship, SQLModel, text
+
+if TYPE_CHECKING:
+    from ..eventos.models import EventosNeumaticos
+    from ..alertas.models import Alertas
 
 # --- Tablas de Unión (definidas antes para que las relaciones las encuentren) ---
 
@@ -16,25 +21,39 @@ class RolesPermisos(SQLModel, table=True):
     """Tabla de unión muchos a muchos entre roles y permisos."""
     __tablename__ = 'roles_permisos'
     
-    rol_id: UUID = Field(foreign_key='roles.id', primary_key=True)
-    permiso_id: UUID = Field(foreign_key='permisos.id', primary_key=True)
+    rol_id: UUID = Field(
+        sa_column=sa.Column(PG_UUID(as_uuid=True), sa.ForeignKey('roles.id'), primary_key=True)
+    )
+    permiso_id: UUID = Field(
+        sa_column=sa.Column(PG_UUID(as_uuid=True), sa.ForeignKey('permisos.id'), primary_key=True)
+    )
     asignado_en: datetime = Field(
         default_factory=datetime.utcnow,
         sa_column=sa.Column(sa.DateTime(timezone=True), nullable=False, server_default=sa.text('now()'))
     )
-    asignado_por: Optional[UUID] = Field(default=None, foreign_key="usuarios.id")
+    asignado_por: Optional[UUID] = Field(
+        default=None, 
+        sa_column=sa.Column(PG_UUID(as_uuid=True), sa.ForeignKey("usuarios.id"))
+    )
 
 class UsuariosRoles(SQLModel, table=True):
     """Tabla de unión muchos a muchos entre usuarios y roles."""
     __tablename__ = 'usuarios_roles'
     
-    usuario_id: UUID = Field(foreign_key='usuarios.id', primary_key=True)
-    rol_id: UUID = Field(foreign_key='roles.id', primary_key=True)
+    usuario_id: UUID = Field(
+        sa_column=sa.Column(PG_UUID(as_uuid=True), sa.ForeignKey('usuarios.id'), primary_key=True)
+    )
+    rol_id: UUID = Field(
+        sa_column=sa.Column(PG_UUID(as_uuid=True), sa.ForeignKey('roles.id'), primary_key=True)
+    )
     asignado_en: datetime = Field(
         default_factory=datetime.utcnow,
         sa_column=sa.Column(sa.DateTime(timezone=True), nullable=False, server_default=sa.text('now()'))
     )
-    asignado_por: Optional[UUID] = Field(default=None, foreign_key="usuarios.id")
+    asignado_por: Optional[UUID] = Field(
+        default=None, 
+        sa_column=sa.Column(PG_UUID(as_uuid=True), sa.ForeignKey("usuarios.id"))
+    )
 
 # --- Modelos Principales ---
 
@@ -54,7 +73,8 @@ class Permiso(SQLModel, table=True):
         sa_column=sa.Column(sa.DateTime(timezone=True), nullable=False, server_default=sa.text('now()'))
     )
     
-    roles: List["Rol"] = Relationship(back_populates="permisos", link_model=RolesPermisos)
+    # Relationship removed to avoid SQLAlchemy metadata conflicts
+    # roles: handled at service layer
 
 class Rol(SQLModel, table=True):
     """Modelo que representa un rol en el sistema."""
@@ -71,12 +91,19 @@ class Rol(SQLModel, table=True):
         default_factory=datetime.utcnow,
         sa_column=sa.Column(sa.DateTime(timezone=True), nullable=False, server_default=sa.text('now()'))
     )
-    creado_por: Optional[UUID] = Field(default=None, foreign_key="usuarios.id")
+    creado_por: Optional[UUID] = Field(
+        default=None, 
+        sa_column=sa.Column(PG_UUID(as_uuid=True), sa.ForeignKey("usuarios.id"))
+    )
     actualizado_en: Optional[datetime] = Field(default=None, sa_column=sa.Column(sa.DateTime(timezone=True)))
-    actualizado_por: Optional[UUID] = Field(default=None, foreign_key="usuarios.id")
+    actualizado_por: Optional[UUID] = Field(
+        default=None, 
+        sa_column=sa.Column(PG_UUID(as_uuid=True), sa.ForeignKey("usuarios.id"))
+    )
     
-    usuarios: List["Usuario"] = Relationship(back_populates="roles", link_model=UsuariosRoles)
-    permisos: List["Permiso"] = Relationship(back_populates="roles", link_model=RolesPermisos)
+    # Relationships removed to avoid SQLAlchemy metadata conflicts
+    # usuarios: handled at service layer
+    # permisos: handled at service layer
 
 class Usuario(SQLModel, table=True):
     """Modelo que representa a un usuario del sistema."""
@@ -96,11 +123,19 @@ class Usuario(SQLModel, table=True):
         default_factory=datetime.utcnow,
         sa_column=sa.Column(sa.DateTime(timezone=True), nullable=False, server_default=sa.text('now()'))
     )
-    creado_por: Optional[UUID] = Field(default=None, foreign_key="usuarios.id")
+    creado_por: Optional[UUID] = Field(
+        default=None, 
+        sa_column=sa.Column(PG_UUID(as_uuid=True), sa.ForeignKey("usuarios.id"))
+    )
     actualizado_en: Optional[datetime] = Field(default=None, sa_column=sa.Column(sa.DateTime(timezone=True)))
-    actualizado_por: Optional[UUID] = Field(default=None, foreign_key="usuarios.id")
+    actualizado_por: Optional[UUID] = Field(
+        default=None, 
+        sa_column=sa.Column(PG_UUID(as_uuid=True), sa.ForeignKey("usuarios.id"))
+    )
 
-    roles: List["Rol"] = Relationship(back_populates="usuarios", link_model=UsuariosRoles)
+    # Relationships removed to avoid SQLAlchemy metadata conflicts
+    # roles: handled at service layer
+    # eventos_neumaticos: handled at service layer
 
 class AuditoriaRolUsuario(SQLModel, table=True):
     """Modelo que registra cambios en las asignaciones de roles a usuarios."""

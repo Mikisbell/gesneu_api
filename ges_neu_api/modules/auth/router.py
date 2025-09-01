@@ -6,6 +6,7 @@ y gestión de usuarios.
 """
 from datetime import timedelta
 from typing import Any, Annotated, Optional
+from uuid import UUID
 import os
 import sys
 from pathlib import Path
@@ -21,7 +22,8 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 # Core imports
 from ges_neu_api.core.config import settings
-from ges_neu_api.core.database import get_db
+from ges_neu_api.core.database import get_session
+from ges_neu_api.core.exceptions import UnauthorizedException
 
 # Local imports
 from . import schemas, models
@@ -56,37 +58,57 @@ router = APIRouter(
 async def login_for_access_token(
     form_data: OAuth2PasswordRequestForm = Depends(),
     auth_service: AuthService = Depends(get_auth_service),
-    db: AsyncSession = Depends(get_db),
+    db: AsyncSession = Depends(get_session),
 ) -> schemas.Token:
     """
     Obtiene un token de acceso para el usuario autenticado.
     
     Este endpoint es compatible con el flujo OAuth2 para la autenticación.
     """
-    user = await auth_service.authenticate_user(
-        form_data.username, form_data.password
-    )
-    if not user:
+    try:
+        user = await auth_service.authenticate_user(
+            form_data.username, form_data.password
+        )
+        
+        access_token_expires = timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES)
+        access_token = auth_service.create_access_token(
+            data={"sub": user.username}, expires_delta=access_token_expires
+        )
+        
+        return {
+            "access_token": access_token,
+            "token_type": "bearer",
+        }
+    except UnauthorizedException as e:
+        # Captura las excepciones específicas del servicio de autenticación
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Usuario o contraseña incorrectos",
+            detail=str(e),
             headers={"WWW-Authenticate": "Bearer"},
         )
-    
-    access_token_expires = timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES)
-    access_token = auth_service.create_access_token(
-        data={"sub": user.email}, expires_delta=access_token_expires
-    )
-    
-    return {
-        "access_token": access_token,
-        "token_type": "bearer",
-    }
+    except Exception as e:
+        # Log del error para debugging
+        import logging
+        import traceback
+        logger = logging.getLogger(__name__)
+        logger.error(f"Error inesperado en autenticación para usuario '{form_data.username}': {str(e)}")
+        logger.error(f"Traceback completo: {traceback.format_exc()}")
+        
+        # Devolver error más detallado para debugging
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail={
+                "status": "error",
+                "message": f"Error interno del servidor durante la autenticación: {str(e)}",
+                "code": "auth_error",
+                "details": str(e)
+            }
+        )
 
 @router.get("/users/me", response_model=schemas.UserRead)
 async def read_users_me(
     current_user: schemas.UserRead = Depends(get_current_user),
-    db: AsyncSession = Depends(get_db),
+    db: AsyncSession = Depends(get_session),
 ) -> schemas.UserRead:
     """
     Obtiene la información del usuario actualmente autenticado.
@@ -98,7 +120,7 @@ async def create_user(
     user_in: schemas.UserCreate,
     user_service: UserService = Depends(get_user_service),
     current_user: schemas.UserRead = Depends(get_current_active_superuser),
-    db: AsyncSession = Depends(get_db),
+    db: AsyncSession = Depends(get_session),
 ) -> schemas.UserRead:
     """
     Crea un nuevo usuario.
@@ -121,7 +143,7 @@ async def read_users(
     limit: int = 100,
     user_service: UserService = Depends(get_user_service),
     _: schemas.UserRead = Depends(has_user_read),
-    db: AsyncSession = Depends(get_db),
+    db: AsyncSession = Depends(get_session),
 ) -> list[schemas.UserRead]:
     """
     Obtiene una lista de usuarios.
@@ -136,7 +158,7 @@ async def read_user(
     user_id: str,
     user_service: UserService = Depends(get_user_service),
     _: schemas.UserRead = Depends(has_user_read),
-    db: AsyncSession = Depends(get_db),
+    db: AsyncSession = Depends(get_session),
 ) -> schemas.UserRead:
     """
     Obtiene un usuario por su ID.
@@ -157,7 +179,7 @@ async def update_user(
     user_in: schemas.UserUpdate,
     user_service: UserService = Depends(get_user_service),
     current_user: schemas.UserRead = Depends(has_user_write),
-    db: AsyncSession = Depends(get_db),
+    db: AsyncSession = Depends(get_session),
 ) -> schemas.UserRead:
     """
     Actualiza un usuario existente.
@@ -180,7 +202,7 @@ async def assign_role_to_user(
     role_id: str,
     role_service: RoleService = Depends(get_role_service),
     _: schemas.UserRead = Depends(has_role_manage),
-    db: AsyncSession = Depends(get_db),
+    db: AsyncSession = Depends(get_session),
 ) -> schemas.UserRead:
     """
     Asigna un rol a un usuario.
@@ -202,7 +224,7 @@ async def revoke_role_from_user(
     role_id: str,
     role_service: RoleService = Depends(get_role_service),
     _: schemas.UserRead = Depends(has_role_manage),
-    db: AsyncSession = Depends(get_db),
+    db: AsyncSession = Depends(get_session),
 ) -> schemas.UserRead:
     """
     Revoca un rol de un usuario.
@@ -223,7 +245,7 @@ async def delete_user(
     user_id: str,
     user_service: UserService = Depends(get_user_service),
     _: schemas.UserRead = Depends(has_user_delete),
-    db: AsyncSession = Depends(get_db),
+    db: AsyncSession = Depends(get_session),
 ) -> schemas.UserRead:
     """
     Elimina un usuario.
@@ -246,7 +268,7 @@ async def create_role(
     role_in: schemas.RoleCreate,
     role_service: RoleService = Depends(get_role_service),
     current_user: schemas.UserRead = Depends(has_role_write),
-    db: AsyncSession = Depends(get_db),
+    db: AsyncSession = Depends(get_session),
 ) -> schemas.RoleInDB:
     """
     Crea un nuevo rol.
@@ -273,7 +295,7 @@ async def read_roles(
     nombre: Optional[str] = None,
     role_service: RoleService = Depends(get_role_service),
     _: schemas.UserRead = Depends(has_role_read),
-    db: AsyncSession = Depends(get_db),
+    db: AsyncSession = Depends(get_session),
 ) -> list[schemas.RoleInDB]:
     """
     Obtiene una lista de roles.
@@ -289,7 +311,7 @@ async def read_role(
     role_id: str,
     role_service: RoleService = Depends(get_role_service),
     _: schemas.UserRead = Depends(has_role_read),
-    db: AsyncSession = Depends(get_db),
+    db: AsyncSession = Depends(get_session),
 ) -> schemas.RoleInDB:
     """
     Obtiene un rol por su ID.
@@ -319,7 +341,7 @@ async def update_role(
     role_in: schemas.RoleUpdate,
     role_service: RoleService = Depends(get_role_service),
     current_user: schemas.UserRead = Depends(has_role_write),
-    db: AsyncSession = Depends(get_db),
+    db: AsyncSession = Depends(get_session),
 ) -> schemas.RoleInDB:
     """
     Actualiza un rol existente.
@@ -367,7 +389,7 @@ async def delete_role(
     role_id: str,
     role_service: RoleService = Depends(get_role_service),
     _: schemas.UserRead = Depends(has_role_delete),
-    db: AsyncSession = Depends(get_db),
+    db: AsyncSession = Depends(get_session),
 ) -> schemas.RoleInDB:
     """
     Elimina un rol.
@@ -411,7 +433,7 @@ async def create_permission(
     permission_in: schemas.PermissionBase,
     permission_service: PermissionService = Depends(get_permission_service),
     current_user: schemas.UserRead = Depends(has_permission_write),
-    db: AsyncSession = Depends(get_db),
+    db: AsyncSession = Depends(get_session),
 ) -> schemas.PermissionInDB:
     """
     Crea un nuevo permiso.
@@ -438,7 +460,7 @@ async def read_permissions(
     accion: Optional[str] = None,
     permission_service: PermissionService = Depends(get_permission_service),
     _: schemas.UserRead = Depends(has_permission_read),
-    db: AsyncSession = Depends(get_db),
+    db: AsyncSession = Depends(get_session),
 ) -> list[schemas.PermissionInDB]:
     """
     Obtiene una lista de permisos.
@@ -459,7 +481,7 @@ async def read_permission(
     permission_id: str,
     permission_service: PermissionService = Depends(get_permission_service),
     _: schemas.UserRead = Depends(has_permission_read),
-    db: AsyncSession = Depends(get_db),
+    db: AsyncSession = Depends(get_session),
 ) -> schemas.PermissionInDB:
     """
     Obtiene un permiso por su ID.
@@ -489,7 +511,7 @@ async def update_permission(
     permission_in: schemas.PermissionBase,
     permission_service: PermissionService = Depends(get_permission_service),
     _: schemas.UserRead = Depends(has_permission_write),
-    db: AsyncSession = Depends(get_db),
+    db: AsyncSession = Depends(get_session),
 ) -> schemas.PermissionInDB:
     """
     Actualiza un permiso existente.
@@ -530,7 +552,7 @@ async def delete_permission(
     permission_id: str,
     permission_service: PermissionService = Depends(get_permission_service),
     _: schemas.UserRead = Depends(has_permission_delete),
-    db: AsyncSession = Depends(get_db),
+    db: AsyncSession = Depends(get_session),
 ) -> schemas.PermissionInDB:
     """
     Elimina un permiso.
