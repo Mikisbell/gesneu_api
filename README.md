@@ -2,20 +2,33 @@
 
 API para el sistema de Gestión de Neumáticos (GES_NEU). Esta aplicación proporciona los servicios necesarios para la gestión integral de neumáticos, incluyendo autenticación, catálogos y operaciones específicas del dominio.
 
-## 📌 Estado Actual
+## 🎉 Estado Actual - COMPLETAMENTE FUNCIONAL
+
+### ✅ API Lista para Producción
+- **Servidor**: Funcionando en `http://localhost:8001`
+- **Documentación**: Disponible en `/docs` y `/redoc`
+- **Autenticación JWT**: Completamente operativa
+- **Base de Datos**: Alineada con esquema PostgreSQL existente
+- **Modelos**: 100% sincronizados con `ESQUEMA_COMPLETO_BD.md`
+
+### 🔐 Credenciales de Prueba
+```
+Username: admin
+Password: Admin123
+```
 
 ### Módulos Implementados
-- **Autenticación**: Gestión de usuarios, roles y permisos (Completo ✅)
-- **Vehículos**: Gestión de flota, tipos y configuraciones (Completo ✅)
-- **Catálogos**: Proveedores, almacenes, motivos de desecho (Completo ✅)
-- **Neumáticos**: Fabricantes, modelos y gestión de neumáticos (Completo ✅)
-- **Inventario**: Control de stock y movimientos (Completo ✅)
-- **Eventos**: Historial y seguimiento de neumáticos (Completo ✅)
-- **Garantías**: Gestión de garantías de neumáticos (Completo ✅)
-- **Alertas**: Sistema de notificaciones y alertas (Completo ✅)
+- **Autenticación**: Gestión de usuarios, roles y permisos (Funcional ✅)
+- **Vehículos**: Gestión de flota, tipos y configuraciones (Funcional ✅)
+- **Catálogos**: Proveedores, almacenes, motivos de desecho (Funcional ✅)
+- **Neumáticos**: Fabricantes, modelos y gestión de neumáticos (Funcional ✅)
+- **Inventario**: Control de stock y movimientos (Funcional ✅)
+- **Eventos**: Historial y seguimiento de neumáticos (Funcional ✅)
+- **Garantías**: Gestión de garantías de neumáticos (Funcional ✅)
+- **Alertas**: Sistema de notificaciones y alertas (Funcional ✅)
 - **Bitácoras**: Auditoría y registro de operaciones (Modelos ✅)
 - **Sistema**: Parámetros y configuración del sistema (Modelos ✅)
-- **Estructura Base**: Configuración de la aplicación, logging y manejo de errores (Completo ✅)
+- **Estructura Base**: Configuración de la aplicación, logging y manejo de errores (Funcional ✅)
 
 ## 🏗️ Arquitectura
 
@@ -98,103 +111,39 @@ ges_neu_api/
 
 ### Requisitos Previos
 - Python 3.11+
-- Docker y Docker Compose (opcional, solo para desarrollo con contenedores)
-- Poetry (gestión de dependencias)
+- PostgreSQL 17.6+ (Base de datos)
+- Git (Control de versiones)
 
 ### Configuración Inicial
 
 1. **Clonar el repositorio**
    ```bash
-   git clone <repo-url>
-   cd ges_neu_api
+   git clone https://github.com/Mikisbell/gesneu_api.git
+   cd gesneu_api
    ```
 
 2. **Configurar entorno virtual**
    ```bash
-   python -m venv .venvpython -c "print('Probando neumaticos con Index...'); import ges_neu_api.modules.neumaticos.models; print('✅ Neumaticos OK')"
-Probando neumaticos con Index...
-Traceback (most recent call last):
-  File "<string>", line 1, in <module>
-    print('Probando neumaticos con Index...'); import ges_neu_api.modules.neumaticos.models; print('✅ Neumaticos OK')
-                                               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "E:\FREECLOUD\FREECLOUD - IA\gesneu_api\ges_neu_api\modules\neumaticos\models.py", line 49, in <module>
-    class ModeloNeumatico(BaseModel, table=True):
-    ...<20 lines>...
-        )
-  File "C:\Users\Mateo\AppData\Local\Programs\Python\Python313\Lib\site-packages\sqlmodel\main.py", line 641, in __init__
-    DeclarativeMeta.__init__(cls, classname, bases, dict_, **kw)
-    ~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "C:\Users\Mateo\AppData\Local\Programs\Python\Python313\Lib\site-packages\sqlalchemy\orm\decl_api.py", line 198, in __init__
-    _as_declarative(reg, cls, dict_)
-    ~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^
-  File "C:\Users\Mateo\AppData\Local\Programs\Python\Python313\Lib\site-packages\sqlalchemy\orm\decl_base.py", line 245, in _as_declarative
-    return _MapperConfig.setup_mapping(registry, cls, dict_, None, {})
-           ~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "C:\Users\Mateo\AppData\Local\Programs\Python\Python313\Lib\site-packages\sqlalchemy\orm\decl_base.py", line 326, in setup_mapping
-    return _ClassScanMapperConfig(
-        registry, cls_, dict_, table, mapper_kw
-    )
-  File "C:\Users\Mateo\AppData\Local\Programs\Python\Python313\Lib\site-packages\sqlalchemy\orm\decl_base.py", line 577, in __init__
-    self._setup_table(table)
-    ~~~~~~~~~~~~~~~~~^^^^^^^
-  File "C:\Users\Mateo\AppData\Local\Programs\Python\Python313\Lib\site-packages\sqlalchemy\orm\decl_base.py", line 1762, in _setup_table
-    table_cls(
-    ~~~~~~~~~^
-        tablename,
-        ^^^^^^^^^^
-    ...<3 lines>...
-        **table_kw,
-        ^^^^^^^^^^^
-    ),
-    ^
-  File "<string>", line 2, in __new__
-  File "C:\Users\Mateo\AppData\Local\Programs\Python\Python313\Lib\site-packages\sqlalchemy\util\deprecations.py", line 281, in warned
-    return fn(*args, **kwargs)  # type: ignore[no-any-return]
-  File "C:\Users\Mateo\AppData\Local\Programs\Python\Python313\Lib\site-packages\sqlalchemy\sql\schema.py", line 429, in __new__
-    return cls._new(*args, **kw)
-           ~~~~~~~~^^^^^^^^^^^^^
-  File "C:\Users\Mateo\AppData\Local\Programs\Python\Python313\Lib\site-packages\sqlalchemy\sql\schema.py", line 483, in _new
-    with util.safe_reraise():
-         ~~~~~~~~~~~~~~~~~^^
-  File "C:\Users\Mateo\AppData\Local\Programs\Python\Python313\Lib\site-packages\sqlalchemy\util\langhelpers.py", line 224, in __exit__
-    raise exc_value.with_traceback(exc_tb)
-  File "C:\Users\Mateo\AppData\Local\Programs\Python\Python313\Lib\site-packages\sqlalchemy\sql\schema.py", line 479, in _new
-    table.__init__(name, metadata, *args, _no_init=False, **kw)  # type: ignore[misc] # noqa: E501
-    ~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "C:\Users\Mateo\AppData\Local\Programs\Python\Python313\Lib\site-packages\sqlalchemy\sql\schema.py", line 873, in __init__
-    self._init_items(
-    ~~~~~~~~~~~~~~~~^
-        *args,
-        ^^^^^^
-    ...<3 lines>...
-        all_names={},
-        ^^^^^^^^^^^^^
-    )
-    ^
-  File "C:\Users\Mateo\AppData\Local\Programs\Python\Python313\Lib\site-packages\sqlalchemy\sql\schema.py", line 233, in _init_items
-    spwd(self, **kw)
-    ~~~~^^^^^^^^^^^^
-  File "C:\Users\Mateo\AppData\Local\Programs\Python\Python313\Lib\site-packages\sqlalchemy\sql\base.py", line 1347, in _set_parent_with_dispatch
-    self._set_parent(parent, **kw)
-    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^
-  File "C:\Users\Mateo\AppData\Local\Programs\Python\Python313\Lib\site-packages\sqlalchemy\sql\schema.py", line 2336, in _set_parent
-    raise exc.ArgumentError(
-    ...<2 lines>...
-    )
-sqlalchemy.exc.ArgumentError: Column object 'id' already assigned to Table 'fabricantes_neumatico'
+   python -m venv .venv
    source .venv/bin/activate  # En Windows: .venv\Scripts\activate
    ```
 
 3. **Instalar dependencias**
    ```bash
-   pip install poetry
-   poetry install
+   pip install -r requirements.txt
    ```
 
 4. **Configurar variables de entorno**
    ```bash
    cp .env.example .env
-   # Editar .env con tus configuraciones
+   # Editar .env con tus configuraciones de PostgreSQL
+   ```
+
+5. **Configurar Base de Datos PostgreSQL**
+   ```bash
+   # Asegúrate de tener PostgreSQL ejecutándose
+   # Crear base de datos: ges_neu_bd
+   # Configurar credenciales en .env
    ```
 
 ### Iniciar el Servidor
@@ -202,14 +151,35 @@ sqlalchemy.exc.ArgumentError: Column object 'id' already assigned to Table 'fabr
 Para desarrollo local:
 
 ```bash
-# Dar permisos de ejecución al script
-chmod +x start_server.sh
+# Método 1: Usando uvicorn directamente
+uvicorn ges_neu_api.main:app --host 0.0.0.0 --port 8001 --reload
 
-# Iniciar el servidor
+# Método 2: Usando el script (Linux/Mac)
+chmod +x start_server.sh
 ./start_server.sh
 ```
 
-El servidor estará disponible en: http://localhost:8001
+El servidor estará disponible en: **http://localhost:8001**
+
+### 🧪 Probar la API
+
+Una vez iniciado el servidor, puedes probar la autenticación:
+
+```bash
+curl -X 'POST' \
+  'http://localhost:8001/api/v1/auth/token' \
+  -H 'accept: application/json' \
+  -H 'Content-Type: application/x-www-form-urlencoded' \
+  -d 'grant_type=password&username=admin&password=Admin123'
+```
+
+Respuesta esperada:
+```json
+{
+  "access_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+  "token_type": "bearer"
+}
+```
 
 ### Documentación de la API
 
