@@ -27,50 +27,7 @@ async def create_neumatico(
     """Crear un nuevo neumático."""
     return await service.create_neumatico(neumatico_data)
 
-@router.get("/", response_model=List[NeumaticoResponse])
-async def get_neumaticos(
-    skip: int = Query(0, ge=0, description="Número de registros a omitir"),
-    limit: int = Query(100, ge=1, le=1000, description="Número máximo de registros a retornar"),
-    service: NeumaticoService = Depends(get_neumatico_service)
-):
-    """Obtener lista de neumáticos."""
-    return await service.get_neumaticos(skip=skip, limit=limit)
-
-@router.get("/{neumatico_id}", response_model=NeumaticoResponse)
-async def get_neumatico(
-    neumatico_id: UUID,
-    service: NeumaticoService = Depends(get_neumatico_service)
-):
-    """Obtener un neumático por ID."""
-    neumatico = await service.get_neumatico(neumatico_id)
-    if not neumatico:
-        raise HTTPException(status_code=404, detail="Neumático no encontrado")
-    return neumatico
-
-@router.put("/{neumatico_id}", response_model=NeumaticoResponse)
-async def update_neumatico(
-    neumatico_id: UUID,
-    neumatico_data: NeumaticoUpdate,
-    service: NeumaticoService = Depends(get_neumatico_service)
-):
-    """Actualizar un neumático."""
-    neumatico = await service.update_neumatico(neumatico_id, neumatico_data)
-    if not neumatico:
-        raise HTTPException(status_code=404, detail="Neumático no encontrado")
-    return neumatico
-
-@router.delete("/{neumatico_id}")
-async def delete_neumatico(
-    neumatico_id: UUID,
-    service: NeumaticoService = Depends(get_neumatico_service)
-):
-    """Eliminar un neumático."""
-    success = await service.delete_neumatico(neumatico_id)
-    if not success:
-        raise HTTPException(status_code=404, detail="Neumático no encontrado")
-    return {"message": "Neumático eliminado exitosamente"}
-
-# Endpoints para Fabricantes
+# Endpoints para Fabricantes (ANTES de rutas con parámetros)
 @router.post("/fabricantes", response_model=FabricanteResponse)
 async def create_fabricante(
     fabricante_data: FabricanteCreate,
@@ -173,6 +130,49 @@ async def delete_modelo(
     if not success:
         raise HTTPException(status_code=404, detail="Modelo no encontrado")
     return {"message": "Modelo eliminado exitosamente"}
+
+@router.get("/", response_model=List[NeumaticoResponse])
+async def get_neumaticos(
+    skip: int = Query(0, ge=0, description="Número de registros a omitir"),
+    limit: int = Query(100, ge=1, le=1000, description="Número máximo de registros a retornar"),
+    service: NeumaticoService = Depends(get_neumatico_service)
+):
+    """Obtener lista de neumáticos."""
+    return await service.get_neumaticos(skip=skip, limit=limit)
+
+@router.get("/{neumatico_id}", response_model=NeumaticoResponse)
+async def get_neumatico(
+    neumatico_id: UUID,
+    service: NeumaticoService = Depends(get_neumatico_service)
+):
+    """Obtener un neumático por ID."""
+    neumatico = await service.get_neumatico(neumatico_id)
+    if not neumatico:
+        raise HTTPException(status_code=404, detail="Neumático no encontrado")
+    return neumatico
+
+@router.put("/{neumatico_id}", response_model=NeumaticoResponse)
+async def update_neumatico(
+    neumatico_id: UUID,
+    neumatico_data: NeumaticoUpdate,
+    service: NeumaticoService = Depends(get_neumatico_service)
+):
+    """Actualizar un neumático."""
+    neumatico = await service.update_neumatico(neumatico_id, neumatico_data)
+    if not neumatico:
+        raise HTTPException(status_code=404, detail="Neumático no encontrado")
+    return neumatico
+
+@router.delete("/{neumatico_id}")
+async def delete_neumatico(
+    neumatico_id: UUID,
+    service: NeumaticoService = Depends(get_neumatico_service)
+):
+    """Eliminar un neumático."""
+    success = await service.delete_neumatico(neumatico_id)
+    if not success:
+        raise HTTPException(status_code=404, detail="Neumático no encontrado")
+    return {"message": "Neumático eliminado exitosamente"}
 
 @router.get("/health", summary="Estado del módulo de neumáticos")
 async def health_neumaticos():

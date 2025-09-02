@@ -3,7 +3,60 @@ Pruebas simples para la API GesNeu sin pytest.
 Ejecutar con: python test_simple.py
 """
 from fastapi.testclient import TestClient
-from ges_neu_api.main import app
+from ges_neu_api.main import app, requests
+
+# Token actualizado
+token = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJhZG1pbiIsImV4cCI6MTc1Njc4MDM5MH0.mjWUaVDnmznHp_a4m2zfshDquv0XRuZFqR-FGReaDQE"
+
+# Prueba proveedores
+print("=== PROVEEDORES ===")
+try:
+    r = requests.get('http://localhost:8000/api/v1/catalogos/proveedores', 
+                     headers={'Authorization': f'Bearer {token}'})
+    print(f"Status: {r.status_code}")
+    if r.status_code == 200:
+        data = r.json()
+        print(f"Proveedores encontrados: {len(data)}")
+    else:
+        print(f"Error: {r.text}")
+except Exception as e:
+    print(f"Error conexión: {e}")
+
+# Prueba almacenes
+print("\n=== ALMACENES ===")
+try:
+    r = requests.get('http://localhost:8000/api/v1/catalogos/almacenes', 
+                     headers={'Authorization': f'Bearer {token}'})
+    print(f"Status: {r.status_code}")
+    if r.status_code == 200:
+        data = r.json()
+        print(f"Almacenes encontrados: {len(data)}")
+    else:
+        print(f"Error: {r.text}")
+except Exception as e:
+    print(f"Error conexión: {e}")
+
+# Prueba motivos desecho
+print("\n=== MOTIVOS DESECHO ===")
+try:
+    r = requests.get('http://localhost:8000/api/v1/catalogos/motivos-desecho', 
+                     headers={'Authorization': f'Bearer {token}'})
+    print(f"Status: {r.status_code}")
+    if r.status_code == 200:
+        data = r.json()
+        print(f"Motivos encontrados: {len(data)}")
+    else:
+        print(f"Error: {r.text}")
+except Exception as e:
+    print(f"Error conexión: {e}")
+
+# Prueba docs
+print("\n=== DOCS ===")
+try:
+    r = requests.get('http://localhost:8000/docs')
+    print(f"Swagger docs - Status: {r.status_code}")
+except Exception as e:
+    print(f"Error conexión: {e}")
 
 def test_api_endpoints():
     """Prueba todos los endpoints principales de la API."""

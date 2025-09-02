@@ -2,14 +2,14 @@
 
 API para el sistema de Gestión de Neumáticos (GES_NEU). Esta aplicación proporciona los servicios necesarios para la gestión integral de neumáticos, incluyendo autenticación, catálogos y operaciones específicas del dominio.
 
-## 🎉 Estado Actual - COMPLETAMENTE FUNCIONAL
+## 🎉 Estado Actual - EN DESARROLLO ACTIVO
 
-### ✅ API Lista para Producción
-- **Servidor**: Funcionando en `http://localhost:8001`
+### 🔧 Estado de la API
+- **Servidor**: Funcionando en `http://localhost:8000`
 - **Documentación**: Disponible en `/docs` y `/redoc`
-- **Autenticación JWT**: Completamente operativa
-- **Base de Datos**: Alineada con esquema PostgreSQL existente
-- **Modelos**: 100% sincronizados con `ESQUEMA_COMPLETO_BD.md`
+- **Autenticación JWT**: ✅ Completamente operativa
+- **Base de Datos**: ✅ Conectada a PostgreSQL `ges_neu_bd`
+- **Modelos**: 🔄 En proceso de alineación con esquema real
 
 ### 🔐 Credenciales de Prueba
 ```
@@ -17,18 +17,37 @@ Username: admin
 Password: Admin123
 ```
 
-### Módulos Implementados
-- **Autenticación**: Gestión de usuarios, roles y permisos (Funcional ✅)
-- **Vehículos**: Gestión de flota, tipos y configuraciones (Funcional ✅)
-- **Catálogos**: Proveedores, almacenes, motivos de desecho (Funcional ✅)
-- **Neumáticos**: Fabricantes, modelos y gestión de neumáticos (Funcional ✅)
-- **Inventario**: Control de stock y movimientos (Funcional ✅)
-- **Eventos**: Historial y seguimiento de neumáticos (Funcional ✅)
-- **Garantías**: Gestión de garantías de neumáticos (Funcional ✅)
-- **Alertas**: Sistema de notificaciones y alertas (Funcional ✅)
-- **Bitácoras**: Auditoría y registro de operaciones (Modelos ✅)
-- **Sistema**: Parámetros y configuración del sistema (Modelos ✅)
-- **Estructura Base**: Configuración de la aplicación, logging y manejo de errores (Funcional ✅)
+### 📊 Estado de Módulos
+
+#### ✅ Módulos Funcionales
+- **Autenticación**: Gestión de usuarios, roles y permisos
+  - Login/logout con JWT ✅
+  - Sistema RBAC completo ✅
+  - Endpoints: `/api/v1/auth/*` ✅
+
+- **Catálogos**: Proveedores, almacenes, motivos de desecho
+  - CRUD completo ✅
+  - Endpoints: `/api/v1/catalogos/*` ✅
+  - Enums alineados con BD ✅
+
+- **Neumáticos**: Fabricantes y modelos
+  - Fabricantes: CRUD completo ✅
+  - Endpoints: `/api/v1/neumaticos/fabricantes` ✅
+  - Schemas corregidos ✅
+
+#### 🔄 Módulos En Desarrollo
+- **Vehículos**: Gestión de flota y configuraciones
+  - Modelos: Alineados con BD ✅
+  - Schemas: Corregidos ✅
+  - Endpoints: En testing 🔄
+
+#### 📝 Módulos Implementados (Solo Modelos)
+- **Inventario**: Control de stock y movimientos
+- **Eventos**: Historial y seguimiento de neumáticos
+- **Garantías**: Gestión de garantías de neumáticos
+- **Alertas**: Sistema de notificaciones y alertas
+- **Bitácoras**: Auditoría y registro de operaciones
+- **Sistema**: Parámetros y configuración del sistema
 
 ## 🏗️ Arquitectura
 
@@ -152,14 +171,14 @@ Para desarrollo local:
 
 ```bash
 # Método 1: Usando uvicorn directamente
-uvicorn ges_neu_api.main:app --host 0.0.0.0 --port 8001 --reload
+uvicorn ges_neu_api.main:app --host 0.0.0.0 --port 8000 --reload
 
 # Método 2: Usando el script (Linux/Mac)
 chmod +x start_server.sh
 ./start_server.sh
 ```
 
-El servidor estará disponible en: **http://localhost:8001**
+El servidor estará disponible en: **http://localhost:8000**
 
 ### 🧪 Probar la API
 
@@ -167,7 +186,7 @@ Una vez iniciado el servidor, puedes probar la autenticación:
 
 ```bash
 curl -X 'POST' \
-  'http://localhost:8001/api/v1/auth/token' \
+  'http://localhost:8000/api/v1/auth/token' \
   -H 'accept: application/json' \
   -H 'Content-Type: application/x-www-form-urlencoded' \
   -d 'grant_type=password&username=admin&password=Admin123'
@@ -181,10 +200,29 @@ Respuesta esperada:
 }
 ```
 
-### Documentación de la API
+### 📚 Documentación de la API
 
-- **Swagger UI**: http://localhost:8001/docs
-- **Documentación Redoc**: http://localhost:8001/redoc
+- **Swagger UI**: http://localhost:8000/docs
+- **Documentación Redoc**: http://localhost:8000/redoc
+
+### 🔗 Endpoints Principales
+
+#### Autenticación
+- `POST /api/v1/auth/token` - Obtener token JWT
+- `GET /api/v1/auth/me` - Información del usuario actual
+
+#### Catálogos
+- `GET /api/v1/catalogos/proveedores` - Listar proveedores
+- `GET /api/v1/catalogos/almacenes` - Listar almacenes
+- `GET /api/v1/catalogos/motivos-desecho` - Listar motivos de desecho
+
+#### Neumáticos
+- `GET /api/v1/neumaticos/fabricantes` - Listar fabricantes
+- `POST /api/v1/neumaticos/fabricantes` - Crear fabricante
+
+#### Vehículos (En desarrollo)
+- `GET /api/v1/vehiculos/` - Listar vehículos
+- `POST /api/v1/vehiculos/` - Crear vehículo
 
 ## 🔍 Estructura de Código
 
@@ -200,7 +238,14 @@ from .modules.auth.router import router as auth_router
 
 ## 🛠️ Desarrollo
 
-### Estructura de un Módulo
+### 🎯 Principio Fundamental
+**La API se adapta EXACTAMENTE a la base de datos PostgreSQL existente, NO al revés.**
+
+- Modelos SQLModel deben coincidir 100% con `ESQUEMA_COMPLETO_BD.md`
+- Tipos de datos, constraints y foreign keys deben ser idénticos
+- NO modificar la estructura de la BD existente
+
+### 🏗️ Estructura de un Módulo
 
 Cada módulo sigue esta estructura:
 
@@ -208,20 +253,54 @@ Cada módulo sigue esta estructura:
 modules/
   └── modulo/
       ├── __init__.py
-      ├── models.py      # Modelos SQLAlchemy
-      ├── schemas.py     # Esquemas Pydantic
-      ├── service.py     # Lógica de negocio
-      ├── router.py      # Endpoints de la API
-      └── dependencies.py # Dependencias específicas del módulo
+      ├── models.py      # Modelos SQLModel (alineados con BD)
+      ├── schemas.py     # Esquemas Pydantic (sin relaciones anidadas)
+      ├── service.py     # Lógica de negocio con CRUD genérico
+      ├── router.py      # Endpoints FastAPI
+      └── dependencies.py # Inyección de dependencias
 ```
 
-### Convenciones de Código
+### 🔧 Convenciones de Código
 
-- Usar type hints en todas las funciones
-- Documentar con docstrings siguiendo el formato Google Style
-- Mantener las importaciones ordenadas y agrupadas
-- Usar nombres descriptivos para variables y funciones
+- **Modelos**: Usar SQLModel con tipos exactos de PostgreSQL
+- **Schemas**: Evitar relaciones anidadas para prevenir errores 500
+- **Dependencias**: Usar `get_session` (no `get_db`) para AsyncSession
+- **Enums**: Coincidir exactamente con enums de PostgreSQL
+- **Rutas**: Rutas específicas antes que rutas con parámetros
+
+### 🗄️ Base de Datos
+
+**Configuración PostgreSQL:**
+```
+Host: localhost
+Port: 5432
+Database: ges_neu_bd
+User: postgres
+Password: B3ll1c0s
+```
+
+**Tablas Principales:**
+- `usuarios`, `roles`, `permisos` (Auth)
+- `vehiculos`, `tipos_vehiculo` (Vehículos)
+- `proveedores`, `almacenes` (Catálogos)
+- `fabricantes_neumatico`, `modelos_neumatico` (Neumáticos)
+- Y 27 tablas adicionales según `ESQUEMA_COMPLETO_BD.md`
+
+## 🚨 Problemas Conocidos
+
+### En Resolución
+- **Vehículos**: Error 500 en endpoints (en corrección)
+- **Tipos Personalizados**: Dominio `placa_vehiculo` requiere manejo especial
+
+### Resueltos Recientemente
+- ✅ Error 422 en fabricantes (rutas reordenadas)
+- ✅ Error 500 en catálogos (dependencias corregidas)
+- ✅ Conflictos metadata SQLAlchemy (relaciones eliminadas)
 
 ## 📝 Licencia
 
 Este proyecto está bajo la licencia MIT. Ver el archivo `LICENSE` para más detalles.
+
+---
+
+**Última actualización**: 1 Septiembre 2025 - Estado: Desarrollo activo con correcciones en curso

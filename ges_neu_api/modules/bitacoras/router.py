@@ -6,7 +6,7 @@ from uuid import UUID
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlmodel import Session
 
-from ...core.database import get_db
+from ...core.database import get_session
 from .service import BitacoraService
 from .models import (
     BitacoraMantenimiento,
@@ -22,7 +22,7 @@ from .models import (
 
 router = APIRouter()
 
-def get_bitacora_service(db: Session = Depends(get_db)) -> BitacoraService:
+def get_bitacora_service(db: Session = Depends(get_session)) -> BitacoraService:
     """Dependency para obtener el servicio de bitácoras."""
     return BitacoraService(db)
 

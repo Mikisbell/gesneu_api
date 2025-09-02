@@ -9,7 +9,7 @@ from typing import Optional, List, TYPE_CHECKING
 from uuid import UUID, uuid4
 
 from sqlmodel import SQLModel, Field
-from sqlalchemy import Column, String, Boolean, DateTime, Text, ForeignKey, UniqueConstraint, CheckConstraint, Integer, Numeric, Date, SmallInteger, Index, TIMESTAMP
+from sqlalchemy import Column, String, Boolean, DateTime, Text, ForeignKey, UniqueConstraint, CheckConstraint, Integer, Numeric, Date, SmallInteger, Index, TIMESTAMP, func
 from sqlalchemy.dialects.postgresql import UUID as PG_UUID
 from sqlalchemy import Enum as SQLAlchemyEnum, text
 
@@ -23,12 +23,9 @@ class EstadoNeumaticoEnum(str, Enum):
     EN_STOCK = "EN_STOCK"
     INSTALADO = "INSTALADO"
     EN_REPARACION = "EN_REPARACION"
-    EN_DESECHO = "EN_DESECHO"
-    VENDIDO = "VENDIDO"
-    PERDIDO = "PERDIDO"
-    EN_TRANSITO = "EN_TRANSITO"
-    EN_RECICLAJE = "EN_RECICLAJE"
+    EN_REENCAUCHE = "EN_REENCAUCHE"
     DESECHADO = "DESECHADO"
+    EN_TRANSITO = "EN_TRANSITO"
 
 class TipoConstruccionEnum(str, Enum):
     RADIAL = "RADIAL"
@@ -36,26 +33,28 @@ class TipoConstruccionEnum(str, Enum):
     MIXTA = "MIXTA"
 
 class FabricanteNeumatico(SQLModel, table=True):
-    """Fabricantes de neumáticos - Esquema exacto ESQUEMA_BD_REAL.md"""
+    """Fabricantes de neumáticos - Alineado exactamente con ESQUEMA_COMPLETO_BD.md líneas 950-961"""
     __tablename__ = 'fabricantes_neumatico'
     
-    # Campos exactos del esquema real
+    # Campos exactos según ESQUEMA_COMPLETO_BD.md
     id: UUID = Field(
         default_factory=uuid4,
-        sa_column=Column(PG_UUID(as_uuid=True), primary_key=True, server_default=text("gen_random_uuid()"))
+        sa_column=Column(PG_UUID(as_uuid=True), primary_key=True, server_default=text("public.gen_random_uuid()"))
     )
-    nombre: str = Field(sa_column=Column(String(100), nullable=False, unique=True))
+    nombre: str = Field(sa_column=Column(String(100), nullable=False))
+    codigo_abreviado: Optional[str] = Field(default=None, sa_column=Column(String(10), nullable=True))
+    pais_origen: Optional[str] = Field(default=None, sa_column=Column(String(50), nullable=True))
+    sitio_web: Optional[str] = Field(default=None, sa_column=Column(String(255), nullable=True))
     activo: bool = Field(default=True, sa_column=Column(Boolean, nullable=False, server_default=text("true")))
     creado_en: datetime = Field(
-        default_factory=datetime.utcnow,
-        sa_column=Column(TIMESTAMP, nullable=False, server_default=text("now()"))
+        sa_column=Column(DateTime(timezone=False), nullable=False, server_default=text("now()"))
     )
-    creado_por: Optional[UUID] = Field(default=None, sa_column=Column(PG_UUID(as_uuid=True), ForeignKey("usuarios.id", ondelete="SET NULL")))
-    actualizado_en: Optional[datetime] = Field(default=None, sa_column=Column(TIMESTAMP, onupdate=text("now()")))
-    actualizado_por: Optional[UUID] = Field(default=None, sa_column=Column(PG_UUID(as_uuid=True), ForeignKey("usuarios.id", ondelete="SET NULL")))
+    creado_por: Optional[UUID] = Field(default=None, sa_column=Column(PG_UUID(as_uuid=True), ForeignKey("usuarios.id")))
+    actualizado_en: Optional[datetime] = Field(default=None, sa_column=Column(DateTime(timezone=False), nullable=True))
+    actualizado_por: Optional[UUID] = Field(default=None, sa_column=Column(PG_UUID(as_uuid=True), ForeignKey("usuarios.id")))
     
     __table_args__ = (
-        CheckConstraint('length(nombre) >= 2', name='fabricantes_neumatico_nombre_length'),
+        CheckConstraint('length(nombre::text) >= 2', name='fabricantes_neumatico_nombre_length'),
     )
 
 class ModeloNeumatico(SQLModel, table=True):
@@ -105,7 +104,7 @@ class Neumatico(SQLModel, table=True):
         sa_column=Column(PG_UUID(as_uuid=True), primary_key=True, server_default=text("gen_random_uuid()"))
     )
     numero_serie: Optional[str] = Field(default=None, sa_column=Column(String(100)))
-    dot: Optional[str] = Field(default=None, sa_column=Column(String(20)))  # dot_code domain type
+    dot: Optional[str] = Field(default=None, sa_column=Column(Text))  # dot field is TEXT type
     modelo_id: UUID = Field(sa_column=Column(PG_UUID(as_uuid=True), ForeignKey("modelos_neumatico.id"), nullable=False))
     fecha_compra: date = Field(sa_column=Column(Date, nullable=False))
     fecha_fabricacion: Optional[date] = Field(default=None, sa_column=Column(Date))
@@ -114,7 +113,7 @@ class Neumatico(SQLModel, table=True):
     proveedor_compra_id: Optional[UUID] = Field(default=None, sa_column=Column(PG_UUID(as_uuid=True), ForeignKey("proveedores.id")))
     es_reencauchado: bool = Field(default=False, sa_column=Column(Boolean, nullable=False, server_default=text("false")))
     vida_actual: int = Field(default=1, sa_column=Column(SmallInteger, nullable=False, server_default=text("1")))
-    estado_actual: str = Field(default="EN_STOCK", sa_column=Column(String(20), nullable=False, server_default=text("'EN_STOCK'")))  # estado_neumatico_enum
+    estado_actual: EstadoNeumaticoEnum = Field(default=EstadoNeumaticoEnum.EN_STOCK, sa_column=Column(SQLAlchemyEnum(EstadoNeumaticoEnum, name="estado_neumatico_enum"), nullable=False, server_default=text("'EN_STOCK'")))
     ubicacion_actual_vehiculo_id: Optional[UUID] = Field(default=None, sa_column=Column(PG_UUID(as_uuid=True), ForeignKey("vehiculos.id")))
     ubicacion_actual_posicion_id: Optional[UUID] = Field(default=None, sa_column=Column(PG_UUID(as_uuid=True), ForeignKey("posiciones_neumatico.id")))
     fecha_ultimo_evento: Optional[datetime] = Field(default=None, sa_column=Column(TIMESTAMP))

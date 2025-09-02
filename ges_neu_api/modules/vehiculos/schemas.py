@@ -131,8 +131,6 @@ class ConfiguracionesEjeRead(ConfiguracionesEjeBase):
     creado_por: Optional[UUID] = None
     actualizado_en: Optional[datetime] = None
     actualizado_por: Optional[UUID] = None
-    
-    tipo_vehiculo: TiposVehiculoRead # Nested read model
 
     model_config = ConfigDict(from_attributes=True)
 
@@ -142,8 +140,6 @@ class PosicionesNeumaticoRead(PosicionesNeumaticoBase):
     creado_por: Optional[UUID] = None
     actualizado_en: Optional[datetime] = None
     actualizado_por: Optional[UUID] = None
-    
-    configuracion_eje: ConfiguracionesEjeRead # Nested read model
 
     model_config = ConfigDict(from_attributes=True)
 
@@ -153,15 +149,11 @@ class VehiculoRead(VehiculoBase):
     creado_por: Optional[UUID] = None
     actualizado_en: Optional[datetime] = None
     actualizado_por: Optional[UUID] = None
-    
-    tipo_vehiculo: TiposVehiculoRead # Nested read model
 
     model_config = ConfigDict(from_attributes=True)
 
 class RegistrosOdometroRead(RegistrosOdometroBase):
     id: UUID
     creado_por: Optional[UUID] = None
-    
-    vehiculo: VehiculoRead # Nested read model
 
     model_config = ConfigDict(from_attributes=True)

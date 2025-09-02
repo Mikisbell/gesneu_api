@@ -1,4 +1,4 @@
-from sqlalchemy import Column, String, Index, func, text, ForeignKey, Integer, Numeric, Boolean, Text, UniqueConstraint, Date, SmallInteger, TIMESTAMP
+from sqlalchemy import Column, String, Index, func, text, ForeignKey, Integer, Numeric, Boolean, Text, UniqueConstraint, Date, SmallInteger, TIMESTAMP, Enum
 from ges_neu_api.core.base_models import BaseModel
 from sqlalchemy.dialects.postgresql import UUID as PG_UUID
 from sqlmodel import SQLModel, Field, Relationship
@@ -6,6 +6,7 @@ from uuid import uuid4, UUID
 from typing import Optional, List, TYPE_CHECKING
 from datetime import datetime, date
 from decimal import Decimal
+import enum
 
 if TYPE_CHECKING:
     from ..neumaticos.models import Neumatico
@@ -15,6 +16,24 @@ if TYPE_CHECKING:
     from ..alertas.models import Alertas
 
 # Fabricantes movidos a módulo neumaticos
+
+# ============================================================================
+# ENUMS
+# ============================================================================
+
+class TipoProveedorEnum(str, enum.Enum):
+    FABRICANTE = "FABRICANTE"
+    DISTRIBUIDOR = "DISTRIBUIDOR"
+    SERVICIO_REPARACION = "SERVICIO_REPARACION"
+    SERVICIO_REENCAUCHE = "SERVICIO_REENCAUCHE"
+    OTRO = "OTRO"
+
+class TipoParametroInventarioEnum(str, enum.Enum):
+    PROFUNDIDAD_MINIMA = "PROFUNDIDAD_MINIMA"
+    STOCK_MINIMO = "STOCK_MINIMO"
+    STOCK_MAXIMO = "STOCK_MAXIMO"
+    VIDA_UTIL_KM = "VIDA_UTIL_KM"
+    VIDA_UTIL_ANIOS = "VIDA_UTIL_ANIOS"
 
 # ============================================================================
 # PROVEEDORES
@@ -28,14 +47,63 @@ class Proveedor(BaseModel, table=True):
         description="Identificador único del proveedor"
     )
     nombre: str = Field(
-        sa_column=Column(String(150), nullable=False, unique=True),
+        sa_column=Column(String(150), nullable=False),
         description="Nombre completo del proveedor"
     )
-    activo: Optional[bool] = None
-    creado_en: Optional[datetime] = None
-    creado_por: Optional[UUID] = None
-    actualizado_en: Optional[datetime] = None
-    actualizado_por: Optional[UUID] = None
+    tipo: Optional[TipoProveedorEnum] = Field(
+        default=None,
+        sa_column=Column(Enum(TipoProveedorEnum, name="tipoproveedorenum"), nullable=True),
+        description="Tipo de proveedor"
+    )
+    ruc: Optional[str] = Field(
+        default=None,
+        sa_column=Column(String(11), nullable=True, unique=True),
+        description="RUC del proveedor"
+    )
+    contacto_principal: Optional[str] = Field(
+        default=None,
+        sa_column=Column(Text, nullable=True),
+        description="Contacto principal del proveedor"
+    )
+    telefono: Optional[str] = Field(
+        default=None,
+        sa_column=Column(String(50), nullable=True),
+        description="Teléfono del proveedor"
+    )
+    email: Optional[str] = Field(
+        default=None,
+        sa_column=Column(String(100), nullable=True),
+        description="Email del proveedor"
+    )
+    direccion: Optional[str] = Field(
+        default=None,
+        sa_column=Column(Text, nullable=True),
+        description="Dirección del proveedor"
+    )
+    activo: bool = Field(
+        default=True,
+        sa_column=Column(Boolean, nullable=False, server_default=text("true")),
+        description="Estado activo del proveedor"
+    )
+    creado_en: datetime = Field(
+        sa_column=Column(TIMESTAMP(timezone=True), nullable=False, server_default=text("now()")),
+        description="Fecha de creación"
+    )
+    creado_por: Optional[UUID] = Field(
+        default=None,
+        sa_column=Column(PG_UUID(as_uuid=True), ForeignKey("usuarios.id"), nullable=True),
+        description="Usuario que creó el registro"
+    )
+    actualizado_en: Optional[datetime] = Field(
+        default=None,
+        sa_column=Column(TIMESTAMP(timezone=True), nullable=True),
+        description="Fecha de última actualización"
+    )
+    actualizado_por: Optional[UUID] = Field(
+        default=None,
+        sa_column=Column(PG_UUID(as_uuid=True), ForeignKey("usuarios.id"), nullable=True),
+        description="Usuario que actualizó el registro"
+    )
     
     __table_args__ = (
         Index(
@@ -51,43 +119,7 @@ class Proveedor(BaseModel, table=True):
     # garantias_neumaticos: handled at service layer
 
 # ============================================================================
-# PROVEEDORES
-# ============================================================================
-
-class Disenio(BaseModel, table=True):
-    __tablename__ = 'disenios'
-    id: UUID = Field(
-        default_factory=uuid4,
-        sa_column=Column(PG_UUID(as_uuid=True), primary_key=True, server_default=text("gen_random_uuid()")),
-        description="Identificador único del diseño"
-    )
-    nombre: str = Field(
-        sa_column=Column(String(100), nullable=False, unique=True),
-        description="Nombre del diseño"
-    )
-    activo: Optional[bool] = None
-    creado_en: Optional[datetime] = None
-    creado_por: Optional[UUID] = None
-    actualizado_en: Optional[datetime] = None
-    actualizado_por: Optional[UUID] = None
-
-    __table_args__ = (
-        Index(
-            "idx_disenios_nombre_unique",
-            func.f_immutable_lower_unaccent(text("nombre")),
-            unique=True,
-            postgresql_where=text("activo = true"),
-        ),
-    )
-
-# ============================================================================
-# PROVEEDORES
-# ============================================================================
-
-# Modelos de neumático movidos a módulo neumaticos
-
-# ============================================================================
-# PROVEEDORES
+# ALMACENES
 # ============================================================================
 
 class MotivoDesecho(BaseModel, table=True):
@@ -97,27 +129,43 @@ class MotivoDesecho(BaseModel, table=True):
         sa_column=Column(PG_UUID(as_uuid=True), primary_key=True, server_default=text("gen_random_uuid()")),
         description="Identificador único del motivo de desecho"
     )
-    codigo: str = Field(sa_column=Column(String(20), nullable=False, unique=True), description="Código único del motivo de desecho")
-    descripcion: str = Field(sa_column=Column(String(255), nullable=False), description="Descripción detallada del motivo")
-
-    # Inherited fields from BaseModel
-    activo: Optional[bool] = None
-    creado_en: Optional[datetime] = None
-    creado_por: Optional[UUID] = None
-    actualizado_en: Optional[datetime] = None
-    actualizado_por: Optional[UUID] = None
-
-    __table_args__ = (
-        Index(
-            "idx_motivos_desecho_codigo_unique",
-            func.f_immutable_lower_unaccent(text("codigo")),
-            unique=True,
-            postgresql_where=text("activo = true"),
-        ),
+    codigo: str = Field(
+        sa_column=Column(String(20), nullable=False, unique=True), 
+        description="Código único del motivo de desecho"
     )
-    
-    # Relationships - removed to avoid SQLAlchemy metadata conflicts
-    # eventos_neumaticos: handled at service layer
+    descripcion: str = Field(
+        sa_column=Column(Text, nullable=False), 
+        description="Descripción detallada del motivo"
+    )
+    requiere_evidencia: bool = Field(
+        default=False,
+        sa_column=Column(Boolean, nullable=False, server_default=text("false")),
+        description="Indica si requiere evidencia"
+    )
+    activo: bool = Field(
+        default=True,
+        sa_column=Column(Boolean, nullable=False, server_default=text("true")),
+        description="Estado activo del motivo"
+    )
+    creado_en: datetime = Field(
+        sa_column=Column(TIMESTAMP(timezone=True), nullable=False, server_default=text("now()")),
+        description="Fecha de creación"
+    )
+    creado_por: Optional[UUID] = Field(
+        default=None,
+        sa_column=Column(PG_UUID(as_uuid=True), ForeignKey("usuarios.id"), nullable=True),
+        description="Usuario que creó el registro"
+    )
+    actualizado_en: Optional[datetime] = Field(
+        default=None,
+        sa_column=Column(TIMESTAMP(timezone=True), nullable=True),
+        description="Fecha de última actualización"
+    )
+    actualizado_por: Optional[UUID] = Field(
+        default=None,
+        sa_column=Column(PG_UUID(as_uuid=True), ForeignKey("usuarios.id"), nullable=True),
+        description="Usuario que actualizó el registro"
+    )
 
 # ============================================================================
 # PROVEEDORES
@@ -130,32 +178,48 @@ class Almacen(BaseModel, table=True):
         sa_column=Column(PG_UUID(as_uuid=True), primary_key=True, server_default=text("gen_random_uuid()")),
         description="Identificador único del almacén"
     )
-    codigo: str = Field(sa_column=Column(String(20), nullable=False, unique=True), description="Código único del almacén")
-    nombre: str = Field(sa_column=Column(String(100), nullable=False), description="Nombre descriptivo del almacén")
-    direccion: Optional[str] = Field(None, sa_column=Column(String), description="Dirección física del almacén")
-    responsable: Optional[str] = Field(None, sa_column=Column(String(200)), description="Persona a cargo del almacén")
-    telefono: Optional[str] = Field(None, sa_column=Column(String(20)), description="Teléfono de contacto del almacén")
-    email: Optional[str] = Field(None, sa_column=Column(String(100)), description="Correo electrónico de contacto")
-    es_principal: bool = Field(False, sa_column=Column(Boolean, nullable=False, server_default=text("false")), description="Indica si es el almacén principal")
-
-    # Inherited fields from BaseModel
-    activo: Optional[bool] = None
-    creado_en: Optional[datetime] = None
-    creado_por: Optional[UUID] = None
-    actualizado_en: Optional[datetime] = None
-    actualizado_por: Optional[UUID] = None
-
-    __table_args__ = (
-        Index(
-            "idx_almacenes_codigo_unique",
-            func.f_immutable_lower_unaccent(text("codigo")),
-            unique=True,
-            postgresql_where=text("activo = true"),
-        ),
+    codigo: str = Field(
+        sa_column=Column(String(20), nullable=False, unique=True), 
+        description="Código único del almacén"
     )
-    
-    # Relationships - removed to avoid SQLAlchemy metadata conflicts
-    # inventario_neumaticos: handled at service layer
+    nombre: str = Field(
+        sa_column=Column(String(150), nullable=False), 
+        description="Nombre descriptivo del almacén"
+    )
+    tipo: Optional[str] = Field(
+        default=None,
+        sa_column=Column(String(50), nullable=True),
+        description="Tipo de almacén"
+    )
+    direccion: Optional[str] = Field(
+        default=None, 
+        sa_column=Column(Text, nullable=True), 
+        description="Dirección física del almacén"
+    )
+    activo: bool = Field(
+        default=True,
+        sa_column=Column(Boolean, nullable=False, server_default=text("true")),
+        description="Estado activo del almacén"
+    )
+    creado_en: datetime = Field(
+        sa_column=Column(TIMESTAMP(timezone=True), nullable=False, server_default=text("now()")),
+        description="Fecha de creación"
+    )
+    creado_por: Optional[UUID] = Field(
+        default=None,
+        sa_column=Column(PG_UUID(as_uuid=True), ForeignKey("usuarios.id"), nullable=True),
+        description="Usuario que creó el registro"
+    )
+    actualizado_en: Optional[datetime] = Field(
+        default=None,
+        sa_column=Column(TIMESTAMP(timezone=True), nullable=True),
+        description="Fecha de última actualización"
+    )
+    actualizado_por: Optional[UUID] = Field(
+        default=None,
+        sa_column=Column(PG_UUID(as_uuid=True), ForeignKey("usuarios.id"), nullable=True),
+        description="Usuario que actualizó el registro"
+    )
 
 # ============================================================================
 # PROVEEDORES
@@ -168,29 +232,60 @@ class ParametroInventario(BaseModel, table=True):
         sa_column=Column(PG_UUID(as_uuid=True), primary_key=True, server_default=text("gen_random_uuid()")),
         description="Identificador único del parámetro de inventario"
     )
-    parametro_tipo: str = Field(sa_column=Column(String(50), nullable=False), description="Tipo de parámetro de inventario") # Using String for now, will replace with Enum later
-    modelo_id: UUID = Field(sa_column=Column(PG_UUID(as_uuid=True), ForeignKey("modelos.id", ondelete="CASCADE"), nullable=False), description="ID del modelo de neumático asociado")
-    ubicacion_almacen_id: Optional[UUID] = Field(None, sa_column=Column(PG_UUID(as_uuid=True), ForeignKey("almacenes.id", ondelete="SET NULL")), description="ID de la ubicación del almacén asociado")
-    valor_numerico: Optional[Decimal] = Field(None, sa_column=Column(Numeric(10,2)), description="Valor numérico del parámetro")
-    valor_texto: Optional[str] = Field(None, sa_column=Column(Text), description="Valor de texto del parámetro")
-    notas: Optional[str] = Field(None, sa_column=Column(Text), description="Notas adicionales sobre el parámetro")
-
-    # Inherited fields from BaseModel
-    activo: Optional[bool] = None
-    creado_en: Optional[datetime] = None
-    creado_por: Optional[UUID] = None
-    actualizado_en: Optional[datetime] = None
-    actualizado_por: Optional[UUID] = None
+    parametro_tipo: TipoParametroInventarioEnum = Field(
+        sa_column=Column(Enum(TipoParametroInventarioEnum, name="tipo_parametro_inventario_enum"), nullable=False),
+        description="Tipo de parámetro de inventario"
+    )
+    modelo_id: UUID = Field(
+        sa_column=Column(PG_UUID(as_uuid=True), ForeignKey("modelos_neumatico.id", ondelete="CASCADE"), nullable=False),
+        description="ID del modelo de neumático asociado"
+    )
+    ubicacion_almacen_id: Optional[UUID] = Field(
+        default=None,
+        sa_column=Column(PG_UUID(as_uuid=True), ForeignKey("almacenes.id", ondelete="SET NULL"), nullable=True),
+        description="ID de la ubicación del almacén asociado"
+    )
+    valor_numerico: Optional[Decimal] = Field(
+        default=None,
+        sa_column=Column(Numeric(10,2), nullable=True),
+        description="Valor numérico del parámetro"
+    )
+    valor_texto: Optional[str] = Field(
+        default=None,
+        sa_column=Column(Text, nullable=True),
+        description="Valor de texto del parámetro"
+    )
+    activo: bool = Field(
+        default=True,
+        sa_column=Column(Boolean, nullable=False, server_default=text("true")),
+        description="Estado activo del parámetro"
+    )
+    notas: Optional[str] = Field(
+        default=None,
+        sa_column=Column(Text, nullable=True),
+        description="Notas adicionales sobre el parámetro"
+    )
+    creado_en: datetime = Field(
+        sa_column=Column(TIMESTAMP(timezone=True), nullable=False, server_default=text("now()")),
+        description="Fecha de creación"
+    )
+    creado_por: Optional[UUID] = Field(
+        default=None,
+        sa_column=Column(PG_UUID(as_uuid=True), ForeignKey("usuarios.id"), nullable=True),
+        description="Usuario que creó el registro"
+    )
+    actualizado_en: Optional[datetime] = Field(
+        default=None,
+        sa_column=Column(TIMESTAMP(timezone=True), nullable=True),
+        description="Fecha de última actualización"
+    )
+    actualizado_por: Optional[UUID] = Field(
+        default=None,
+        sa_column=Column(PG_UUID(as_uuid=True), ForeignKey("usuarios.id"), nullable=True),
+        description="Usuario que actualizó el registro"
+    )
 
     __table_args__ = (
-        Index(
-            "idx_param_inv_tipo_modelo_ubicacion",
-            "parametro_tipo",
-            "modelo_id",
-            "ubicacion_almacen_id",
-            unique=True,
-            postgresql_where=text("activo = true"),
-        ),
         UniqueConstraint(
             "parametro_tipo",
             "modelo_id",
@@ -201,13 +296,9 @@ class ParametroInventario(BaseModel, table=True):
             "parametro_tipo",
             "modelo_id",
             "ubicacion_almacen_id",
-            name="uq_parametro_inventario_gesneu",
-            postgresql_nulls_not_distinct=True
+            name="uq_parametro_inventario_gesneu"
         ),
     )
-    
-    # Relationships - removed to avoid SQLAlchemy metadata conflicts
-    # alertas: handled at service layer
 
 # Rebuild models for forward references
 Proveedor.model_rebuild()

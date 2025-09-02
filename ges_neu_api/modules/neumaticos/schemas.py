@@ -1,7 +1,7 @@
 """
 Esquemas Pydantic para el módulo de neumáticos.
 """
-from datetime import date
+from datetime import date, datetime
 from typing import Optional
 from uuid import UUID
 from decimal import Decimal
@@ -52,11 +52,12 @@ class NeumaticoResponse(NeumaticoBase):
 
 # Esquemas para Fabricantes
 class FabricanteBase(BaseModel):
-    """Esquema base para fabricantes."""
+    """Esquema base para fabricantes - Alineado con BD real."""
     nombre: str = Field(..., max_length=100, description="Nombre del fabricante")
+    codigo_abreviado: Optional[str] = Field(None, max_length=10, description="Código abreviado del fabricante")
     pais_origen: Optional[str] = Field(None, max_length=50, description="País de origen")
-    sitio_web: Optional[str] = Field(None, max_length=200, description="Sitio web oficial")
-    contacto: Optional[str] = Field(None, max_length=200, description="Información de contacto")
+    sitio_web: Optional[str] = Field(None, max_length=255, description="Sitio web oficial")
+    activo: Optional[bool] = Field(True, description="Estado activo del fabricante")
 
 
 class FabricanteCreate(FabricanteBase):
@@ -67,14 +68,24 @@ class FabricanteCreate(FabricanteBase):
 class FabricanteUpdate(BaseModel):
     """Esquema para actualizar un fabricante."""
     nombre: Optional[str] = Field(None, max_length=100)
+    codigo_abreviado: Optional[str] = Field(None, max_length=10)
     pais_origen: Optional[str] = Field(None, max_length=50)
-    sitio_web: Optional[str] = Field(None, max_length=200)
-    contacto: Optional[str] = Field(None, max_length=200)
+    sitio_web: Optional[str] = Field(None, max_length=255)
+    activo: Optional[bool] = None
 
 
-class FabricanteResponse(FabricanteBase):
-    """Esquema de respuesta para fabricantes."""
+class FabricanteResponse(BaseModel):
+    """Esquema de respuesta para fabricantes - Todos los campos de BD real."""
     id: UUID
+    nombre: str
+    codigo_abreviado: Optional[str] = None
+    pais_origen: Optional[str] = None
+    sitio_web: Optional[str] = None
+    activo: bool
+    creado_en: datetime
+    creado_por: Optional[UUID] = None
+    actualizado_en: Optional[datetime] = None
+    actualizado_por: Optional[UUID] = None
     
     class Config:
         from_attributes = True

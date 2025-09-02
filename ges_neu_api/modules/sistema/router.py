@@ -7,13 +7,13 @@ from datetime import datetime
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlmodel import Session
 
-from ...core.database import get_db
+from ...core.database import get_session
 from .service import SistemaService
 from ..bitacoras.models import ParametrosSistema, TareasProgramadas, Rutas, TiposRuta
 
 router = APIRouter()
 
-def get_sistema_service(db: Session = Depends(get_db)) -> SistemaService:
+def get_sistema_service(db: Session = Depends(get_session)) -> SistemaService:
     """Dependency para obtener el servicio de sistema."""
     return SistemaService(db)
 

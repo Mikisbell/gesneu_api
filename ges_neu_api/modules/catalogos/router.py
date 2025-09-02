@@ -7,7 +7,7 @@ from fastapi import APIRouter, Depends, status, Query, HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
 
 # Application imports
-from ges_neu_api.core.database import get_db
+from ges_neu_api.core.database import get_session
 from ges_neu_api.modules.catalogos.schemas import (
     ProveedorCreate, ProveedorRead, ProveedorUpdate,
     MotivoDesechoCreate, MotivoDesechoRead, MotivoDesechoUpdate,
@@ -36,7 +36,7 @@ def get_catalog_service() -> CatalogService:
 )
 async def create_proveedor(
     proveedor_data: ProveedorCreate,
-    db: AsyncSession = Depends(get_db),
+    db: AsyncSession = Depends(get_session),
     service: CatalogService = Depends(get_catalog_service)
 ):
     """Crear un nuevo proveedor."""
@@ -50,7 +50,7 @@ async def create_proveedor(
 async def get_proveedores(
     skip: int = Query(0, ge=0),
     limit: int = Query(100, ge=1, le=100),
-    db: AsyncSession = Depends(get_db),
+    db: AsyncSession = Depends(get_session),
     service: CatalogService = Depends(get_catalog_service)
 ):
     """Obtener lista de proveedores."""
@@ -63,7 +63,7 @@ async def get_proveedores(
 )
 async def get_proveedor(
     proveedor_id: UUID,
-    db: AsyncSession = Depends(get_db),
+    db: AsyncSession = Depends(get_session),
     service: CatalogService = Depends(get_catalog_service)
 ):
     """Obtener un proveedor por ID."""
@@ -80,7 +80,7 @@ async def get_proveedor(
 async def update_proveedor(
     proveedor_id: UUID,
     proveedor_data: ProveedorUpdate,
-    db: AsyncSession = Depends(get_db),
+    db: AsyncSession = Depends(get_session),
     service: CatalogService = Depends(get_catalog_service)
 ):
     """Actualizar un proveedor."""
@@ -96,7 +96,7 @@ async def update_proveedor(
 )
 async def delete_proveedor(
     proveedor_id: UUID,
-    db: AsyncSession = Depends(get_db),
+    db: AsyncSession = Depends(get_session),
     service: CatalogService = Depends(get_catalog_service)
 ):
     """Eliminar un proveedor (soft delete)."""
@@ -114,7 +114,7 @@ async def delete_proveedor(
 )
 async def create_motivo_desecho(
     motivo_data: MotivoDesechoCreate,
-    db: AsyncSession = Depends(get_db),
+    db: AsyncSession = Depends(get_session),
     service: CatalogService = Depends(get_catalog_service)
 ):
     """Crear un nuevo motivo de desecho."""
@@ -128,7 +128,7 @@ async def create_motivo_desecho(
 async def get_motivos_desecho(
     skip: int = Query(0, ge=0),
     limit: int = Query(100, ge=1, le=100),
-    db: AsyncSession = Depends(get_db),
+    db: AsyncSession = Depends(get_session),
     service: CatalogService = Depends(get_catalog_service)
 ):
     """Obtener lista de motivos de desecho."""
@@ -141,7 +141,7 @@ async def get_motivos_desecho(
 )
 async def get_motivo_desecho(
     motivo_id: UUID,
-    db: AsyncSession = Depends(get_db),
+    db: AsyncSession = Depends(get_session),
     service: CatalogService = Depends(get_catalog_service)
 ):
     """Obtener un motivo de desecho por ID."""
@@ -158,7 +158,7 @@ async def get_motivo_desecho(
 async def update_motivo_desecho(
     motivo_id: UUID,
     motivo_data: MotivoDesechoUpdate,
-    db: AsyncSession = Depends(get_db),
+    db: AsyncSession = Depends(get_session),
     service: CatalogService = Depends(get_catalog_service)
 ):
     """Actualizar un motivo de desecho."""
@@ -174,7 +174,7 @@ async def update_motivo_desecho(
 )
 async def delete_motivo_desecho(
     motivo_id: UUID,
-    db: AsyncSession = Depends(get_db),
+    db: AsyncSession = Depends(get_session),
     service: CatalogService = Depends(get_catalog_service)
 ):
     """Eliminar un motivo de desecho (soft delete)."""
@@ -192,7 +192,7 @@ async def delete_motivo_desecho(
 )
 async def create_almacen(
     almacen_data: AlmacenCreate,
-    db: AsyncSession = Depends(get_db),
+    db: AsyncSession = Depends(get_session),
     service: CatalogService = Depends(get_catalog_service)
 ):
     """Crear un nuevo almacén."""
@@ -206,7 +206,7 @@ async def create_almacen(
 async def get_almacenes(
     skip: int = Query(0, ge=0),
     limit: int = Query(100, ge=1, le=100),
-    db: AsyncSession = Depends(get_db),
+    db: AsyncSession = Depends(get_session),
     service: CatalogService = Depends(get_catalog_service)
 ):
     """Obtener lista de almacenes."""
@@ -219,7 +219,7 @@ async def get_almacenes(
 )
 async def get_almacen(
     almacen_id: UUID,
-    db: AsyncSession = Depends(get_db),
+    db: AsyncSession = Depends(get_session),
     service: CatalogService = Depends(get_catalog_service)
 ):
     """Obtener un almacén por ID."""
@@ -236,7 +236,7 @@ async def get_almacen(
 async def update_almacen(
     almacen_id: UUID,
     almacen_data: AlmacenUpdate,
-    db: AsyncSession = Depends(get_db),
+    db: AsyncSession = Depends(get_session),
     service: CatalogService = Depends(get_catalog_service)
 ):
     """Actualizar un almacén."""
@@ -252,7 +252,7 @@ async def update_almacen(
 )
 async def delete_almacen(
     almacen_id: UUID,
-    db: AsyncSession = Depends(get_db),
+    db: AsyncSession = Depends(get_session),
     service: CatalogService = Depends(get_catalog_service)
 ):
     """Eliminar un almacén (soft delete)."""
@@ -270,7 +270,7 @@ async def delete_almacen(
 )
 async def create_parametro_inventario(
     parametro_data: ParametroInventarioCreate,
-    db: AsyncSession = Depends(get_db),
+    db: AsyncSession = Depends(get_session),
     service: CatalogService = Depends(get_catalog_service)
 ):
     """Crear un nuevo parámetro de inventario."""
@@ -284,7 +284,7 @@ async def create_parametro_inventario(
 async def get_parametros_inventario(
     skip: int = Query(0, ge=0),
     limit: int = Query(100, ge=1, le=100),
-    db: AsyncSession = Depends(get_db),
+    db: AsyncSession = Depends(get_session),
     service: CatalogService = Depends(get_catalog_service)
 ):
     """Obtener lista de parámetros de inventario."""
@@ -297,7 +297,7 @@ async def get_parametros_inventario(
 )
 async def get_parametro_inventario(
     parametro_id: UUID,
-    db: AsyncSession = Depends(get_db),
+    db: AsyncSession = Depends(get_session),
     service: CatalogService = Depends(get_catalog_service)
 ):
     """Obtener un parámetro de inventario por ID."""
@@ -314,7 +314,7 @@ async def get_parametro_inventario(
 async def update_parametro_inventario(
     parametro_id: UUID,
     parametro_data: ParametroInventarioUpdate,
-    db: AsyncSession = Depends(get_db),
+    db: AsyncSession = Depends(get_session),
     service: CatalogService = Depends(get_catalog_service)
 ):
     """Actualizar un parámetro de inventario."""
@@ -330,7 +330,7 @@ async def update_parametro_inventario(
 )
 async def delete_parametro_inventario(
     parametro_id: UUID,
-    db: AsyncSession = Depends(get_db),
+    db: AsyncSession = Depends(get_session),
     service: CatalogService = Depends(get_catalog_service)
 ):
     """Eliminar un parámetro de inventario (soft delete)."""
