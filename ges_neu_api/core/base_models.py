@@ -22,6 +22,22 @@ class EstadoNeumaticoEnum(str, Enum):
     EN_RECICLAJE = "EN_RECICLAJE"
     DESECHADO = "DESECHADO"
 
+class TipoAccionBitacoraEnum(str, Enum):
+    MONTAJE = "MONTAJE"
+    DESMONTAJE = "DESMONTAJE"
+    ROTACION = "ROTACION"
+    INSPECCION = "INSPECCION"
+    REPARACION = "REPARACION"
+    CAMBIO_POSICION = "CAMBIO_POSICION"
+    MEDICION_PROFUNDIDAD = "MEDICION_PROFUNDIDAD"
+    MEDICION_PRESION = "MEDICION_PRESION"
+
+class TipoPosicionEnum(str, Enum):
+    DIRECCION = "DIRECCION"
+    TRACCION = "TRACCION"
+    LIBRE = "LIBRE"
+    TODAS = "TODAS"
+
 # Generic type for forward references
 ModelType = TypeVar("ModelType", bound="BaseModel")
 

@@ -47,6 +47,7 @@ from .dependencies import (
     has_permission_delete,
 )
 from .service import AuthService, UserService, RoleService, PermissionService
+from .models_consolidated import Usuario, Rol, Permiso
 
 # Crear el router
 router = APIRouter(
@@ -105,7 +106,7 @@ async def login_for_access_token(
             }
         )
 
-@router.get("/users/me", response_model=schemas.UserRead)
+@router.get("/me", response_model=schemas.UserRead)
 async def read_users_me(
     current_user: schemas.UserRead = Depends(get_current_user),
     db: AsyncSession = Depends(get_session),
@@ -147,11 +148,25 @@ async def read_users(
 ) -> list[schemas.UserRead]:
     """
     Obtiene una lista de usuarios.
-    
     Requiere permiso de lectura de usuarios.
     """
-    users = await user_service.get_multi(skip=skip, limit=limit, db=db)
-    return users
+    try:
+        import logging
+        logger = logging.getLogger(__name__)
+        logger.info(f"Obteniendo usuarios: skip={skip}, limit={limit}")
+        
+        users = await user_service.get_multi(skip=skip, limit=limit, db=db)
+        logger.info(f"Usuarios obtenidos exitosamente: {len(users)} usuarios")
+        return users
+    except Exception as e:
+        import traceback
+        logger = logging.getLogger(__name__)
+        logger.error(f"Error en read_users: {str(e)}")
+        logger.error(f"Traceback completo: {traceback.format_exc()}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Error interno: {str(e)}"
+        )
 
 @router.get("/users/{user_id}", response_model=schemas.UserRead)
 async def read_user(
@@ -302,8 +317,23 @@ async def read_roles(
     
     Requiere permiso de lectura de roles.
     """
-    roles = await role_service.get_roles(skip=skip, limit=limit, nombre=nombre)
-    return roles
+    try:
+        import logging
+        logger = logging.getLogger(__name__)
+        logger.info(f"Obteniendo roles: skip={skip}, limit={limit}, nombre={nombre}")
+        
+        roles = await role_service.get_roles(skip=skip, limit=limit, nombre=nombre)
+        logger.info(f"Roles obtenidos exitosamente: {len(roles)} roles")
+        return roles
+    except Exception as e:
+        import traceback
+        logger = logging.getLogger(__name__)
+        logger.error(f"Error en read_roles: {str(e)}")
+        logger.error(f"Traceback completo: {traceback.format_exc()}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Error interno: {str(e)}"
+        )
 
 
 @router.get("/roles/{role_id}", response_model=schemas.RoleInDB)

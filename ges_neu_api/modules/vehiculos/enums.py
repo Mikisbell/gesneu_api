@@ -9,9 +9,9 @@ class LadoVehiculoEnum(str, Enum):
 
 
 class TipoEjeEnum(str, Enum):
-    DELANTERO = "DELANTERO"
-    TRASERO = "TRASERO"
-    DIRECCIONAL = "DIRECCIONAL"
-    MOTRIZ = "MOTRIZ"
+    DIRECCION = "DIRECCION"
+    TRACCION = "TRACCION"
     ARRASTRE = "ARRASTRE"
-    ELEVABLE = "ELEVABLE"
+    ELEVADOR = "ELEVADOR"
+    RETRACTIL = "RETRACTIL"
+    OTRO = "OTRO"

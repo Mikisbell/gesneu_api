@@ -1,108 +1,266 @@
-from typing import Optional, List, Type, Dict, Any
+from typing import Optional, List
 from uuid import UUID
-from sqlalchemy.ext.asyncio import AsyncSession
 
-from .contracts import VehiculosServiceContract
-from .crud import crud_vehiculo, crud_tipos_vehiculo, crud_configuraciones_eje, crud_posiciones_neumatico, crud_registros_odometro
-from .models import Vehiculos, TiposVehiculo, ConfiguracionesEje, PosicionesNeumatico, RegistrosOdometro
+from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy import select
+
+from .models import (
+    Vehiculos, TiposVehiculo, ConfiguracionesEje, 
+    PosicionesNeumatico, RegistrosOdometro
+)
 from .schemas import (
-    VehiculoCreate, VehiculoUpdate, 
-    TiposVehiculoCreate, TiposVehiculoUpdate, 
-    ConfiguracionesEjeCreate, ConfiguracionesEjeUpdate, 
-    PosicionesNeumaticoCreate, PosicionesNeumaticoUpdate, 
-    RegistrosOdometroCreate, RegistrosOdometroUpdate
+    VehiculosCreate, VehiculosUpdate, VehiculosRead,
+    TiposVehiculoCreate, TiposVehiculoUpdate, TiposVehiculoRead,
+    ConfiguracionesEjeCreate, ConfiguracionesEjeUpdate, ConfiguracionesEjeRead,
+    PosicionesNeumaticoCreate, PosicionesNeumaticoUpdate, PosicionesNeumaticoRead,
+    RegistrosOdometroCreate, RegistrosOdometroUpdate, RegistrosOdometroRead
 )
 
-class VehiculosService(VehiculosServiceContract):
+
+class VehiculosService:
+    """Servicio para operaciones CRUD de vehículos"""
+    
     def __init__(self, db: AsyncSession):
         self.db = db
 
-    # Vehiculos CRUD
+    # ============================================================================
+    # VEHICULOS CRUD
+    # ============================================================================
+    
     async def get_vehiculo(self, vehiculo_id: UUID) -> Optional[Vehiculos]:
-        return await crud_vehiculo.get(self.db, vehiculo_id)
-
+        """Obtiene un vehículo por ID"""
+        result = await self.db.execute(
+            select(Vehiculos).where(Vehiculos.id == vehiculo_id)
+        )
+        return result.scalar_one_or_none()
+    
     async def get_multi_vehiculos(self, skip: int = 0, limit: int = 100) -> List[Vehiculos]:
-        return await crud_vehiculo.get_multi(self.db, skip=skip, limit=limit)
-
-    async def create_vehiculo(self, obj_in: VehiculoCreate) -> Vehiculos:
-        return await crud_vehiculo.create(self.db, obj_in)
-
-    async def update_vehiculo(self, vehiculo_id: UUID, obj_in: VehiculoUpdate) -> Optional[Vehiculos]:
-        db_obj = await crud_vehiculo.get(self.db, vehiculo_id)
-        if not db_obj: return None
-        return await crud_vehiculo.update(self.db, db_obj, obj_in.dict(exclude_unset=True))
-
+        """Obtiene múltiples vehículos con paginación"""
+        result = await self.db.execute(
+            select(Vehiculos)
+            .where(Vehiculos.activo == True)
+            .offset(skip)
+            .limit(limit)
+            .order_by(Vehiculos.numero_economico)
+        )
+        return result.scalars().all()
+    
+    async def create_vehiculo(self, obj_in: VehiculosCreate) -> Vehiculos:
+        """Crea un nuevo vehículo"""
+        db_obj = Vehiculos(**obj_in.model_dump())
+        self.db.add(db_obj)
+        await self.db.commit()
+        await self.db.refresh(db_obj)
+        return db_obj
+    
+    async def update_vehiculo(self, vehiculo_id: UUID, obj_in: VehiculosUpdate) -> Optional[Vehiculos]:
+        """Actualiza un vehículo existente"""
+        db_obj = await self.get_vehiculo(vehiculo_id)
+        if not db_obj:
+            return None
+        
+        update_data = obj_in.model_dump(exclude_unset=True)
+        for field, value in update_data.items():
+            setattr(db_obj, field, value)
+        
+        await self.db.commit()
+        await self.db.refresh(db_obj)
+        return db_obj
+    
     async def delete_vehiculo(self, vehiculo_id: UUID) -> Optional[UUID]:
-        return await crud_vehiculo.delete(self.db, vehiculo_id)
+        """Elimina un vehículo (soft delete)"""
+        db_obj = await self.get_vehiculo(vehiculo_id)
+        if not db_obj:
+            return None
+        
+        db_obj.activo = False
+        await self.db.commit()
+        return vehiculo_id
 
-    # TiposVehiculo CRUD
+    # ============================================================================
+    # TIPOS VEHICULO CRUD
+    # ============================================================================
+    
     async def get_tipo_vehiculo(self, tipo_id: UUID) -> Optional[TiposVehiculo]:
-        return await crud_tipos_vehiculo.get(self.db, tipo_id)
-
+        """Obtiene un tipo de vehículo por ID"""
+        result = await self.db.execute(
+            select(TiposVehiculo).where(TiposVehiculo.id == tipo_id)
+        )
+        return result.scalar_one_or_none()
+    
     async def get_multi_tipos_vehiculo(self, skip: int = 0, limit: int = 100) -> List[TiposVehiculo]:
-        return await crud_tipos_vehiculo.get_multi(self.db, skip=skip, limit=limit)
-
+        """Obtiene múltiples tipos de vehículo con paginación"""
+        result = await self.db.execute(
+            select(TiposVehiculo)
+            .where(TiposVehiculo.activo == True)
+            .offset(skip)
+            .limit(limit)
+            .order_by(TiposVehiculo.nombre)
+        )
+        return result.scalars().all()
+    
     async def create_tipo_vehiculo(self, obj_in: TiposVehiculoCreate) -> TiposVehiculo:
-        return await crud_tipos_vehiculo.create(self.db, obj_in)
-
+        """Crea un nuevo tipo de vehículo"""
+        db_obj = TiposVehiculo(**obj_in.model_dump())
+        self.db.add(db_obj)
+        await self.db.commit()
+        await self.db.refresh(db_obj)
+        return db_obj
+    
     async def update_tipo_vehiculo(self, tipo_id: UUID, obj_in: TiposVehiculoUpdate) -> Optional[TiposVehiculo]:
-        db_obj = await crud_tipos_vehiculo.get(self.db, tipo_id)
-        if not db_obj: return None
-        return await crud_tipos_vehiculo.update(self.db, db_obj, obj_in.dict(exclude_unset=True))
+        """Actualiza un tipo de vehículo existente"""
+        db_obj = await self.get_tipo_vehiculo(tipo_id)
+        if not db_obj:
+            return None
+        
+        update_data = obj_in.model_dump(exclude_unset=True)
+        for field, value in update_data.items():
+            setattr(db_obj, field, value)
+        
+        await self.db.commit()
+        await self.db.refresh(db_obj)
+        return db_obj
 
-    async def delete_tipo_vehiculo(self, tipo_id: UUID) -> Optional[UUID]:
-        return await crud_tipos_vehiculo.delete(self.db, tipo_id)
-
-    # ConfiguracionesEje CRUD
+    # ============================================================================
+    # CONFIGURACIONES EJE CRUD
+    # ============================================================================
+    
     async def get_configuracion_eje(self, config_id: UUID) -> Optional[ConfiguracionesEje]:
-        return await crud_configuraciones_eje.get(self.db, config_id)
-
+        """Obtiene una configuración de eje por ID"""
+        result = await self.db.execute(
+            select(ConfiguracionesEje).where(ConfiguracionesEje.id == config_id)
+        )
+        return result.scalar_one_or_none()
+    
     async def get_multi_configuraciones_eje(self, skip: int = 0, limit: int = 100) -> List[ConfiguracionesEje]:
-        return await crud_configuraciones_eje.get_multi(self.db, skip=skip, limit=limit)
-
+        """Obtiene múltiples configuraciones de eje con paginación"""
+        result = await self.db.execute(
+            select(ConfiguracionesEje)
+            .offset(skip)
+            .limit(limit)
+            .order_by(ConfiguracionesEje.tipo_vehiculo_id, ConfiguracionesEje.numero_eje)
+        )
+        return result.scalars().all()
+    
     async def create_configuracion_eje(self, obj_in: ConfiguracionesEjeCreate) -> ConfiguracionesEje:
-        return await crud_configuraciones_eje.create(self.db, obj_in)
-
+        """Crea una nueva configuración de eje"""
+        db_obj = ConfiguracionesEje(**obj_in.model_dump())
+        self.db.add(db_obj)
+        await self.db.commit()
+        await self.db.refresh(db_obj)
+        return db_obj
+    
     async def update_configuracion_eje(self, config_id: UUID, obj_in: ConfiguracionesEjeUpdate) -> Optional[ConfiguracionesEje]:
-        db_obj = await crud_configuraciones_eje.get(self.db, config_id)
-        if not db_obj: return None
-        return await crud_configuraciones_eje.update(self.db, db_obj, obj_in.dict(exclude_unset=True))
+        """Actualiza una configuración de eje existente"""
+        db_obj = await self.get_configuracion_eje(config_id)
+        if not db_obj:
+            return None
+        
+        update_data = obj_in.model_dump(exclude_unset=True)
+        for field, value in update_data.items():
+            setattr(db_obj, field, value)
+        
+        await self.db.commit()
+        await self.db.refresh(db_obj)
+        return db_obj
 
-    async def delete_configuracion_eje(self, config_id: UUID) -> Optional[UUID]:
-        return await crud_configuraciones_eje.delete(self.db, config_id)
-
-    # PosicionesNeumatico CRUD
+    # ============================================================================
+    # POSICIONES NEUMATICO CRUD
+    # ============================================================================
+    
     async def get_posicion_neumatico(self, posicion_id: UUID) -> Optional[PosicionesNeumatico]:
-        return await crud_posiciones_neumatico.get(self.db, posicion_id)
-
+        """Obtiene una posición de neumático por ID"""
+        result = await self.db.execute(
+            select(PosicionesNeumatico).where(PosicionesNeumatico.id == posicion_id)
+        )
+        return result.scalar_one_or_none()
+    
     async def get_multi_posiciones_neumatico(self, skip: int = 0, limit: int = 100) -> List[PosicionesNeumatico]:
-        return await crud_posiciones_neumatico.get_multi(self.db, skip=skip, limit=limit)
-
+        """Obtiene múltiples posiciones de neumático con paginación"""
+        result = await self.db.execute(
+            select(PosicionesNeumatico)
+            .offset(skip)
+            .limit(limit)
+            .order_by(PosicionesNeumatico.configuracion_eje_id, PosicionesNeumatico.posicion_relativa)
+        )
+        return result.scalars().all()
+    
     async def create_posicion_neumatico(self, obj_in: PosicionesNeumaticoCreate) -> PosicionesNeumatico:
-        return await crud_posiciones_neumatico.create(self.db, obj_in)
-
+        """Crea una nueva posición de neumático"""
+        db_obj = PosicionesNeumatico(**obj_in.model_dump())
+        self.db.add(db_obj)
+        await self.db.commit()
+        await self.db.refresh(db_obj)
+        return db_obj
+    
     async def update_posicion_neumatico(self, posicion_id: UUID, obj_in: PosicionesNeumaticoUpdate) -> Optional[PosicionesNeumatico]:
-        db_obj = await crud_posiciones_neumatico.get(self.db, posicion_id)
-        if not db_obj: return None
-        return await crud_posiciones_neumatico.update(self.db, db_obj, obj_in.dict(exclude_unset=True))
+        """Actualiza una posición de neumático existente"""
+        db_obj = await self.get_posicion_neumatico(posicion_id)
+        if not db_obj:
+            return None
+        
+        update_data = obj_in.model_dump(exclude_unset=True)
+        for field, value in update_data.items():
+            setattr(db_obj, field, value)
+        
+        await self.db.commit()
+        await self.db.refresh(db_obj)
+        return db_obj
 
-    async def delete_posicion_neumatico(self, posicion_id: UUID) -> Optional[UUID]:
-        return await crud_posiciones_neumatico.delete(self.db, posicion_id)
-
-    # RegistrosOdometro CRUD
+    # ============================================================================
+    # REGISTROS ODOMETRO CRUD
+    # ============================================================================
+    
     async def get_registro_odometro(self, registro_id: UUID) -> Optional[RegistrosOdometro]:
-        return await crud_registros_odometro.get(self.db, registro_id)
-
-    async def get_multi_registros_odometro(self, skip: int = 0, limit: int = 100) -> List[RegistrosOdometro]:
-        return await crud_registros_odometro.get_multi(self.db, skip=skip, limit=limit)
-
+        """Obtiene un registro de odómetro por ID"""
+        result = await self.db.execute(
+            select(RegistrosOdometro).where(RegistrosOdometro.id == registro_id)
+        )
+        return result.scalar_one_or_none()
+    
+    async def get_multi_registros_odometro(self, vehiculo_id: Optional[UUID] = None, skip: int = 0, limit: int = 100) -> List[RegistrosOdometro]:
+        """Obtiene múltiples registros de odómetro con paginación"""
+        query = select(RegistrosOdometro)
+        
+        if vehiculo_id:
+            query = query.where(RegistrosOdometro.vehiculo_id == vehiculo_id)
+        
+        result = await self.db.execute(
+            query
+            .offset(skip)
+            .limit(limit)
+            .order_by(RegistrosOdometro.fecha_medicion.desc())
+        )
+        return result.scalars().all()
+    
     async def create_registro_odometro(self, obj_in: RegistrosOdometroCreate) -> RegistrosOdometro:
-        return await crud_registros_odometro.create(self.db, obj_in)
-
+        """Crea un nuevo registro de odómetro"""
+        db_obj = RegistrosOdometro(**obj_in.model_dump())
+        self.db.add(db_obj)
+        await self.db.commit()
+        await self.db.refresh(db_obj)
+        return db_obj
+    
     async def update_registro_odometro(self, registro_id: UUID, obj_in: RegistrosOdometroUpdate) -> Optional[RegistrosOdometro]:
-        db_obj = await crud_registros_odometro.get(self.db, registro_id)
-        if not db_obj: return None
-        return await crud_registros_odometro.update(self.db, db_obj, obj_in.dict(exclude_unset=True))
-
+        """Actualiza un registro de odómetro existente"""
+        db_obj = await self.get_registro_odometro(registro_id)
+        if not db_obj:
+            return None
+        
+        update_data = obj_in.model_dump(exclude_unset=True)
+        for field, value in update_data.items():
+            setattr(db_obj, field, value)
+        
+        await self.db.commit()
+        await self.db.refresh(db_obj)
+        return db_obj
+    
     async def delete_registro_odometro(self, registro_id: UUID) -> Optional[UUID]:
-        return await crud_registros_odometro.delete(self.db, registro_id)
+        """Elimina un registro de odómetro"""
+        db_obj = await self.get_registro_odometro(registro_id)
+        if not db_obj:
+            return None
+        
+        await self.db.delete(db_obj)
+        await self.db.commit()
+        return registro_id

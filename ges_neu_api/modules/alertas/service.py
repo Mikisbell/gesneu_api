@@ -28,10 +28,10 @@ class AlertasService:
     ) -> List[Alertas]:
         """Obtener alertas pendientes."""
         stmt = select(Alertas).where(
-            Alertas.estado == 'PENDIENTE'
-        ).order_by(Alertas.prioridad.desc(), Alertas.fecha_generacion.desc()).offset(skip).limit(limit)
+            Alertas.estado_alerta == 'NUEVA'
+        ).order_by(Alertas.nivel_severidad.desc(), Alertas.timestamp_generacion.desc()).offset(skip).limit(limit)
         result = await self.db.execute(stmt)
-        return result.scalars().all()
+        return list(result.scalars().all())
     
     async def get_alertas_by_tipo(
         self, tipo_alerta: str, skip: int = 0, limit: int = 100
@@ -39,7 +39,7 @@ class AlertasService:
         """Obtener alertas por tipo."""
         stmt = select(Alertas).where(
             Alertas.tipo_alerta == tipo_alerta
-        ).order_by(Alertas.fecha_generacion.desc()).offset(skip).limit(limit)
+        ).order_by(Alertas.timestamp_generacion.desc()).offset(skip).limit(limit)
         result = await self.db.execute(stmt)
         return result.scalars().all()
     
@@ -48,26 +48,24 @@ class AlertasService:
     ) -> List[Alertas]:
         """Obtener alertas por prioridad."""
         stmt = select(Alertas).where(
-            Alertas.prioridad == prioridad
-        ).order_by(Alertas.fecha_generacion.desc()).offset(skip).limit(limit)
+            Alertas.nivel_severidad == prioridad
+        ).order_by(Alertas.timestamp_generacion.desc()).offset(skip).limit(limit)
         result = await self.db.execute(stmt)
         return result.scalars().all()
     
     async def crear_alerta(
         self, tipo_alerta: str, mensaje: str,
-        prioridad: str = 'MEDIA',
+        nivel_severidad: str = 'INFO',
         neumatico_id: Optional[UUID] = None,
-        parametro_id: Optional[UUID] = None,
-        fecha_vencimiento: Optional[datetime] = None
+        parametro_id: Optional[UUID] = None
     ) -> Alertas:
         """Crear nueva alerta."""
         alerta_data = {
             "tipo_alerta": tipo_alerta,
             "mensaje": mensaje,
-            "prioridad": prioridad,
+            "nivel_severidad": nivel_severidad,
             "neumatico_id": neumatico_id,
-            "parametro_id": parametro_id,
-            "fecha_vencimiento": fecha_vencimiento
+            "parametro_id": parametro_id
         }
         return await crud_alertas.create(self.db, alerta_data)
     
@@ -77,9 +75,9 @@ class AlertasService:
         """Marcar alerta como vista."""
         alerta = await self.get_alerta(alerta_id)
         if alerta:
-            alerta.estado = 'VISTA'
-            alerta.vista_por = usuario_id
-            alerta.fecha_vista = datetime.utcnow()
+            alerta.estado_alerta = 'VISTA'
+            alerta.usuario_gestion_id = usuario_id
+            alerta.timestamp_gestion = datetime.utcnow()
             await self.db.commit()
             await self.db.refresh(alerta)
         return alerta
@@ -91,10 +89,9 @@ class AlertasService:
         """Resolver alerta."""
         alerta = await self.get_alerta(alerta_id)
         if alerta:
-            alerta.estado = 'RESUELTA'
-            alerta.resuelta_por = usuario_id
-            alerta.fecha_resolucion = datetime.utcnow()
-            alerta.observaciones_resolucion = observaciones_resolucion
+            alerta.estado_alerta = 'GESTIONADA'
+            alerta.usuario_gestion_id = usuario_id
+            alerta.timestamp_gestion = datetime.utcnow()
             await self.db.commit()
             await self.db.refresh(alerta)
         return alerta
@@ -105,9 +102,9 @@ class AlertasService:
         """Ignorar alerta."""
         alerta = await self.get_alerta(alerta_id)
         if alerta:
-            alerta.estado = 'IGNORADA'
-            alerta.vista_por = usuario_id
-            alerta.fecha_vista = datetime.utcnow()
+            alerta.estado_alerta = 'GESTIONADA'
+            alerta.usuario_gestion_id = usuario_id
+            alerta.timestamp_gestion = datetime.utcnow()
             await self.db.commit()
             await self.db.refresh(alerta)
         return alerta

@@ -95,7 +95,23 @@ async def get_modelos(
     service: NeumaticoService = Depends(get_neumatico_service)
 ):
     """Obtener lista de modelos."""
-    return await service.get_modelos(skip=skip, limit=limit)
+    try:
+        import logging
+        logger = logging.getLogger(__name__)
+        logger.info(f"Obteniendo modelos: skip={skip}, limit={limit}")
+        
+        modelos = await service.get_modelos(skip=skip, limit=limit)
+        logger.info(f"Modelos obtenidos exitosamente: {len(modelos)} modelos")
+        return modelos
+    except Exception as e:
+        import traceback
+        logger = logging.getLogger(__name__)
+        logger.error(f"Error en get_modelos: {str(e)}")
+        logger.error(f"Traceback completo: {traceback.format_exc()}")
+        raise HTTPException(
+            status_code=500,
+            detail=f"Error interno: {str(e)}"
+        )
 
 @router.get("/modelos/{modelo_id}", response_model=ModeloResponse)
 async def get_modelo(

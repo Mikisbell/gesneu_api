@@ -1,144 +1,299 @@
 """
-Servicio para el módulo de inventario de neumáticos.
+Servicio para el módulo de inventario de neumáticos - Alineado con esquema real PostgreSQL.
 """
-from typing import List, Optional
+import logging
+import traceback
+from typing import List, Optional, Dict, Any
 from uuid import UUID
-from sqlmodel import select
+from decimal import Decimal
+from sqlmodel import select, func
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy import and_, or_, text
 
-from .models import InventarioNeumaticos, MovimientosInventario, TipoMovimientoEnum
+from .models import ParametrosInventario, InventarioView, ResumenInventario, TipoParametroInventarioEnum
+from ..neumaticos.models import Neumatico, ModeloNeumatico
+from ..catalogos.models import Almacen
 from ...core.crud import CRUDBase
 
-# CRUD para InventarioNeumaticos
-crud_inventario = CRUDBase(InventarioNeumaticos)
+# Configurar logging
+logger = logging.getLogger(__name__)
 
-# CRUD para MovimientosInventario  
-crud_movimientos = CRUDBase(MovimientosInventario)
+# CRUD para ParametrosInventario
+crud_parametros = CRUDBase(ParametrosInventario)
 
 class InventarioService:
-    """Servicio para gestión de inventario de neumáticos."""
+    """Servicio para gestión de inventario basado en tablas reales de PostgreSQL."""
     
     def __init__(self, db: AsyncSession):
         self.db = db
     
     # ============================================================================
-    # INVENTARIO NEUMÁTICOS
+    # PARÁMETROS DE INVENTARIO (tabla real)
     # ============================================================================
     
-    async def get_inventario(self, inventario_id: UUID) -> Optional[InventarioNeumaticos]:
-        """Obtener inventario por ID."""
-        return await crud_inventario.get(self.db, inventario_id)
+    async def get_parametro_inventario(self, parametro_id: UUID) -> Optional[ParametrosInventario]:
+        """Obtener parámetro de inventario por ID."""
+        try:
+            return await crud_parametros.get(self.db, parametro_id)
+        except Exception as e:
+            logger.error(f"Error en get_parametro_inventario: {str(e)}")
+            logger.error(traceback.format_exc())
+            raise
     
-    async def get_inventario_by_modelo_almacen(
+    async def get_parametros_by_modelo_almacen(
         self, modelo_id: UUID, almacen_id: UUID
-    ) -> Optional[InventarioNeumaticos]:
-        """Obtener inventario por modelo y almacén."""
-        stmt = select(InventarioNeumaticos).where(
-            InventarioNeumaticos.modelo_id == modelo_id,
-            InventarioNeumaticos.almacen_id == almacen_id
-        )
-        result = await self.db.execute(stmt)
-        return result.scalar_one_or_none()
+    ) -> List[ParametrosInventario]:
+        """Obtener parámetros por modelo y almacén."""
+        try:
+            stmt = select(ParametrosInventario).where(
+                and_(
+                    ParametrosInventario.modelo_id == modelo_id,
+                    ParametrosInventario.ubicacion_almacen_id == almacen_id,
+                    ParametrosInventario.activo == True
+                )
+            )
+            result = await self.db.execute(stmt)
+            return list(result.scalars().all())
+        except Exception as e:
+            logger.error(f"Error en get_parametros_by_modelo_almacen: {str(e)}")
+            logger.error(traceback.format_exc())
+            raise
     
-    async def get_inventarios_by_almacen(
-        self, almacen_id: UUID, skip: int = 0, limit: int = 100
-    ) -> List[InventarioNeumaticos]:
-        """Obtener inventarios por almacén."""
-        stmt = select(InventarioNeumaticos).where(
-            InventarioNeumaticos.almacen_id == almacen_id
-        ).offset(skip).limit(limit)
-        result = await self.db.execute(stmt)
-        return result.scalars().all()
-    
-    async def get_stock_bajo(self) -> List[InventarioNeumaticos]:
-        """Obtener inventarios con stock bajo."""
-        stmt = select(InventarioNeumaticos).where(
-            InventarioNeumaticos.cantidad_stock <= InventarioNeumaticos.stock_minimo
-        )
-        result = await self.db.execute(stmt)
-        return result.scalars().all()
-    
-    async def actualizar_stock(
-        self, modelo_id: UUID, almacen_id: UUID, nueva_cantidad: int
-    ) -> Optional[InventarioNeumaticos]:
-        """Actualizar cantidad de stock."""
-        inventario = await self.get_inventario_by_modelo_almacen(modelo_id, almacen_id)
-        if inventario:
-            inventario.cantidad_stock = nueva_cantidad
-            await self.db.commit()
-            await self.db.refresh(inventario)
-        return inventario
+    async def get_parametros_inventario(
+        self, skip: int = 0, limit: int = 100, activo: Optional[bool] = None
+    ) -> List[ParametrosInventario]:
+        """Listar parámetros de inventario."""
+        try:
+            logger.info(f"Obteniendo parámetros de inventario - skip: {skip}, limit: {limit}, activo: {activo}")
+            
+            # Construir consulta base
+            stmt = select(ParametrosInventario)
+            
+            # Aplicar filtro activo si se especifica
+            if activo is not None:
+                stmt = stmt.where(ParametrosInventario.activo == activo)
+            
+            # Aplicar paginación
+            stmt = stmt.offset(skip).limit(limit)
+            
+            result = await self.db.execute(stmt)
+            parametros = list(result.scalars().all())
+            logger.info(f"Encontrados {len(parametros)} parámetros de inventario")
+            return parametros
+                
+        except Exception as e:
+            logger.error(f"Error en get_parametros_inventario: {str(e)}")
+            logger.error(traceback.format_exc())
+            raise
     
     # ============================================================================
-    # MOVIMIENTOS INVENTARIO
+    # INVENTARIO BASADO EN NEUMÁTICOS (tabla real)
     # ============================================================================
     
-    async def get_movimiento(self, movimiento_id: UUID) -> Optional[MovimientosInventario]:
-        """Obtener movimiento por ID."""
-        return await crud_movimientos.get(self.db, movimiento_id)
+    async def get_inventario_resumen(
+        self, skip: int = 0, limit: int = 100
+    ) -> List[ResumenInventario]:
+        """Obtener resumen de inventario por modelo basado en tabla neumaticos."""
+        try:
+            logger.info(f"Generando resumen de inventario - skip: {skip}, limit: {limit}")
+            
+            # Consulta que agrupa neumáticos por modelo y estado_actual
+            stmt = select(
+                ModeloNeumatico.id.label('modelo_id'),
+                ModeloNeumatico.nombre.label('modelo_nombre'),
+                func.count(Neumatico.id).label('total_neumaticos'),
+                func.sum(
+                    func.case(
+                        (Neumatico.estado_actual == 'EN_STOCK', 1),
+                        else_=0
+                    )
+                ).label('en_stock'),
+                func.sum(
+                    func.case(
+                        (Neumatico.estado_actual == 'INSTALADO', 1),
+                        else_=0
+                    )
+                ).label('instalados'),
+                func.sum(
+                    func.case(
+                        (Neumatico.estado_actual == 'EN_MANTENIMIENTO', 1),
+                        else_=0
+                    )
+                ).label('en_mantenimiento'),
+                func.sum(
+                    func.case(
+                        (Neumatico.estado_actual == 'DESECHADO', 1),
+                        else_=0
+                    )
+                ).label('desechados')
+            ).select_from(
+                ModeloNeumatico
+            ).outerjoin(
+                Neumatico, ModeloNeumatico.id == Neumatico.modelo_id
+            ).group_by(
+                ModeloNeumatico.id, ModeloNeumatico.nombre
+            ).offset(skip).limit(limit)
+            
+            result = await self.db.execute(stmt)
+            rows = result.all()
+            
+            resumenes = []
+            for row in rows:
+                resumen = ResumenInventario(
+                    modelo_id=row.modelo_id,
+                    modelo_nombre=row.modelo_nombre,
+                    total_neumaticos=row.total_neumaticos or 0,
+                    en_stock=row.en_stock or 0,
+                    instalados=row.instalados or 0,
+                    en_mantenimiento=row.en_mantenimiento or 0,
+                    desechados=row.desechados or 0,
+                    almacenes=[]
+                )
+                resumenes.append(resumen)
+            
+            logger.info(f"Generados {len(resumenes)} resúmenes de inventario")
+            return resumenes
+            
+        except Exception as e:
+            logger.error(f"Error en get_inventario_resumen: {str(e)}")
+            logger.error(traceback.format_exc())
+            raise
     
-    async def get_movimientos_by_neumatico(
-        self, neumatico_id: UUID, skip: int = 0, limit: int = 100
-    ) -> List[MovimientosInventario]:
-        """Obtener movimientos por neumático."""
-        stmt = select(MovimientosInventario).where(
-            MovimientosInventario.neumatico_id == neumatico_id
-        ).order_by(MovimientosInventario.creado_en.desc()).offset(skip).limit(limit)
-        result = await self.db.execute(stmt)
-        return result.scalars().all()
+    async def get_neumaticos_en_stock(
+        self, almacen_id: Optional[UUID] = None, skip: int = 0, limit: int = 100
+    ) -> List[Neumatico]:
+        """Obtener neumáticos en stock."""
+        try:
+            logger.info(f"Obteniendo neumáticos en stock - almacen_id: {almacen_id}")
+            stmt = select(Neumatico).where(
+                Neumatico.estado_actual == 'EN_STOCK'
+            )
+            
+            if almacen_id:
+                stmt = stmt.where(Neumatico.ubicacion_almacen_id == almacen_id)
+            
+            stmt = stmt.offset(skip).limit(limit)
+            result = await self.db.execute(stmt)
+            neumaticos = list(result.scalars().all())
+            logger.info(f"Encontrados {len(neumaticos)} neumáticos en stock")
+            return neumaticos
+            
+        except Exception as e:
+            logger.error(f"Error en get_neumaticos_en_stock: {str(e)}")
+            logger.error(traceback.format_exc())
+            raise
     
-    async def get_movimientos_by_tipo(
-        self, tipo_movimiento: TipoMovimientoEnum, skip: int = 0, limit: int = 100
-    ) -> List[MovimientosInventario]:
-        """Obtener movimientos por tipo."""
-        stmt = select(MovimientosInventario).where(
-            MovimientosInventario.tipo_movimiento == tipo_movimiento
-        ).order_by(MovimientosInventario.creado_en.desc()).offset(skip).limit(limit)
-        result = await self.db.execute(stmt)
-        return result.scalars().all()
+    async def get_stock_bajo_por_parametros(self) -> List[Dict[str, Any]]:
+        """Obtener modelos con stock bajo según parámetros configurados."""
+        try:
+            logger.info("Calculando stock bajo por parámetros")
+            
+            # Subconsulta para contar neumáticos en stock por modelo y almacén
+            stock_actual = select(
+                Neumatico.modelo_id,
+                Neumatico.ubicacion_almacen_id,
+                func.count(Neumatico.id).label('cantidad_actual')
+            ).where(
+                Neumatico.estado_actual == 'EN_STOCK'
+            ).group_by(
+                Neumatico.modelo_id, Neumatico.ubicacion_almacen_id
+            ).subquery()
+            
+            # Consulta principal que compara stock actual vs parámetros
+            stmt = select(
+                ModeloNeumatico.id.label('modelo_id'),
+                ModeloNeumatico.nombre.label('modelo_nombre'),
+                Almacen.id.label('almacen_id'),
+                Almacen.nombre.label('almacen_nombre'),
+                ParametrosInventario.valor_parametro.label('stock_minimo'),
+                func.coalesce(stock_actual.c.cantidad_actual, 0).label('stock_actual')
+            ).select_from(
+                ParametrosInventario
+            ).join(
+                ModeloNeumatico, ParametrosInventario.modelo_id == ModeloNeumatico.id
+            ).join(
+                Almacen, ParametrosInventario.ubicacion_almacen_id == Almacen.id
+            ).outerjoin(
+                stock_actual,
+                and_(
+                    stock_actual.c.modelo_id == ParametrosInventario.modelo_id,
+                    stock_actual.c.ubicacion_almacen_id == ParametrosInventario.ubicacion_almacen_id
+                )
+            ).where(
+                and_(
+                    ParametrosInventario.parametro_tipo == 'STOCK_MINIMO',
+                    ParametrosInventario.activo == True,
+                    func.coalesce(stock_actual.c.cantidad_actual, 0) < ParametrosInventario.valor_parametro
+                )
+            )
+            
+            result = await self.db.execute(stmt)
+            rows = result.all()
+            
+            stock_bajo = [
+                {
+                    'modelo_id': str(row.modelo_id),
+                    'modelo_nombre': row.modelo_nombre,
+                    'almacen_id': str(row.almacen_id),
+                    'almacen_nombre': row.almacen_nombre,
+                    'stock_minimo': float(row.stock_minimo),
+                    'stock_actual': row.stock_actual
+                }
+                for row in rows
+            ]
+            
+            logger.info(f"Encontrados {len(stock_bajo)} casos de stock bajo")
+            return stock_bajo
+            
+        except Exception as e:
+            logger.error(f"Error en get_stock_bajo_por_parametros: {str(e)}")
+            logger.error(traceback.format_exc())
+            raise
     
-    async def registrar_entrada(
-        self, neumatico_id: UUID, almacen_destino_id: UUID, 
-        cantidad: int, motivo: str, observaciones: Optional[str] = None
-    ) -> MovimientosInventario:
-        """Registrar entrada de neumático al inventario."""
-        movimiento_data = {
-            "neumatico_id": neumatico_id,
-            "tipo_movimiento": TipoMovimientoEnum.ENTRADA,
-            "almacen_destino_id": almacen_destino_id,
-            "cantidad": cantidad,
-            "motivo": motivo,
-            "observaciones": observaciones
-        }
-        return await crud_movimientos.create(self.db, movimiento_data)
+    # ============================================================================
+    # GESTIÓN DE PARÁMETROS
+    # ============================================================================
     
-    async def registrar_salida(
-        self, neumatico_id: UUID, almacen_origen_id: UUID,
-        cantidad: int, motivo: str, observaciones: Optional[str] = None
-    ) -> MovimientosInventario:
-        """Registrar salida de neumático del inventario."""
-        movimiento_data = {
-            "neumatico_id": neumatico_id,
-            "tipo_movimiento": TipoMovimientoEnum.SALIDA,
-            "almacen_origen_id": almacen_origen_id,
-            "cantidad": cantidad,
-            "motivo": motivo,
-            "observaciones": observaciones
-        }
-        return await crud_movimientos.create(self.db, movimiento_data)
+    async def crear_parametro_inventario(
+        self, parametro_tipo: str, modelo_id: UUID, almacen_id: UUID, 
+        valor: Decimal, creado_por: UUID
+    ) -> ParametrosInventario:
+        """Crear nuevo parámetro de inventario."""
+        try:
+            logger.info(f"Creando parámetro de inventario - tipo: {parametro_tipo}")
+            parametro_data = {
+                "parametro_tipo": parametro_tipo,
+                "modelo_id": modelo_id,
+                "ubicacion_almacen_id": almacen_id,
+                "valor_parametro": valor,
+                "creado_por": creado_por
+            }
+            parametro = await crud_parametros.create(self.db, parametro_data)
+            logger.info(f"Parámetro creado con ID: {parametro.id}")
+            return parametro
+        except Exception as e:
+            logger.error(f"Error en crear_parametro_inventario: {str(e)}")
+            logger.error(traceback.format_exc())
+            raise
     
-    async def registrar_transferencia(
-        self, neumatico_id: UUID, almacen_origen_id: UUID, almacen_destino_id: UUID,
-        cantidad: int, motivo: str, observaciones: Optional[str] = None
-    ) -> MovimientosInventario:
-        """Registrar transferencia entre almacenes."""
-        movimiento_data = {
-            "neumatico_id": neumatico_id,
-            "tipo_movimiento": TipoMovimientoEnum.TRANSFERENCIA,
-            "almacen_origen_id": almacen_origen_id,
-            "almacen_destino_id": almacen_destino_id,
-            "cantidad": cantidad,
-            "motivo": motivo,
-            "observaciones": observaciones
-        }
-        return await crud_movimientos.create(self.db, movimiento_data)
+    async def actualizar_parametro_inventario(
+        self, parametro_id: UUID, valor: Decimal, actualizado_por: UUID
+    ) -> Optional[ParametrosInventario]:
+        """Actualizar valor de parámetro de inventario."""
+        try:
+            logger.info(f"Actualizando parámetro {parametro_id} con valor {valor}")
+            parametro = await self.get_parametro_inventario(parametro_id)
+            if parametro:
+                update_data = {
+                    "valor_parametro": valor,
+                    "actualizado_por": actualizado_por
+                }
+                parametro_actualizado = await crud_parametros.update(self.db, parametro_id, update_data)
+                logger.info(f"Parámetro {parametro_id} actualizado exitosamente")
+                return parametro_actualizado
+            logger.warning(f"Parámetro {parametro_id} no encontrado")
+            return None
+        except Exception as e:
+            logger.error(f"Error en actualizar_parametro_inventario: {str(e)}")
+            logger.error(traceback.format_exc())
+            raise

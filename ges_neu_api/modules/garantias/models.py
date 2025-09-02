@@ -31,12 +31,13 @@ class GarantiasNeumaticos(SQLModel, table=True):
         sa_column=Column(PG_UUID(as_uuid=True), primary_key=True, server_default=text("gen_random_uuid()"))
     )
     neumatico_id: UUID = Field(sa_column=Column(PG_UUID(as_uuid=True), ForeignKey("neumaticos.id"), nullable=False))
-    proveedor_id: UUID = Field(sa_column=Column(PG_UUID(as_uuid=True), ForeignKey("proveedores.id"), nullable=False))
-    fecha_inicio: date = Field(sa_column=Column(Date, nullable=False))
-    fecha_vencimiento: date = Field(sa_column=Column(Date, nullable=False))
+    proveedor_id: Optional[UUID] = Field(default=None, sa_column=Column(PG_UUID(as_uuid=True), ForeignKey("proveedores.id")))
     tipo_garantia: str = Field(sa_column=Column(String(50), nullable=False))
-    cobertura_descripcion: Optional[str] = Field(default=None, sa_column=Column(Text))
-    activo: bool = Field(default=True, sa_column=Column(Boolean, nullable=False, server_default=text('true')))
+    fecha_inicio: date = Field(sa_column=Column(Date, nullable=False))
+    fecha_fin: Optional[date] = Field(default=None, sa_column=Column(Date))
+    kilometraje_cubierto: Optional[int] = Field(default=None, sa_column=Column(Integer))
+    meses_cobertura: Optional[int] = Field(default=None, sa_column=Column(Integer))
+    condiciones_url: Optional[str] = Field(default=None, sa_column=Column(Text))
     creado_en: datetime = Field(
         default_factory=datetime.utcnow,
         sa_column=Column(TIMESTAMP, nullable=False, server_default=text("now()"))
@@ -47,10 +48,11 @@ class GarantiasNeumaticos(SQLModel, table=True):
     
     # Constraints exactos del esquema real
     __table_args__ = (
-        CheckConstraint('fecha_vencimiento > fecha_inicio', name='garantias_neumaticos_fechas_check'),
+        CheckConstraint("tipo_garantia IN ('KILOMETRAJE', 'TIEMPO', 'AMBOS')", name='chk_tipo_garantia'),
+        CheckConstraint('(fecha_fin IS NULL) OR (fecha_fin >= fecha_inicio)', name='chk_fechas_garantia'),
         Index('idx_garantias_neumaticos_neumatico', 'neumatico_id'),
         Index('idx_garantias_neumaticos_proveedor', 'proveedor_id'),
-        Index('idx_garantias_neumaticos_vencimiento', 'fecha_vencimiento'),
+        Index('idx_garantias_neumaticos_fecha_fin', 'fecha_fin'),
     )
     
     # Relationships - removed to avoid circular imports

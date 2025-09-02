@@ -1,125 +1,91 @@
 """
-Router para el módulo de eventos de neumáticos.
+Router del módulo de eventos - Creado desde cero basado en ESQUEMA_COMPLETO_BD.md
 """
-from typing import List, Optional
+from typing import List
 from uuid import UUID
-from datetime import datetime
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from ...core.database import get_session
+from ges_neu_api.core.database import get_session
+from ges_neu_api.modules.auth.dependencies import get_current_user
+from ges_neu_api.modules.auth.schemas import UserRead
 from .service import EventosService
-from .models import EventosNeumaticos, HistorialEstadosNeumaticos, MedicionesProfundidad
-from .models import TipoEventoNeumaticoEnum, EstadoNeumaticoEnum
+from .schemas import EventoNeumaticoResponse, EventoNeumaticoCreate
 
-router = APIRouter(prefix="/eventos", tags=["eventos"])
+router = APIRouter()
 
-async def get_eventos_service(db: AsyncSession = Depends(get_session)) -> EventosService:
-    return EventosService(db)
+def get_eventos_service(session: AsyncSession = Depends(get_session)) -> EventosService:
+    """Dependency para obtener el servicio de eventos."""
+    return EventosService(session)
 
-# ============================================================================
-# EVENTOS NEUMÁTICOS
-# ============================================================================
-
-@router.post("/", response_model=EventosNeumaticos)
-async def registrar_evento(
-    neumatico_id: UUID,
-    tipo_evento: TipoEventoNeumaticoEnum,
-    usuario_id: UUID,
-    datos_evento: dict,
-    observaciones: Optional[str] = None,
-    vehiculo_id: Optional[UUID] = None,
-    service: EventosService = Depends(get_eventos_service)
-):
-    """Registrar nuevo evento de neumático."""
-    return await service.registrar_evento(
-        neumatico_id, tipo_evento, usuario_id, datos_evento, observaciones, vehiculo_id
-    )
-
-@router.get("/neumatico/{neumatico_id}", response_model=List[EventosNeumaticos])
-async def get_eventos_neumatico(
-    neumatico_id: UUID,
+@router.get("/", response_model=List[EventoNeumaticoResponse])
+async def get_eventos(
     skip: int = 0,
     limit: int = 100,
+    current_user: UserRead = Depends(get_current_user),
     service: EventosService = Depends(get_eventos_service)
 ):
-    """Obtener eventos de un neumático."""
-    return await service.get_eventos_neumatico(neumatico_id, skip, limit)
-
-@router.get("/tipo/{tipo_evento}", response_model=List[EventosNeumaticos])
-async def get_eventos_by_tipo(
-    tipo_evento: TipoEventoNeumaticoEnum,
-    skip: int = 0,
-    limit: int = 100,
-    service: EventosService = Depends(get_eventos_service)
-):
-    """Obtener eventos por tipo."""
-    return await service.get_eventos_by_tipo(tipo_evento, skip, limit)
-
-# ============================================================================
-# HISTORIAL ESTADOS
-# ============================================================================
-
-@router.post("/estados/cambiar", response_model=HistorialEstadosNeumaticos)
-async def cambiar_estado_neumatico(
-    neumatico_id: UUID,
-    estado_nuevo: EstadoNeumaticoEnum,
-    motivo_cambio: Optional[str] = None,
-    observaciones: Optional[str] = None,
-    service: EventosService = Depends(get_eventos_service)
-):
-    """Registrar cambio de estado de neumático."""
-    return await service.cambiar_estado_neumatico(
-        neumatico_id, estado_nuevo, motivo_cambio, observaciones
-    )
-
-@router.get("/estados/neumatico/{neumatico_id}", response_model=List[HistorialEstadosNeumaticos])
-async def get_historial_estados(
-    neumatico_id: UUID,
-    skip: int = 0,
-    limit: int = 100,
-    service: EventosService = Depends(get_eventos_service)
-):
-    """Obtener historial de estados de un neumático."""
-    return await service.get_historial_estados(neumatico_id, skip, limit)
-
-# ============================================================================
-# MEDICIONES PROFUNDIDAD
-# ============================================================================
-
-@router.post("/mediciones", response_model=MedicionesProfundidad)
-async def registrar_medicion(
-    neumatico_id: UUID,
-    profundidad_mm: float,
-    metodo_medicion: str = "MANUAL",
-    observaciones: Optional[str] = None,
-    service: EventosService = Depends(get_eventos_service)
-):
-    """Registrar nueva medición de profundidad."""
-    return await service.registrar_medicion(
-        neumatico_id, profundidad_mm, metodo_medicion, observaciones
-    )
-
-@router.get("/mediciones/neumatico/{neumatico_id}", response_model=List[MedicionesProfundidad])
-async def get_mediciones_neumatico(
-    neumatico_id: UUID,
-    skip: int = 0,
-    limit: int = 100,
-    service: EventosService = Depends(get_eventos_service)
-):
-    """Obtener mediciones de un neumático."""
-    return await service.get_mediciones_neumatico(neumatico_id, skip, limit)
-
-@router.get("/mediciones/ultima/{neumatico_id}", response_model=MedicionesProfundidad)
-async def get_ultima_medicion(
-    neumatico_id: UUID,
-    service: EventosService = Depends(get_eventos_service)
-):
-    """Obtener la última medición de profundidad."""
-    medicion = await service.get_ultima_medicion(neumatico_id)
-    if not medicion:
+    """Obtener lista de eventos de neumáticos."""
+    try:
+        eventos = await service.get_eventos(skip=skip, limit=limit)
+        return eventos
+    except Exception as e:
         raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="No se encontraron mediciones para este neumático"
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Error al obtener eventos: {str(e)}"
         )
-    return medicion
+
+@router.get("/{evento_id}", response_model=EventoNeumaticoResponse)
+async def get_evento(
+    evento_id: UUID,
+    current_user: UserRead = Depends(get_current_user),
+    service: EventosService = Depends(get_eventos_service)
+):
+    """Obtener evento por ID."""
+    try:
+        evento = await service.get_evento_by_id(evento_id)
+        if not evento:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Evento no encontrado"
+            )
+        return evento
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Error al obtener evento: {str(e)}"
+        )
+
+@router.post("/", response_model=EventoNeumaticoResponse)
+async def create_evento(
+    evento_data: EventoNeumaticoCreate,
+    current_user: UserRead = Depends(get_current_user),
+    service: EventosService = Depends(get_eventos_service)
+):
+    """Crear nuevo evento de neumático."""
+    try:
+        evento = await service.create_evento(evento_data)
+        return evento
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Error al crear evento: {str(e)}"
+        )
+
+@router.get("/neumatico/{neumatico_id}", response_model=List[EventoNeumaticoResponse])
+async def get_eventos_by_neumatico(
+    neumatico_id: UUID,
+    current_user: UserRead = Depends(get_current_user),
+    service: EventosService = Depends(get_eventos_service)
+):
+    """Obtener eventos por ID de neumático."""
+    try:
+        eventos = await service.get_eventos_by_neumatico(neumatico_id)
+        return eventos
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Error al obtener eventos del neumático: {str(e)}"
+        )

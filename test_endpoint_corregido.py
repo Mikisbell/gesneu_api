@@ -9,11 +9,11 @@ import json
 from datetime import datetime
 
 # Configuración
-BASE_URL = "http://localhost:8000"
+BASE_URL = "http://localhost:8001"
 ENDPOINT = "/api/v1/catalogos/proveedores"
 
 # Token JWT válido (actualizado)
-JWT_TOKEN = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJhZG1pbiIsImV4cCI6MTc1Njc4MDM5MH0.mjWUaVDnmznHp_a4m2zfshDquv0XRuZFqR-FGReaDQE"
+JWT_TOKEN = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJhZG1pbiIsImV4cCI6MTc1NjgyNDgxOX0.1fmAvKbMorKg1sLxskLSzlspBxakPO0Y87szZVqOo8o"
 
 async def test_endpoint():
     """Prueba el endpoint de proveedores"""

@@ -54,12 +54,18 @@ class BitacoraOperacionesNeumaticos(SQLModel, table=True):
     id: UUID = Field(default_factory=uuid4, sa_column=Column(PG_UUID(as_uuid=True), primary_key=True, server_default=text("gen_random_uuid()")))
     operacion_id: UUID = Field(sa_column=Column(PG_UUID(as_uuid=True), ForeignKey("bitacora_operaciones.id"), nullable=False))
     neumatico_id: UUID = Field(sa_column=Column(PG_UUID(as_uuid=True), ForeignKey("neumaticos.id"), nullable=False))
-    accion_realizada: str = Field(sa_column=Column(String(100), nullable=False))
-    posicion_anterior_id: Optional[UUID] = Field(default=None, sa_column=Column(PG_UUID(as_uuid=True), ForeignKey("posiciones_neumatico.id")))
-    posicion_nueva_id: Optional[UUID] = Field(default=None, sa_column=Column(PG_UUID(as_uuid=True), ForeignKey("posiciones_neumatico.id")))
+    tipo_accion: str = Field(sa_column=Column(String(50), nullable=False))  # Enum como string según esquema
+    posicion_neumatico_id: Optional[UUID] = Field(default=None, sa_column=Column(PG_UUID(as_uuid=True), ForeignKey("posiciones_neumatico.id")))
+    profundidad_inicial_mm: Optional[Decimal] = Field(default=None, sa_column=Column(Numeric(5,2)))
+    profundidad_final_mm: Optional[Decimal] = Field(default=None, sa_column=Column(Numeric(5,2)))
+    presion_inicial_psi: Optional[Decimal] = Field(default=None, sa_column=Column(Numeric(5,2)))
+    presion_final_psi: Optional[Decimal] = Field(default=None, sa_column=Column(Numeric(5,2)))
+    kilometraje_vehiculo_km: Optional[Decimal] = Field(default=None, sa_column=Column(Numeric(10,2)))
     observaciones: Optional[str] = Field(default=None, sa_column=Column(Text))
     creado_en: datetime = Field(default_factory=datetime.utcnow, sa_column=Column(TIMESTAMP(timezone=True), nullable=False, server_default=text("now()")))
+    actualizado_en: datetime = Field(default_factory=datetime.utcnow, sa_column=Column(TIMESTAMP(timezone=True), nullable=False, server_default=text("now()")))
     creado_por: Optional[UUID] = Field(default=None, sa_column=Column(PG_UUID(as_uuid=True), ForeignKey("usuarios.id")))
+    actualizado_por: Optional[UUID] = Field(default=None, sa_column=Column(PG_UUID(as_uuid=True), ForeignKey("usuarios.id")))
 
 # ============================================================================
 # SISTEMA DE AUDITORÍA

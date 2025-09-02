@@ -5,14 +5,15 @@ from typing import List, Optional
 from uuid import UUID
 from datetime import datetime
 
-from sqlmodel import Session, select
+from sqlmodel import select
+from sqlalchemy.ext.asyncio import AsyncSession
 from ...core.crud import CRUDBase
 from ..bitacoras.models import ParametrosSistema, TareasProgramadas, Rutas, TiposRuta
 
 class SistemaService:
     """Servicio para gestión de parámetros y configuración del sistema."""
     
-    def __init__(self, db: Session):
+    def __init__(self, db: AsyncSession):
         self.db = db
         self.parametros_sistema_crud = CRUDBase(ParametrosSistema)
         self.tareas_programadas_crud = CRUDBase(TareasProgramadas)
@@ -27,8 +28,8 @@ class SistemaService:
     async def get_parametro_sistema(self, clave: str) -> Optional[ParametrosSistema]:
         """Obtener parámetro específico del sistema por clave."""
         stmt = select(ParametrosSistema).where(ParametrosSistema.clave == clave)
-        result = self.db.exec(stmt)
-        return result.first()
+        result = await self.db.execute(stmt)
+        return result.scalars().first()
 
     async def create_parametro_sistema(self, parametro_data: dict) -> ParametrosSistema:
         """Crear nuevo parámetro del sistema."""
@@ -61,8 +62,8 @@ class SistemaService:
         """Obtener tareas programadas, opcionalmente filtradas por estado."""
         if activa is not None:
             stmt = select(TareasProgramadas).where(TareasProgramadas.activa == activa)
-            result = self.db.exec(stmt)
-            return result.all()
+            result = await self.db.execute(stmt)
+            return result.scalars().all()
         return await self.tareas_programadas_crud.get_multi(self.db)
 
     async def get_tarea_programada(self, tarea_id: int) -> Optional[TareasProgramadas]:
@@ -100,8 +101,8 @@ class SistemaService:
         """Obtener rutas."""
         if activo is not None:
             stmt = select(Rutas).where(Rutas.activo == activo).offset(skip).limit(limit)
-            result = self.db.exec(stmt)
-            return result.all()
+            result = await self.db.execute(stmt)
+            return result.scalars().all()
         return await self.rutas_crud.get_multi(self.db, skip=skip, limit=limit)
 
     async def get_ruta(self, ruta_id: UUID) -> Optional[Rutas]:
@@ -111,8 +112,8 @@ class SistemaService:
     async def get_ruta_by_codigo(self, codigo: str) -> Optional[Rutas]:
         """Obtener ruta por código."""
         stmt = select(Rutas).where(Rutas.codigo == codigo)
-        result = self.db.exec(stmt)
-        return result.first()
+        result = await self.db.execute(stmt)
+        return result.scalars().first()
 
     async def create_ruta(self, ruta_data: dict) -> Rutas:
         """Crear nueva ruta."""
@@ -134,8 +135,8 @@ class SistemaService:
         """Obtener tipos de ruta."""
         if activo is not None:
             stmt = select(TiposRuta).where(TiposRuta.activo == activo).offset(skip).limit(limit)
-            result = self.db.exec(stmt)
-            return result.all()
+            result = await self.db.execute(stmt)
+            return result.scalars().all()
         return await self.tipos_ruta_crud.get_multi(self.db, skip=skip, limit=limit)
 
     async def get_tipo_ruta(self, tipo_id: UUID) -> Optional[TiposRuta]:
@@ -145,8 +146,8 @@ class SistemaService:
     async def get_tipo_ruta_by_nombre(self, nombre: str) -> Optional[TiposRuta]:
         """Obtener tipo de ruta por nombre."""
         stmt = select(TiposRuta).where(TiposRuta.nombre == nombre)
-        result = self.db.exec(stmt)
-        return result.first()
+        result = await self.db.execute(stmt)
+        return result.scalars().first()
 
     async def create_tipo_ruta(self, tipo_data: dict) -> TiposRuta:
         """Crear nuevo tipo de ruta."""

@@ -157,11 +157,40 @@ class NeumaticoService(NeumaticoServiceContract):
     
     async def get_modelos(self, skip: int = 0, limit: int = 100) -> List[ModeloResponse]:
         """Obtener lista de modelos."""
-        result = await self.db.execute(
-            select(ModeloNeumatico).offset(skip).limit(limit)
-        )
-        modelos = result.scalars().all()
-        return [ModeloResponse.model_validate(m) for m in modelos]
+        try:
+            import logging
+            logger = logging.getLogger(__name__)
+            logger.info(f"Obteniendo modelos de neumáticos - skip: {skip}, limit: {limit}")
+            
+            result = await self.db.execute(
+                select(ModeloNeumatico).offset(skip).limit(limit)
+            )
+            modelos = result.scalars().all()
+            logger.info(f"Encontrados {len(modelos)} modelos en la base de datos")
+            
+            # Convertir a lista para evitar problemas con el generador
+            modelos_list = list(modelos)
+            
+            # Validar cada modelo individualmente para detectar errores
+            modelos_response = []
+            for i, modelo in enumerate(modelos_list):
+                try:
+                    modelo_response = ModeloResponse.model_validate(modelo)
+                    modelos_response.append(modelo_response)
+                except Exception as e:
+                    logger.error(f"Error validando modelo {i}: {str(e)}")
+                    logger.error(f"Datos del modelo: {modelo.__dict__}")
+                    raise
+            
+            logger.info(f"Modelos procesados exitosamente: {len(modelos_response)}")
+            return modelos_response
+            
+        except Exception as e:
+            import traceback
+            logger = logging.getLogger(__name__)
+            logger.error(f"Error en get_modelos: {str(e)}")
+            logger.error(f"Traceback completo: {traceback.format_exc()}")
+            raise
     
     async def update_modelo(self, modelo_id: UUID, modelo_data: ModeloUpdate) -> Optional[ModeloResponse]:
         """Actualizar un modelo."""

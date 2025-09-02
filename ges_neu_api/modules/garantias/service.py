@@ -19,6 +19,12 @@ class GarantiasService:
     def __init__(self, db: AsyncSession):
         self.db = db
     
+    async def get_all_garantias(self, skip: int = 0, limit: int = 100) -> List[GarantiasNeumaticos]:
+        """Obtener todas las garantías."""
+        stmt = select(GarantiasNeumaticos).offset(skip).limit(limit)
+        result = await self.db.execute(stmt)
+        return result.scalars().all()
+    
     async def get_garantia(self, garantia_id: UUID) -> Optional[GarantiasNeumaticos]:
         """Obtener garantía por ID."""
         return await crud_garantias.get(self.db, garantia_id)
@@ -42,7 +48,7 @@ class GarantiasService:
             
         stmt = select(GarantiasNeumaticos).where(
             GarantiasNeumaticos.fecha_inicio <= fecha_referencia,
-            GarantiasNeumaticos.fecha_vencimiento >= fecha_referencia
+            GarantiasNeumaticos.fecha_fin >= fecha_referencia
         )
         result = await self.db.execute(stmt)
         return result.scalars().all()
@@ -56,24 +62,24 @@ class GarantiasService:
         fecha_limite += timedelta(days=dias_anticipacion)
         
         stmt = select(GarantiasNeumaticos).where(
-            GarantiasNeumaticos.fecha_vencimiento <= fecha_limite,
-            GarantiasNeumaticos.fecha_vencimiento >= date.today()
+            GarantiasNeumaticos.fecha_fin <= fecha_limite,
+            GarantiasNeumaticos.fecha_fin >= date.today()
         )
         result = await self.db.execute(stmt)
         return result.scalars().all()
     
     async def crear_garantia(
         self, neumatico_id: UUID, proveedor_id: UUID, 
-        fecha_inicio: date, fecha_vencimiento: date,
-        tipo_garantia: str, cobertura_descripcion: Optional[str] = None
+        fecha_inicio: date, fecha_fin: date,
+        tipo_garantia: str, condiciones_url: Optional[str] = None
     ) -> GarantiasNeumaticos:
         """Crear nueva garantía."""
         garantia_data = {
             "neumatico_id": neumatico_id,
             "proveedor_id": proveedor_id,
             "fecha_inicio": fecha_inicio,
-            "fecha_vencimiento": fecha_vencimiento,
+            "fecha_fin": fecha_fin,
             "tipo_garantia": tipo_garantia,
-            "cobertura_descripcion": cobertura_descripcion
+            "condiciones_url": condiciones_url
         }
         return await crud_garantias.create(self.db, garantia_data)

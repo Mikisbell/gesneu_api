@@ -5,7 +5,7 @@ from typing import List, Optional
 from uuid import UUID
 from datetime import datetime
 from fastapi import APIRouter, Depends, HTTPException, Query
-from sqlmodel import Session
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from ...core.database import get_session
 from .service import SistemaService
@@ -13,7 +13,7 @@ from ..bitacoras.models import ParametrosSistema, TareasProgramadas, Rutas, Tipo
 
 router = APIRouter()
 
-def get_sistema_service(db: Session = Depends(get_session)) -> SistemaService:
+def get_sistema_service(db: AsyncSession = Depends(get_session)) -> SistemaService:
     """Dependency para obtener el servicio de sistema."""
     return SistemaService(db)
 
@@ -141,7 +141,23 @@ async def get_rutas(
     service: SistemaService = Depends(get_sistema_service)
 ):
     """Obtener rutas."""
-    return await service.get_rutas(skip=skip, limit=limit, activo=activo)
+    try:
+        import logging
+        logger = logging.getLogger(__name__)
+        logger.info(f"Obteniendo rutas: skip={skip}, limit={limit}, activo={activo}")
+        
+        rutas = await service.get_rutas(skip=skip, limit=limit, activo=activo)
+        logger.info(f"Rutas obtenidas exitosamente: {len(rutas)} registros")
+        return rutas
+    except Exception as e:
+        import traceback
+        logger = logging.getLogger(__name__)
+        logger.error(f"Error en get_rutas: {str(e)}")
+        logger.error(f"Traceback completo: {traceback.format_exc()}")
+        raise HTTPException(
+            status_code=500,
+            detail=f"Error interno: {str(e)}"
+        )
 
 @router.get("/rutas/{ruta_id}", response_model=Rutas)
 async def get_ruta(
@@ -205,7 +221,23 @@ async def get_tipos_ruta(
     service: SistemaService = Depends(get_sistema_service)
 ):
     """Obtener tipos de ruta."""
-    return await service.get_tipos_ruta(skip=skip, limit=limit, activo=activo)
+    try:
+        import logging
+        logger = logging.getLogger(__name__)
+        logger.info(f"Obteniendo tipos-ruta: skip={skip}, limit={limit}, activo={activo}")
+        
+        tipos = await service.get_tipos_ruta(skip=skip, limit=limit, activo=activo)
+        logger.info(f"Tipos-ruta obtenidos exitosamente: {len(tipos)} registros")
+        return tipos
+    except Exception as e:
+        import traceback
+        logger = logging.getLogger(__name__)
+        logger.error(f"Error en get_tipos_ruta: {str(e)}")
+        logger.error(f"Traceback completo: {traceback.format_exc()}")
+        raise HTTPException(
+            status_code=500,
+            detail=f"Error interno: {str(e)}"
+        )
 
 @router.get("/tipos-ruta/{tipo_id}", response_model=TiposRuta)
 async def get_tipo_ruta(

@@ -7,7 +7,7 @@ from typing import Optional, List, TYPE_CHECKING
 from uuid import UUID, uuid4
 
 from sqlmodel import SQLModel, Field, Relationship
-from sqlalchemy import Column, String, Boolean, DateTime, Text, Integer, SmallInteger
+from sqlalchemy import Column, String, Boolean, DateTime, Text, Integer, SmallInteger, Numeric
 from sqlalchemy.dialects.postgresql import UUID as PG_UUID, JSONB
 from sqlalchemy import Enum as SQLAlchemyEnum, text
 
@@ -54,33 +54,29 @@ class EstadoTareaEnum(str, Enum):
 # ============================================================================
 
 class TiposRuta(BaseModel, table=True):
-    """Tipos de rutas para clasificación."""
+    """Tipos de rutas para clasificación - Alineado con esquema real."""
     __tablename__ = 'tipos_ruta'
     
-    nombre: str = Field(sa_column=Column(String(50), nullable=False, unique=True))
+    # Campos exactos del esquema real
+    nombre_ruta: str = Field(sa_column=Column(String(150), nullable=False, unique=True))
     descripcion: Optional[str] = Field(default=None, sa_column=Column(Text))
-    factor_desgaste: Optional[float] = Field(default=1.0, sa_column=Column(Integer))
-    
-    # Relationships
-    rutas: List["Rutas"] = Relationship(back_populates="tipo_ruta")
+    distancia_total_km_ciclo: Optional[float] = Field(default=None, sa_column=Column(Numeric(8, 2)))
+    distancia_trocha_km_ciclo: Optional[float] = Field(default=0, sa_column=Column(Numeric(8, 2), server_default=text('0')))
+    distancia_asfalto_km_ciclo: Optional[float] = Field(default=0, sa_column=Column(Numeric(8, 2), server_default=text('0')))
+    distancia_otro_terreno_km_ciclo: Optional[float] = Field(default=0, sa_column=Column(Numeric(8, 2), server_default=text('0')))
+    porcentaje_promedio_con_carga: Optional[float] = Field(default=None, sa_column=Column(Numeric(5, 2)))
 
 class Rutas(BaseModel, table=True):
-    """Rutas de operación de vehículos."""
+    """Rutas de operación de vehículos - Alineado con esquema real."""
     __tablename__ = 'rutas'
     
+    # Campos exactos del esquema real
     codigo: str = Field(sa_column=Column(String(20), nullable=False, unique=True))
     nombre: str = Field(sa_column=Column(String(100), nullable=False))
-    tipo_ruta_id: UUID = Field(foreign_key="tipos_ruta.id", nullable=False)
     descripcion: Optional[str] = Field(default=None, sa_column=Column(Text))
-    distancia_km: Optional[float] = Field(default=None, sa_column=Column(Integer))
-    tiempo_estimado_minutos: Optional[int] = Field(default=None, sa_column=Column(Integer))
-    punto_origen: Optional[str] = Field(default=None, sa_column=Column(String(200)))
-    punto_destino: Optional[str] = Field(default=None, sa_column=Column(String(200)))
-    estado: EstadoRutaEnum = Field(default=EstadoRutaEnum.ACTIVA, sa_column=Column(SQLAlchemyEnum(EstadoRutaEnum), nullable=False))
-    observaciones: Optional[str] = Field(default=None, sa_column=Column(Text))
-    
-    # Relationships
-    tipo_ruta: "TiposRuta" = Relationship(back_populates="rutas")
+    distancia_total_km: float = Field(sa_column=Column(Numeric(10, 2), nullable=False))
+    ida_vuelta: bool = Field(default=True, sa_column=Column(Boolean, nullable=False, server_default=text('true')))
+    activa: bool = Field(default=True, sa_column=Column(Boolean, nullable=False, server_default=text('true')))
 
 # ============================================================================
 # PARÁMETROS DEL SISTEMA

@@ -1,40 +1,22 @@
+"""
+Modelos SQLModel para el módulo de vehículos - Alineados exactamente con PostgreSQL
+Basado en ESQUEMA_COMPLETO_BD.md - Tablas: vehiculos, tipos_vehiculo, configuraciones_eje, posiciones_neumatico
+"""
 from datetime import date, datetime
 from decimal import Decimal
-from enum import Enum
-from typing import List, Optional, TYPE_CHECKING
+from typing import Optional
 from uuid import UUID, uuid4
 
-from sqlmodel import SQLModel, Field, Relationship, text
-from sqlalchemy import Column, String, Boolean, DateTime, Text, ForeignKey, UniqueConstraint, CheckConstraint, Integer, Numeric, Date, SmallInteger, Index, TIMESTAMP, func
-from sqlalchemy.dialects.postgresql import UUID as PG_UUID, DOMAIN, VARCHAR
+from sqlalchemy import Column, String, SmallInteger, Integer, Boolean, Date, DateTime, Text, Numeric, ForeignKey, CheckConstraint, UniqueConstraint, Index, TIMESTAMP, func
+from sqlalchemy.dialects.postgresql import UUID as PG_UUID
+from sqlalchemy.sql import text
+from sqlmodel import SQLModel, Field
 from sqlalchemy import Enum as SQLAlchemyEnum
 
-# Enums from the database
-class TipoEjeEnum(str, Enum):
-    DIRECCION = "DIRECCION"
-    TRACCION = "TRACCION"
-    ARRASTRE = "ARRASTRE"
-    ELEVADOR = "ELEVADOR"
-    RETRACTIL = "RETRACTIL"
-    OTRO = "OTRO"
-
-class LadoVehiculoEnum(str, Enum):
-    IZQUIERDO = "IZQUIERDO"
-    DERECHO = "DERECHO"
-    CENTRAL = "CENTRAL"
-    INDETERMINADO = "INDETERMINADO"
-
-if TYPE_CHECKING:
-    from ..auth.models import Usuario
-    from ..neumaticos.models import Neumatico
-    from ..eventos.models import EventosNeumaticos
+from .enums import TipoEjeEnum, LadoVehiculoEnum
 
 class TiposVehiculo(SQLModel, table=True):
     __tablename__ = 'tipos_vehiculo'
-    __table_args__ = (
-        CheckConstraint('ejes_standard >= 1 AND ejes_standard <= 10', name='tipos_vehiculo_ejes_standard_check'),
-        {'extend_existing': True}
-    )
 
     id: UUID = Field(default_factory=uuid4, sa_column=Column(PG_UUID(as_uuid=True), primary_key=True, server_default=text('public.gen_random_uuid()')))
     nombre: str = Field(sa_column=Column(String(100), nullable=False))
@@ -43,31 +25,19 @@ class TiposVehiculo(SQLModel, table=True):
     subtipo: Optional[str] = Field(default=None, sa_column=Column(String(50)))
     ejes_standard: int = Field(sa_column=Column(SmallInteger, nullable=False, server_default=text('2')))
     activo: bool = Field(sa_column=Column(Boolean, nullable=False, server_default=text('true')))
-    creado_en: datetime = Field(sa_column=Column(DateTime(timezone=True), nullable=False, server_default=text('now()')))
+    creado_en: datetime = Field(sa_column=Column(TIMESTAMP, nullable=False, server_default=text('now()')))
     creado_por: Optional[UUID] = Field(default=None, sa_column=Column(PG_UUID(as_uuid=True), ForeignKey("usuarios.id")))
-    actualizado_en: Optional[datetime] = Field(default=None, sa_column=Column(DateTime(timezone=True)))
+    actualizado_en: Optional[datetime] = Field(default=None, sa_column=Column(TIMESTAMP))
     actualizado_por: Optional[UUID] = Field(default=None, sa_column=Column(PG_UUID(as_uuid=True), ForeignKey("usuarios.id")))
     
     __table_args__ = (
         CheckConstraint('(ejes_standard >= 1) AND (ejes_standard <= 10)', name='tipos_vehiculo_ejes_standard_check'),
-        Index(
-            'idx_tipos_vehiculo_nombre',
-            func.f_immutable_lower_unaccent(text('nombre')),
-            unique=True,
-            postgresql_where=text("activo = true")
-        ),
+        {'extend_existing': True}
     )
 
 
 class ConfiguracionesEje(SQLModel, table=True):
     __tablename__ = 'configuraciones_eje'
-    __table_args__ = (
-        CheckConstraint('neumaticos_por_posicion = ANY (ARRAY[1, 2])', name='configuraciones_eje_neumaticos_por_posicion_check'),
-        CheckConstraint('numero_eje > 0', name='configuraciones_eje_numero_eje_check'),
-        CheckConstraint('numero_posiciones >= 1 AND numero_posiciones <= 6', name='configuraciones_eje_numero_posiciones_check'),
-        UniqueConstraint('tipo_vehiculo_id', 'numero_eje', name='uq_configuracion_eje'),
-        {'comment': 'Define la configuración de los ejes para un tipo de vehículo específico.'}
-    )
 
     id: UUID = Field(default_factory=uuid4, sa_column=Column(PG_UUID(as_uuid=True), primary_key=True, server_default=text('public.gen_random_uuid()')))
     tipo_vehiculo_id: UUID = Field(sa_column=Column(PG_UUID(as_uuid=True), ForeignKey("tipos_vehiculo.id"), nullable=False))
@@ -78,9 +48,9 @@ class ConfiguracionesEje(SQLModel, table=True):
     posiciones_duales: bool = Field(sa_column=Column(Boolean, nullable=False, server_default=text('false')))
     permite_reencauchados: bool = Field(sa_column=Column(Boolean, nullable=False, server_default=text('true')))
     neumaticos_por_posicion: int = Field(sa_column=Column(SmallInteger, nullable=False, server_default=text('1')))
-    creado_en: datetime = Field(sa_column=Column(DateTime(timezone=True), nullable=False, server_default=text('now()')))
+    creado_en: datetime = Field(sa_column=Column(TIMESTAMP, nullable=False, server_default=text('now()')))
     creado_por: Optional[UUID] = Field(default=None, sa_column=Column(PG_UUID(as_uuid=True), ForeignKey("usuarios.id")))
-    actualizado_en: Optional[datetime] = Field(default=None, sa_column=Column(DateTime(timezone=True)))
+    actualizado_en: Optional[datetime] = Field(default=None, sa_column=Column(TIMESTAMP))
     actualizado_por: Optional[UUID] = Field(default=None, sa_column=Column(PG_UUID(as_uuid=True), ForeignKey("usuarios.id")))
 
     # Relationships comentadas para evitar conflictos de metadata
@@ -90,11 +60,6 @@ class ConfiguracionesEje(SQLModel, table=True):
 
 class PosicionesNeumatico(SQLModel, table=True):
     __tablename__ = 'posiciones_neumatico'
-    __table_args__ = (
-        CheckConstraint('posicion_relativa > 0', name='posiciones_neumatico_posicion_relativa_check'),
-        UniqueConstraint('configuracion_eje_id', 'codigo_posicion', name='uq_posicion_neumatico'),
-        {'comment': 'Define las posiciones específicas para neumáticos en un eje configurado.'}
-    )
 
     id: UUID = Field(default_factory=uuid4, sa_column=Column(PG_UUID(as_uuid=True), primary_key=True, server_default=text('public.gen_random_uuid()')))
     configuracion_eje_id: UUID = Field(sa_column=Column(PG_UUID(as_uuid=True), ForeignKey("configuraciones_eje.id"), nullable=False))
@@ -105,10 +70,10 @@ class PosicionesNeumatico(SQLModel, table=True):
     es_direccion: bool = Field(sa_column=Column(Boolean, nullable=False, server_default=text('false')))
     es_traccion: bool = Field(sa_column=Column(Boolean, nullable=False, server_default=text('false')))
     requiere_neumatico_especifico: bool = Field(sa_column=Column(Boolean, nullable=False, server_default=text('false')))
-    creado_en: datetime = Field(sa_column=Column(DateTime(timezone=True), nullable=False, server_default=text('now()')))
+    creado_en: datetime = Field(sa_column=Column(TIMESTAMP, nullable=False, server_default=text('now()')))
     etiqueta_posicion: Optional[str] = Field(default=None, sa_column=Column(String(50)))
     creado_por: Optional[UUID] = Field(default=None, sa_column=Column(PG_UUID(as_uuid=True), ForeignKey("usuarios.id")))
-    actualizado_en: Optional[datetime] = Field(default=None, sa_column=Column(DateTime(timezone=True)))
+    actualizado_en: Optional[datetime] = Field(default=None, sa_column=Column(TIMESTAMP))
     actualizado_por: Optional[UUID] = Field(default=None, sa_column=Column(PG_UUID(as_uuid=True), ForeignKey("usuarios.id")))
 
     # Relationships comentadas para evitar conflictos de metadata
@@ -118,9 +83,13 @@ class PosicionesNeumatico(SQLModel, table=True):
 class Vehiculos(SQLModel, table=True):
     __tablename__ = 'vehiculos'
     __table_args__ = (
-        CheckConstraint('anio_fabricacion >= 1900 AND anio_fabricacion::numeric <= (EXTRACT(year FROM CURRENT_DATE) + 1::numeric)', name='vehiculos_anio_fabricacion_check'),
+    CheckConstraint('anio_fabricacion >= 1900 AND anio_fabricacion::numeric <= (EXTRACT(year FROM CURRENT_DATE) + 1::numeric)', name='vehiculos_anio_fabricacion_check'),
         CheckConstraint('fecha_baja IS NULL OR fecha_baja >= fecha_alta', name='vehiculos_fecha_baja_check'),
         CheckConstraint('odometro_actual IS NULL OR odometro_actual >= 0', name='vehiculos_odometro_actual_check'),
+        Index('idx_vehiculos_activos', 'activo', postgresql_where=text('activo = true')),
+        Index('idx_vehiculos_numero_economico', func.lower(text('numero_economico::text')), postgresql_where=text('activo = true')),
+        Index('idx_vehiculos_placa', 'placa', postgresql_where=text('placa IS NOT NULL AND activo = true')),
+        Index('idx_vehiculos_tipo', 'tipo_vehiculo_id', postgresql_where=text('activo = true')),
         UniqueConstraint('numero_economico', name='vehiculos_numero_economico_key'),
         UniqueConstraint('placa', name='vehiculos_placa_key'),
         UniqueConstraint('vin', name='vehiculos_vin_key'),
@@ -129,7 +98,7 @@ class Vehiculos(SQLModel, table=True):
 
     id: UUID = Field(default_factory=uuid4, sa_column=Column(PG_UUID(as_uuid=True), primary_key=True, server_default=text('public.gen_random_uuid()')))
     tipo_vehiculo_id: UUID = Field(sa_column=Column(PG_UUID(as_uuid=True), ForeignKey("tipos_vehiculo.id"), nullable=False))
-    placa: Optional[str] = Field(default=None, sa_column=Column(DOMAIN("placa_vehiculo")))
+    placa: Optional[str] = Field(default=None, sa_column=Column(String))
     vin: Optional[str] = Field(default=None, sa_column=Column(String(17)))
     numero_economico: str = Field(sa_column=Column(String(50), nullable=False))
     marca: Optional[str] = Field(default=None, sa_column=Column(String(50)))
@@ -139,13 +108,13 @@ class Vehiculos(SQLModel, table=True):
     fecha_baja: Optional[date] = Field(default=None, sa_column=Column(Date))
     activo: bool = Field(sa_column=Column(Boolean, nullable=False, server_default=text('true')))
     odometro_actual: Optional[int] = Field(default=None, sa_column=Column(Integer))
-    fecha_ultimo_odometro: Optional[datetime] = Field(default=None, sa_column=Column(DateTime(timezone=True)))
+    fecha_ultimo_odometro: Optional[datetime] = Field(default=None, sa_column=Column(TIMESTAMP))
     ubicacion_actual: Optional[str] = Field(default=None, sa_column=Column(String(100)))
     notas: Optional[str] = Field(default=None, sa_column=Column(Text))
-    creado_en: datetime = Field(sa_column=Column(DateTime(timezone=True), nullable=False, server_default=text('now()')))
+    creado_en: datetime = Field(sa_column=Column(TIMESTAMP, nullable=False, server_default=text('now()')))
     creado_por: Optional[UUID] = Field(default=None, sa_column=Column(PG_UUID(as_uuid=True), ForeignKey("usuarios.id")))
-    actualizado_en: Optional[datetime] = Field(default=None, sa_column=Column(DateTime(timezone=True)))
-    actualizado_por: Optional[UUID] = Field(default=None, sa_column=Column(PG_UUID(as_uuid=True), ForeignKey("usuarios.id")))
+    actualizado_en: Optional[datetime] = Field(default=None, sa_column=Column(TIMESTAMP))
+    actualizado_por: Optional[UUID] = Field(default=None, sa_column=Column(PG_UUID(as_uuid=True), ForeignKey("usuarios.id", ondelete="SET NULL")))
     peso_carga_maxima_diseno_ton: Optional[Decimal] = Field(default=None, sa_column=Column(Numeric(5, 2)))
 
     # Relationships comentadas para evitar conflictos de metadata
@@ -166,7 +135,7 @@ class RegistrosOdometro(SQLModel, table=True):
     id: UUID = Field(default_factory=uuid4, sa_column=Column(PG_UUID(as_uuid=True), primary_key=True, server_default=text('public.gen_random_uuid()')))
     vehiculo_id: UUID = Field(sa_column=Column(PG_UUID(as_uuid=True), ForeignKey("vehiculos.id"), nullable=False))
     odometro: int = Field(sa_column=Column(Integer, nullable=False))
-    fecha_medicion: datetime = Field(sa_column=Column(DateTime(timezone=True), nullable=False, server_default=text('now()')))
+    fecha_medicion: datetime = Field(sa_column=Column(TIMESTAMP, nullable=False, server_default=text('now()')))
     fuente: Optional[str] = Field(default=None, sa_column=Column(String(50), server_default=text("'manual'::character varying")))
     creado_por: Optional[UUID] = Field(default=None, sa_column=Column(PG_UUID(as_uuid=True), ForeignKey("usuarios.id")))
     notas: Optional[str] = Field(default=None, sa_column=Column(Text))

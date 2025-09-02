@@ -11,7 +11,7 @@ from ...core.database import get_session
 from .service import AlertasService
 from .models_fixed import Alertas
 
-router = APIRouter(prefix="/alertas", tags=["alertas"])
+router = APIRouter(tags=["alertas"])
 
 async def get_alertas_service(db: AsyncSession = Depends(get_session)) -> AlertasService:
     return AlertasService(db)
@@ -63,15 +63,14 @@ async def get_alertas_by_prioridad(
 async def crear_alerta(
     tipo_alerta: str,
     mensaje: str,
-    prioridad: str = 'MEDIA',
+    nivel_severidad: str = 'INFO',
     neumatico_id: Optional[UUID] = None,
     parametro_id: Optional[UUID] = None,
-    fecha_vencimiento: Optional[datetime] = None,
     service: AlertasService = Depends(get_alertas_service)
 ):
     """Crear nueva alerta."""
     return await service.crear_alerta(
-        tipo_alerta, mensaje, prioridad, neumatico_id, parametro_id, fecha_vencimiento
+        tipo_alerta, mensaje, nivel_severidad, neumatico_id, parametro_id
     )
 
 @router.put("/{alerta_id}/vista", response_model=Alertas)

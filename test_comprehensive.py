@@ -2,9 +2,9 @@ import requests
 import json
 
 # Token actualizado
-token = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJhZG1pbiIsImV4cCI6MTc1Njc4MDM5MH0.mjWUaVDnmznHp_a4m2zfshDquv0XRuZFqR-FGReaDQE"
+token = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJhZG1pbiIsImV4cCI6MTc1NjgyNDgxOX0.1fmAvKbMorKg1sLxskLSzlspBxakPO0Y87szZVqOo8o"
 headers = {'Authorization': f'Bearer {token}'}
-base_url = 'http://localhost:8000'
+base_url = 'http://localhost:8001'
 
 print("=== PRUEBAS COMPREHENSIVAS API GESNEU ===")
 print("Verificando alineación con ESQUEMA_COMPLETO_BD.md\n")

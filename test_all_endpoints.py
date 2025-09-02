@@ -9,8 +9,8 @@ import json
 from datetime import datetime
 
 # Configuración
-BASE_URL = "http://localhost:8000"
-JWT_TOKEN = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJhZG1pbiIsImV4cCI6MTc1Njc4MDM5MH0.mjWUaVDnmznHp_a4m2zfshDquv0XRuZFqR-FGReaDQE"
+BASE_URL = "http://localhost:8001"
+JWT_TOKEN = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJhZG1pbiIsImV4cCI6MTc1NjgyNDgxOX0.1fmAvKbMorKg1sLxskLSzlspBxakPO0Y87szZVqOo8o"
 
 # Endpoints a probar
 ENDPOINTS = [
@@ -18,6 +18,13 @@ ENDPOINTS = [
     "/api/v1/catalogos/almacenes", 
     "/api/v1/catalogos/motivos-desecho",
     "/api/v1/catalogos/parametros-inventario",
+    "/api/v1/vehiculos/",
+    "/api/v1/neumaticos/fabricantes",
+    "/api/v1/neumaticos/modelos",
+    "/api/v1/inventario/neumaticos",
+    "/api/v1/eventos/neumaticos",
+    "/api/v1/garantias/neumaticos",
+    "/api/v1/alertas/",
     "/docs",  # Swagger docs
     "/health"  # Health check
 ]

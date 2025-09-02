@@ -1,27 +1,18 @@
 """
-Modelos del modulo de eventos - Exactos al esquema de backup_completo.dump
+Modelos del módulo de eventos - Creados desde cero basados en ESQUEMA_COMPLETO_BD.md
 """
-from datetime import datetime, date
+from datetime import datetime
 from enum import Enum
-from typing import Optional, List, TYPE_CHECKING
+from typing import Optional
 from uuid import UUID, uuid4
 from decimal import Decimal
 
 from sqlmodel import SQLModel, Field
-from sqlalchemy import Column, String, Boolean, DateTime, Text, Integer, Numeric, Date, CheckConstraint, TIMESTAMP, ForeignKey
+from sqlalchemy import Column, String, DateTime, Text, Integer, Numeric, TIMESTAMP, ForeignKey
 from sqlalchemy.dialects.postgresql import UUID as PG_UUID, JSONB
-from sqlalchemy import Enum as SQLAlchemyEnum, text, Index
+from sqlalchemy import Enum as SQLAlchemyEnum, text, Index, CheckConstraint
 
-# BaseModel removed to avoid SQLAlchemy metadata conflicts
-
-if TYPE_CHECKING:
-    from ..auth.models import Usuario
-    from ..catalogos.models import Almacen, MotivoDesecho
-    from ..neumaticos.models import Neumatico
-    from ..vehiculos.models import Vehiculo
-    from ..sistema.models import TiposRuta
-
-# Enums exactos del esquema real
+# Enums exactos del esquema PostgreSQL
 class TipoEventoNeumaticoEnum(str, Enum):
     COMPRA = "COMPRA"
     INSTALACION = "INSTALACION"
@@ -36,129 +27,127 @@ class TipoEventoNeumaticoEnum(str, Enum):
     AJUSTE_INVENTARIO = "AJUSTE_INVENTARIO"
     TRANSFERENCIA_UBICACION = "TRANSFERENCIA_UBICACION"
 
-class EstadoNeumaticoEnum(str, Enum):
+class EstadoNeumaticoEnumDestino(str, Enum):
     EN_STOCK = "EN_STOCK"
     INSTALADO = "INSTALADO"
     EN_REPARACION = "EN_REPARACION"
     EN_REENCAUCHE = "EN_REENCAUCHE"
     DESECHADO = "DESECHADO"
+    PARA_REPARACION = "PARA_REPARACION"
+    REPARADO = "REPARADO"
+    PARA_REENCAUCHE = "PARA_REENCAUCHE"
+    REENCAUCHADO = "REENCAUCHADO"
     EN_TRANSITO = "EN_TRANSITO"
 
-class MetodoMedicionEnum(str, Enum):
-    MANUAL = "MANUAL"
-    AUTOMATICO = "AUTOMATICO"
-    DIGITAL = "DIGITAL"
-
-# ============================================================================
-# EVENTOS NEUMÁTICOS
-# ============================================================================
-
 class EventosNeumaticos(SQLModel, table=True):
-    """Eventos de neumáticos con datos completos."""
+    """Modelo para tabla eventos_neumaticos - Exacto al esquema PostgreSQL."""
     __tablename__ = 'eventos_neumaticos'
     
-    # Campos exactos del esquema real
+    # Campos obligatorios según esquema
     id: UUID = Field(
         default_factory=uuid4,
         sa_column=Column(PG_UUID(as_uuid=True), primary_key=True, server_default=text("gen_random_uuid()"))
     )
-    neumatico_id: UUID = Field(sa_column=Column(PG_UUID(as_uuid=True), ForeignKey("neumaticos.id"), nullable=False))
-    tipo_evento: str = Field(sa_column=Column(String(50), nullable=False))
-    timestamp_evento: datetime = Field(default_factory=datetime.utcnow, sa_column=Column(DateTime(timezone=True), nullable=False, server_default=text('now()')))
-    usuario_id: UUID = Field(sa_column=Column(PG_UUID(as_uuid=True), ForeignKey("usuarios.id"), nullable=False))
-    vehiculo_id: Optional[UUID] = Field(default=None, sa_column=Column(PG_UUID(as_uuid=True), ForeignKey("vehiculos.id")))
-    almacen_origen_id: Optional[UUID] = Field(default=None, sa_column=Column(PG_UUID(as_uuid=True), ForeignKey("almacenes.id")))
-    almacen_destino_id: Optional[UUID] = Field(default=None, sa_column=Column(PG_UUID(as_uuid=True), ForeignKey("almacenes.id")))
-    tipo_ruta_id: Optional[UUID] = Field(default=None, sa_column=Column(PG_UUID(as_uuid=True), ForeignKey("tipos_ruta.id")))
-    motivos_desecho_id: Optional[UUID] = Field(default=None, sa_column=Column(PG_UUID(as_uuid=True), ForeignKey("motivos_desecho.id")))
-    datos_evento: dict = Field(default_factory=dict, sa_column=Column(JSONB, nullable=False, server_default=text("'{}'")))
-    observaciones: Optional[str] = Field(default=None, sa_column=Column(Text))
+    neumatico_id: UUID = Field(
+        sa_column=Column(PG_UUID(as_uuid=True), ForeignKey("neumaticos.id"), nullable=False)
+    )
+    tipo_evento: TipoEventoNeumaticoEnum = Field(
+        sa_column=Column(SQLAlchemyEnum(TipoEventoNeumaticoEnum), nullable=False)
+    )
+    timestamp_evento: datetime = Field(
+        default_factory=datetime.utcnow,
+        sa_column=Column(DateTime(timezone=True), nullable=False, server_default=text('now()'))
+    )
+    usuario_id: UUID = Field(
+        sa_column=Column(PG_UUID(as_uuid=True), ForeignKey("usuarios.id"), nullable=False)
+    )
     creado_en: datetime = Field(
         default_factory=datetime.utcnow,
-        sa_column=Column(TIMESTAMP, nullable=False, server_default=text("now()"))
+        sa_column=Column(DateTime(timezone=True), nullable=False, server_default=text("now()"))
     )
-    creado_por: Optional[UUID] = Field(default=None, sa_column=Column(PG_UUID(as_uuid=True), ForeignKey("usuarios.id", ondelete="SET NULL")))
     
+    # Campos opcionales según esquema
+    vehiculo_id: Optional[UUID] = Field(
+        default=None, sa_column=Column(PG_UUID(as_uuid=True), ForeignKey("vehiculos.id"))
+    )
+    posicion_id: Optional[UUID] = Field(
+        default=None, sa_column=Column(PG_UUID(as_uuid=True))
+    )
+    odometro_vehiculo_en_evento: Optional[int] = Field(
+        default=None, sa_column=Column(Integer)
+    )
+    profundidad_remanente_mm: Optional[Decimal] = Field(
+        default=None, sa_column=Column(Numeric(5, 2))
+    )
+    presion_psi: Optional[Decimal] = Field(
+        default=None, sa_column=Column(Numeric(5, 2))
+    )
+    costo_evento: Optional[Decimal] = Field(
+        default=None, sa_column=Column(Numeric(10, 2))
+    )
+    moneda_costo: Optional[str] = Field(
+        default='PEN', sa_column=Column(String(3), server_default=text("'PEN'"))
+    )
+    proveedor_servicio_id: Optional[UUID] = Field(
+        default=None, sa_column=Column(PG_UUID(as_uuid=True))
+    )
+    notas: Optional[str] = Field(
+        default=None, sa_column=Column(Text)
+    )
+    destino_desmontaje: Optional[EstadoNeumaticoEnumDestino] = Field(
+        default=None, sa_column=Column(SQLAlchemyEnum(EstadoNeumaticoEnumDestino))
+    )
+    motivo_desecho_id_evento: Optional[UUID] = Field(
+        default=None, sa_column=Column(PG_UUID(as_uuid=True), ForeignKey("motivos_desecho.id"))
+    )
+    profundidad_post_reencauche_mm: Optional[Decimal] = Field(
+        default=None, sa_column=Column(Numeric(5, 2))
+    )
+    datos_evento: Optional[dict] = Field(
+        default=None, sa_column=Column(JSONB)
+    )
+    relacion_evento_anterior: Optional[UUID] = Field(
+        default=None, sa_column=Column(PG_UUID(as_uuid=True))
+    )
+    almacen_destino_id: Optional[UUID] = Field(
+        default=None, sa_column=Column(PG_UUID(as_uuid=True), ForeignKey("almacenes.id"))
+    )
+    tipo_ruta_id: Optional[UUID] = Field(
+        default=None, sa_column=Column(PG_UUID(as_uuid=True), ForeignKey("tipos_ruta.id"))
+    )
+    peso_carga_promedio_ton_evento: Optional[Decimal] = Field(
+        default=None, sa_column=Column(Numeric(5, 2))
+    )
+    motivo_reparacion_texto: Optional[str] = Field(
+        default=None, sa_column=Column(Text)
+    )
+    tipo_dano_detectado_texto: Optional[str] = Field(
+        default=None, sa_column=Column(Text)
+    )
+    
+    # Constraints e índices según esquema REAL
     __table_args__ = (
-        CheckConstraint("tipo_evento IN ('COMPRA', 'INSTALACION', 'DESMONTAJE', 'INSPECCION', 'ROTACION', 'REPARACION_ENTRADA', 'REPARACION_SALIDA', 'REENCAUCHE_ENTRADA', 'REENCAUCHE_SALIDA', 'DESECHO', 'AJUSTE_INVENTARIO', 'TRANSFERENCIA_UBICACION')", name='eventos_neumaticos_tipo_evento_check'),
-        Index('idx_eventos_neumaticos_neumatico', 'neumatico_id'),
-        Index('idx_eventos_neumaticos_tipo', 'tipo_evento'),
-        Index('idx_eventos_neumaticos_timestamp', 'timestamp_evento'),
+        # Check constraints según ESQUEMA_COMPLETO_BD.md
+        CheckConstraint("id IS NOT NULL", name='2200_19601_1_not_null'),
+        CheckConstraint("neumatico_id IS NOT NULL", name='2200_19601_2_not_null'),
+        CheckConstraint("tipo_evento IS NOT NULL", name='2200_19601_3_not_null'),
+        CheckConstraint("timestamp_evento IS NOT NULL", name='2200_19601_4_not_null'),
+        CheckConstraint("usuario_id IS NOT NULL", name='2200_19601_5_not_null'),
+        CheckConstraint("creado_en IS NOT NULL", name='2200_19601_20_not_null'),
+        CheckConstraint("((tipo_evento <> 'DESMONTAJE'::tipo_evento_neumatico_enum) OR (destino_desmontaje IS NOT NULL))", name='chk_destino_desmontaje'),
+        CheckConstraint("(((tipo_evento <> 'DESECHO'::tipo_evento_neumatico_enum) AND ((tipo_evento <> 'DESMONTAJE'::tipo_evento_neumatico_enum) OR (destino_desmontaje <> 'DESECHADO'::estado_neumatico_enum))) OR (motivo_desecho_id_evento IS NOT NULL))", name='chk_motivo_desecho'),
+        CheckConstraint("((tipo_evento <> 'REENCAUCHE_SALIDA'::tipo_evento_neumatico_enum) OR (profundidad_post_reencauche_mm IS NOT NULL))", name='chk_profundidad_reencauche'),
+        CheckConstraint("((costo_evento IS NULL) OR (costo_evento >= (0)::numeric))", name='eventos_neumaticos_costo_evento_check'),
+        CheckConstraint("((odometro_vehiculo_en_evento IS NULL) OR (odometro_vehiculo_en_evento >= 0))", name='eventos_neumaticos_odometro_vehiculo_en_evento_check'),
+        CheckConstraint("((presion_psi IS NULL) OR (presion_psi > (0)::numeric))", name='eventos_neumaticos_presion_psi_check'),
+        CheckConstraint("((profundidad_post_reencauche_mm IS NULL) OR (profundidad_post_reencauche_mm > (0)::numeric))", name='eventos_neumaticos_profundidad_post_reencauche_mm_check'),
+        CheckConstraint("((profundidad_remanente_mm IS NULL) OR (profundidad_remanente_mm >= (0)::numeric))", name='eventos_neumaticos_profundidad_remanente_mm_check'),
+        # Índices según esquema real COMPLETO
+        Index('idx_eventos_neumatico', 'neumatico_id'),
+        Index('idx_eventos_neumatico_fecha', 'neumatico_id', 'timestamp_evento'),
+        Index('idx_eventos_neumatico_tipo_fecha', 'neumatico_id', 'tipo_evento', 'timestamp_evento'),
+        Index('idx_eventos_neumaticos_tipo_ruta_id', 'tipo_ruta_id'),
+        Index('idx_eventos_timestamp', 'timestamp_evento'),
+        Index('idx_eventos_tipo', 'tipo_evento'),
+        Index('idx_eventos_usuario', 'usuario_id'),
     )
-    
-    # Relationships - simplified to avoid circular imports
-    # neumatico: handled at service layer
-    # usuario: handled at service layer
-    # vehiculo: handled at service layer
-    # tipo_ruta: handled at service layer
-    # motivos_desecho: handled at service layer
-
-# ============================================================================
-# HISTORIAL ESTADOS NEUMÁTICOS
-# ============================================================================
-
-class HistorialEstadosNeumaticos(SQLModel, table=True):
-    """Historial de cambios de estado de neumáticos."""
-    __tablename__ = 'historial_estados_neumaticos'
-    
-    # Campos exactos del esquema real
-    id: UUID = Field(
-        default_factory=uuid4,
-        sa_column=Column(PG_UUID(as_uuid=True), primary_key=True, server_default=text("gen_random_uuid()"))
-    )
-    neumatico_id: UUID = Field(sa_column=Column(PG_UUID(as_uuid=True), ForeignKey("neumaticos.id"), nullable=False))
-    estado_anterior: Optional[str] = Field(default=None, sa_column=Column(String(50)))
-    estado_nuevo: str = Field(sa_column=Column(String(50), nullable=False))
-    fecha_cambio: datetime = Field(default_factory=datetime.utcnow, sa_column=Column(DateTime(timezone=True), nullable=False, server_default=text('now()')))
-    motivo_cambio: Optional[str] = Field(default=None, sa_column=Column(Text))
-    observaciones: Optional[str] = Field(default=None, sa_column=Column(Text))
-    creado_en: datetime = Field(
-        default_factory=datetime.utcnow,
-        sa_column=Column(TIMESTAMP, nullable=False, server_default=text("now()"))
-    )
-    creado_por: Optional[UUID] = Field(default=None, sa_column=Column(PG_UUID(as_uuid=True), ForeignKey("usuarios.id", ondelete="SET NULL")))
-    
-    # Índices exactos del esquema real
-    __table_args__ = (
-        Index('idx_historial_estados_neumatico', 'neumatico_id'),
-        Index('idx_historial_estados_fecha', 'fecha_cambio'),
-        Index('idx_historial_estados_estado_nuevo', 'estado_nuevo'),
-    )
-    
-    # Relationships - removed to avoid circular imports
-
-# ============================================================================
-# MEDICIONES PROFUNDIDAD
-# ============================================================================
-
-class MedicionesProfundidad(SQLModel, table=True):
-    """Mediciones de profundidad de neumáticos."""
-    __tablename__ = 'mediciones_profundidad'
-    
-    # Campos exactos del esquema real
-    id: UUID = Field(
-        default_factory=uuid4,
-        sa_column=Column(PG_UUID(as_uuid=True), primary_key=True, server_default=text("gen_random_uuid()"))
-    )
-    neumatico_id: UUID = Field(sa_column=Column(PG_UUID(as_uuid=True), ForeignKey("neumaticos.id"), nullable=False))
-    fecha_medicion: datetime = Field(default_factory=datetime.utcnow, sa_column=Column(DateTime(timezone=True), nullable=False, server_default=text('now()')))
-    profundidad_mm: Decimal = Field(sa_column=Column(Numeric(5, 2), nullable=False))
-    metodo_medicion: str = Field(default="MANUAL", sa_column=Column(String(50), server_default=text("'MANUAL'")))
-    observaciones: Optional[str] = Field(default=None, sa_column=Column(Text))
-    creado_en: datetime = Field(
-        default_factory=datetime.utcnow,
-        sa_column=Column(TIMESTAMP, nullable=False, server_default=text("now()"))
-    )
-    creado_por: Optional[UUID] = Field(default=None, sa_column=Column(PG_UUID(as_uuid=True), ForeignKey("usuarios.id", ondelete="SET NULL")))
-    
-    # Constraints exactos del esquema real
-    __table_args__ = (
-        CheckConstraint('profundidad_mm >= 0 AND profundidad_mm <= 50', name='mediciones_profundidad_check'),
-        Index('idx_mediciones_profundidad_neumatico', 'neumatico_id'),
-        Index('idx_mediciones_profundidad_fecha', 'fecha_medicion'),
-    )
-    
-    # Relationships - simplified to avoid circular imports
-    # neumatico: handled at service layer
-
-# Note: model_rebuild() removed to avoid SQLAlchemy metadata conflicts

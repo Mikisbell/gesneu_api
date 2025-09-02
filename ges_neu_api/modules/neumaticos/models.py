@@ -58,38 +58,40 @@ class FabricanteNeumatico(SQLModel, table=True):
     )
 
 class ModeloNeumatico(SQLModel, table=True):
-    """Modelos de neumáticos - Esquema exacto ESQUEMA_BD_REAL.md"""
+    """Modelos de neumáticos - Alineado exactamente con esquema real PostgreSQL"""
     __tablename__ = 'modelos_neumatico'
     
-    # Campos exactos del esquema real
-    id: UUID = Field(
-        default_factory=uuid4,
-        sa_column=Column(PG_UUID(as_uuid=True), primary_key=True, server_default=text("gen_random_uuid()"))
-    )
+    # Campos exactos según esquema BD real
+    id: UUID = Field(sa_column=Column(PG_UUID(as_uuid=True), primary_key=True, nullable=False, server_default=text("gen_random_uuid()")))
     fabricante_id: UUID = Field(sa_column=Column(PG_UUID(as_uuid=True), ForeignKey("fabricantes_neumatico.id"), nullable=False))
-    nombre: str = Field(sa_column=Column(String(100), nullable=False))
+    nombre_modelo: str = Field(sa_column=Column(String(100), nullable=False))
     medida: str = Field(sa_column=Column(String(20), nullable=False))
-    tipo_construccion: str = Field(default="RADIAL", sa_column=Column(String(20), server_default=text("'RADIAL'")))
     indice_carga: Optional[str] = Field(default=None, sa_column=Column(String(5)))
     indice_velocidad: Optional[str] = Field(default=None, sa_column=Column(String(2)))
     profundidad_original_mm: Decimal = Field(sa_column=Column(Numeric(5, 2), nullable=False))
-    max_vidas_utiles: int = Field(default=3, sa_column=Column(Integer, nullable=False, server_default=text("3")))
-    porcentaje_desgaste_por_vida: Optional[Decimal] = Field(default=Decimal('33.33'), sa_column=Column(Numeric(5, 2), server_default=text("33.33")))
-    tasa_desgaste_esperada_mm_km: Optional[Decimal] = Field(default=None, sa_column=Column(Numeric(10, 8)))
+    presion_recomendada_psi: Optional[Decimal] = Field(default=None, sa_column=Column(Numeric(5, 2)))
+    permite_reencauche: bool = Field(default=False, sa_column=Column(Boolean, nullable=False, server_default=text("false")))
+    reencauches_maximos: Optional[int] = Field(default=0, sa_column=Column(SmallInteger, server_default=text("0")))
+    patron_dibujo: Optional[str] = Field(default=None, sa_column=Column(String(50)))
+    tipo_servicio: Optional[str] = Field(default=None, sa_column=Column(String(50)))
+    posicion_uso_recomendada: Optional[str] = Field(default=None, sa_column=Column(String(50)))  # USER-DEFINED type
+    diseno_predominante_para_eje: Optional[str] = Field(default=None, sa_column=Column(String(50)))  # USER-DEFINED type
     vida_util_teorica_km: Optional[int] = Field(default=None, sa_column=Column(Integer))
-    activo: bool = Field(default=True, sa_column=Column(Boolean, nullable=False, server_default=text("true")))
-    creado_en: datetime = Field(
-        default_factory=datetime.utcnow,
-        sa_column=Column(TIMESTAMP, nullable=False, server_default=text("now()"))
-    )
-    creado_por: Optional[UUID] = Field(default=None, sa_column=Column(PG_UUID(as_uuid=True), ForeignKey("usuarios.id", ondelete="SET NULL")))
-    actualizado_en: Optional[datetime] = Field(default=None, sa_column=Column(TIMESTAMP, onupdate=text("now()")))
-    actualizado_por: Optional[UUID] = Field(default=None, sa_column=Column(PG_UUID(as_uuid=True), ForeignKey("usuarios.id", ondelete="SET NULL")))
+    profundidad_minima_retiro_mm: Decimal = Field(default=Decimal('1.6'), sa_column=Column(Numeric(5, 2), nullable=False, server_default=text("1.6")))
+    tasa_desgaste_esperada_mm_km: Decimal = Field(sa_column=Column(Numeric(10, 8), nullable=False))
+    activo: Optional[bool] = Field(default=True, sa_column=Column(Boolean, nullable=True, server_default=text("true")))
+    frecuencia_inspeccion_km: Optional[int] = Field(default=5000, sa_column=Column(Integer, nullable=True, server_default=text("5000")))
+    max_vidas_utiles: Optional[int] = Field(default=5, sa_column=Column(Integer, nullable=True, server_default=text("5")))
+    porcentaje_desgaste_por_vida: Optional[Decimal] = Field(default=Decimal('10.0'), sa_column=Column(Numeric(5, 2), server_default=text("10.0")))
+    creado_en: datetime = Field(sa_column=Column(TIMESTAMP, nullable=False, server_default=text("now()")))
+    creado_por: Optional[UUID] = Field(default=None, sa_column=Column(PG_UUID(as_uuid=True), ForeignKey("usuarios.id")))
+    actualizado_en: Optional[datetime] = Field(default=None, sa_column=Column(TIMESTAMP))
+    actualizado_por: Optional[UUID] = Field(default=None, sa_column=Column(PG_UUID(as_uuid=True), ForeignKey("usuarios.id")))
     
     __table_args__ = (
         CheckConstraint('max_vidas_utiles > 0', name='modelos_neumatico_max_vidas_check'),
         CheckConstraint('porcentaje_desgaste_por_vida >= 0', name='modelos_neumatico_porcentaje_check'),
-        UniqueConstraint('fabricante_id', 'nombre', 'medida', name='modelos_neumatico_fabricante_nombre_medida_key'),
+        UniqueConstraint('fabricante_id', 'nombre_modelo', 'medida', name='modelos_neumatico_fabricante_nombre_medida_key'),
         Index('idx_modelos_fabricante', 'fabricante_id'),
     )
 
@@ -104,12 +106,12 @@ class Neumatico(SQLModel, table=True):
         sa_column=Column(PG_UUID(as_uuid=True), primary_key=True, server_default=text("gen_random_uuid()"))
     )
     numero_serie: Optional[str] = Field(default=None, sa_column=Column(String(100)))
-    dot: Optional[str] = Field(default=None, sa_column=Column(Text))  # dot field is TEXT type
+    dot: Optional[str] = Field(default=None, sa_column=Column(Text))  # text type según esquema real
     modelo_id: UUID = Field(sa_column=Column(PG_UUID(as_uuid=True), ForeignKey("modelos_neumatico.id"), nullable=False))
     fecha_compra: date = Field(sa_column=Column(Date, nullable=False))
     fecha_fabricacion: Optional[date] = Field(default=None, sa_column=Column(Date))
     costo_compra: Optional[Decimal] = Field(default=None, sa_column=Column(Numeric(10, 2)))
-    moneda_compra: str = Field(default="PEN", sa_column=Column(String(3), server_default=text("'PEN'")))
+    moneda_compra: Optional[str] = Field(default="PEN", sa_column=Column(String(3), nullable=True, server_default=text("'PEN'")))
     proveedor_compra_id: Optional[UUID] = Field(default=None, sa_column=Column(PG_UUID(as_uuid=True), ForeignKey("proveedores.id")))
     es_reencauchado: bool = Field(default=False, sa_column=Column(Boolean, nullable=False, server_default=text("false")))
     vida_actual: int = Field(default=1, sa_column=Column(SmallInteger, nullable=False, server_default=text("1")))
@@ -139,7 +141,7 @@ class Neumatico(SQLModel, table=True):
     tasa_desgaste_actual_mm_km: Optional[Decimal] = Field(default=None, sa_column=Column(Numeric(10, 8)))
     vida_util_restante_km: Optional[int] = Field(default=None, sa_column=Column(Integer))
     fecha_ultimo_reencauche: Optional[date] = Field(default=None, sa_column=Column(Date))
-    activo: bool = Field(default=True, sa_column=Column(Boolean, server_default=text("true")))
+    activo: Optional[bool] = Field(default=True, sa_column=Column(Boolean, nullable=True, server_default=text("true")))
     proxima_inspeccion_fecha: Optional[date] = Field(default=None, sa_column=Column(Date))
     proxima_inspeccion_km: Optional[int] = Field(default=None, sa_column=Column(Integer))
     profundidad_inicio_vida_actual_mm: Optional[Decimal] = Field(default=None, sa_column=Column(Numeric(5, 2)))
