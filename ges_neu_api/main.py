@@ -31,6 +31,7 @@ from .modules.garantias.router import router as garantias_router
 from .modules.alertas.router import router as alertas_router
 from .modules.bitacoras.router import router as bitacoras_router
 from .modules.sistema.router import router as sistema_router
+from .modules.ml.router import router as ml_router
 
 # Configuración de logging
 logger = get_logger(__name__)
@@ -102,6 +103,7 @@ app.include_router(garantias_router, prefix=f"{settings.API_V1_STR}/garantias", 
 app.include_router(alertas_router, prefix=f"{settings.API_V1_STR}/alertas", tags=["alertas"])
 app.include_router(bitacoras_router, prefix=f"{settings.API_V1_STR}/bitacoras", tags=["bitacoras"])
 app.include_router(sistema_router, prefix=f"{settings.API_V1_STR}/sistema", tags=["sistema"])
+app.include_router(ml_router, prefix=f"{settings.API_V1_STR}", tags=["ml"])
 
 @app.get("/")
 async def root():

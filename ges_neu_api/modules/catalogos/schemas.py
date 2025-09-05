@@ -43,6 +43,9 @@ class EstadoNeumaticoEnum(str, Enum):
     EN_TRANSITO = "EN_TRANSITO"
     EN_REVISION = "EN_REVISION"
 
+# NOTA: Los esquemas para FabricanteNeumatico se encuentran en el módulo neumaticos
+# según ESQUEMA_COMPLETO_BD.md - Los fabricantes no pertenecen a catálogos
+
 # ---------------------------------------------------------------------------
 # Esquemas para Proveedor
 # ---------------------------------------------------------------------------

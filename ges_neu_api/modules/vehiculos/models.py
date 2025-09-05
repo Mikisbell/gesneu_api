@@ -18,17 +18,17 @@ from .enums import TipoEjeEnum, LadoVehiculoEnum
 class TiposVehiculo(SQLModel, table=True):
     __tablename__ = 'tipos_vehiculo'
 
-    id: UUID = Field(default_factory=uuid4, sa_column=Column(PG_UUID(as_uuid=True), primary_key=True, server_default=text('public.gen_random_uuid()')))
-    nombre: str = Field(sa_column=Column(String(100), nullable=False))
-    descripcion: Optional[str] = Field(default=None, sa_column=Column(Text))
-    categoria_principal: Optional[str] = Field(default=None, sa_column=Column(String(50)))
-    subtipo: Optional[str] = Field(default=None, sa_column=Column(String(50)))
-    ejes_standard: int = Field(sa_column=Column(SmallInteger, nullable=False, server_default=text('2')))
-    activo: bool = Field(sa_column=Column(Boolean, nullable=False, server_default=text('true')))
-    creado_en: datetime = Field(sa_column=Column(TIMESTAMP, nullable=False, server_default=text('now()')))
-    creado_por: Optional[UUID] = Field(default=None, sa_column=Column(PG_UUID(as_uuid=True), ForeignKey("usuarios.id")))
-    actualizado_en: Optional[datetime] = Field(default=None, sa_column=Column(TIMESTAMP))
-    actualizado_por: Optional[UUID] = Field(default=None, sa_column=Column(PG_UUID(as_uuid=True), ForeignKey("usuarios.id")))
+    id: UUID = Field(default_factory=uuid4, primary_key=True)
+    nombre: str = Field(max_length=100)
+    descripcion: Optional[str] = Field(default=None)
+    categoria_principal: Optional[str] = Field(default=None, max_length=50)
+    subtipo: Optional[str] = Field(default=None, max_length=50)
+    ejes_standard: int = Field(default=2)
+    activo: bool = Field(default=True)
+    creado_en: datetime = Field(default_factory=datetime.utcnow)
+    creado_por: Optional[UUID] = Field(default=None, foreign_key="usuarios.id")
+    actualizado_en: Optional[datetime] = Field(default=None)
+    actualizado_por: Optional[UUID] = Field(default=None, foreign_key="usuarios.id")
     
     __table_args__ = (
         CheckConstraint('(ejes_standard >= 1) AND (ejes_standard <= 10)', name='tipos_vehiculo_ejes_standard_check'),
@@ -39,19 +39,19 @@ class TiposVehiculo(SQLModel, table=True):
 class ConfiguracionesEje(SQLModel, table=True):
     __tablename__ = 'configuraciones_eje'
 
-    id: UUID = Field(default_factory=uuid4, sa_column=Column(PG_UUID(as_uuid=True), primary_key=True, server_default=text('public.gen_random_uuid()')))
-    tipo_vehiculo_id: UUID = Field(sa_column=Column(PG_UUID(as_uuid=True), ForeignKey("tipos_vehiculo.id"), nullable=False))
-    numero_eje: int = Field(sa_column=Column(SmallInteger, nullable=False))
-    nombre_eje: str = Field(sa_column=Column(String(50), nullable=False))
-    tipo_eje: TipoEjeEnum = Field(sa_column=Column(SQLAlchemyEnum(TipoEjeEnum), nullable=False))
-    numero_posiciones: int = Field(sa_column=Column(SmallInteger, nullable=False))
-    posiciones_duales: bool = Field(sa_column=Column(Boolean, nullable=False, server_default=text('false')))
-    permite_reencauchados: bool = Field(sa_column=Column(Boolean, nullable=False, server_default=text('true')))
-    neumaticos_por_posicion: int = Field(sa_column=Column(SmallInteger, nullable=False, server_default=text('1')))
-    creado_en: datetime = Field(sa_column=Column(TIMESTAMP, nullable=False, server_default=text('now()')))
-    creado_por: Optional[UUID] = Field(default=None, sa_column=Column(PG_UUID(as_uuid=True), ForeignKey("usuarios.id")))
-    actualizado_en: Optional[datetime] = Field(default=None, sa_column=Column(TIMESTAMP))
-    actualizado_por: Optional[UUID] = Field(default=None, sa_column=Column(PG_UUID(as_uuid=True), ForeignKey("usuarios.id")))
+    id: UUID = Field(default_factory=uuid4, primary_key=True)
+    tipo_vehiculo_id: UUID = Field(foreign_key="tipos_vehiculo.id")
+    numero_eje: int
+    nombre_eje: str = Field(max_length=50)
+    tipo_eje: TipoEjeEnum
+    numero_posiciones: int
+    posiciones_duales: bool = Field(default=False)
+    permite_reencauchados: bool = Field(default=True)
+    neumaticos_por_posicion: int = Field(default=1)
+    creado_en: datetime = Field(default_factory=datetime.utcnow)
+    creado_por: Optional[UUID] = Field(default=None, foreign_key="usuarios.id")
+    actualizado_en: Optional[datetime] = Field(default=None)
+    actualizado_por: Optional[UUID] = Field(default=None, foreign_key="usuarios.id")
 
     # Relationships comentadas para evitar conflictos de metadata
     # tipo_vehiculo: "TiposVehiculo" = Relationship(back_populates="configuraciones_eje")
@@ -98,7 +98,7 @@ class Vehiculos(SQLModel, table=True):
 
     id: UUID = Field(default_factory=uuid4, sa_column=Column(PG_UUID(as_uuid=True), primary_key=True, server_default=text('public.gen_random_uuid()')))
     tipo_vehiculo_id: UUID = Field(sa_column=Column(PG_UUID(as_uuid=True), ForeignKey("tipos_vehiculo.id"), nullable=False))
-    placa: Optional[str] = Field(default=None, sa_column=Column(String))
+    placa: Optional[str] = Field(default=None, max_length=15)
     vin: Optional[str] = Field(default=None, sa_column=Column(String(17)))
     numero_economico: str = Field(sa_column=Column(String(50), nullable=False))
     marca: Optional[str] = Field(default=None, sa_column=Column(String(50)))

@@ -14,7 +14,12 @@ from .config import settings
 logger = logging.getLogger(__name__)
 
 # Configuración de hash de contraseñas
-pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+# Configuración actualizada para evitar warnings de passlib
+pwd_context = CryptContext(
+    schemes=["bcrypt"], 
+    deprecated="auto",
+    bcrypt__rounds=12  # Especificar rounds explícitamente
+)
 
 def verify_password(plain_password: str, hashed_password: str) -> bool:
     """
@@ -56,19 +61,19 @@ def create_access_token(data: dict, expires_delta: Optional[timedelta] = None) -
         to_encode.update({"exp": expire})
         
         # Validar que tenemos los datos necesarios
-        if not settings.SECRET_KEY:
-            logger.error("SECRET_KEY no está configurada")
-            raise ValueError("SECRET_KEY no está configurada")
+        if not settings.JWT_SECRET_KEY:
+            logger.error("JWT_SECRET_KEY no está configurada")
+            raise ValueError("JWT_SECRET_KEY no está configurada")
             
-        if not settings.ALGORITHM:
-            logger.error("ALGORITHM no está configurado")
-            raise ValueError("ALGORITHM no está configurado")
+        if not settings.JWT_ALGORITHM:
+            logger.error("JWT_ALGORITHM no está configurado")
+            raise ValueError("JWT_ALGORITHM no está configurado")
         
-        # Usamos nuestra SECRET_KEY y ALGORITHM del archivo .env para firmar el token
+        # Usamos nuestra JWT_SECRET_KEY y JWT_ALGORITHM del archivo .env para firmar el token
         encoded_jwt = jwt.encode(
             to_encode, 
-            settings.SECRET_KEY, 
-            algorithm=settings.ALGORITHM
+            settings.JWT_SECRET_KEY, 
+            algorithm=settings.JWT_ALGORITHM
         )
         
         logger.debug(f"Token JWT generado exitosamente para el sujeto: {to_encode.get('sub')}")
@@ -80,3 +85,28 @@ def create_access_token(data: dict, expires_delta: Optional[timedelta] = None) -
     except Exception as e:
         logger.error(f"Error inesperado al crear token: {str(e)}", exc_info=True)
         raise ValueError("No se pudo generar el token de acceso") from e
+
+def decode_access_token(token: str) -> dict:
+    """
+    Decodifica y valida un token JWT.
+    """
+    try:
+        if not settings.JWT_SECRET_KEY:
+            logger.error("JWT_SECRET_KEY no está configurada")
+            raise ValueError("JWT_SECRET_KEY no está configurada")
+            
+        payload = jwt.decode(
+            token, 
+            settings.JWT_SECRET_KEY, 
+            algorithms=[settings.JWT_ALGORITHM]
+        )
+        
+        logger.debug(f"Token JWT decodificado exitosamente para el sujeto: {payload.get('sub')}")
+        return payload
+        
+    except JWTError as e:
+        logger.warning(f"Error JWT al decodificar token: {str(e)}")
+        raise ValueError("Token inválido o expirado") from e
+    except Exception as e:
+        logger.error(f"Error inesperado al decodificar token: {str(e)}", exc_info=True)
+        raise ValueError("No se pudo decodificar el token") from e

@@ -7,7 +7,7 @@ from datetime import datetime
 from sqlmodel import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from .models_fixed import Alertas
+from .models import Alertas, EstadoAlertaEnum, NivelSeveridadEnum
 from ...core.crud import CRUDBase
 
 # CRUD para Alertas
@@ -28,7 +28,7 @@ class AlertasService:
     ) -> List[Alertas]:
         """Obtener alertas pendientes."""
         stmt = select(Alertas).where(
-            Alertas.estado_alerta == 'NUEVA'
+            Alertas.estado_alerta == EstadoAlertaEnum.NUEVA
         ).order_by(Alertas.nivel_severidad.desc(), Alertas.timestamp_generacion.desc()).offset(skip).limit(limit)
         result = await self.db.execute(stmt)
         return list(result.scalars().all())
@@ -43,12 +43,12 @@ class AlertasService:
         result = await self.db.execute(stmt)
         return result.scalars().all()
     
-    async def get_alertas_by_prioridad(
-        self, prioridad: str, skip: int = 0, limit: int = 100
+    async def get_alertas_by_severidad(
+        self, severidad: str, skip: int = 0, limit: int = 100
     ) -> List[Alertas]:
-        """Obtener alertas por prioridad."""
+        """Obtener alertas por severidad."""
         stmt = select(Alertas).where(
-            Alertas.nivel_severidad == prioridad
+            Alertas.nivel_severidad == severidad
         ).order_by(Alertas.timestamp_generacion.desc()).offset(skip).limit(limit)
         result = await self.db.execute(stmt)
         return result.scalars().all()
@@ -75,7 +75,7 @@ class AlertasService:
         """Marcar alerta como vista."""
         alerta = await self.get_alerta(alerta_id)
         if alerta:
-            alerta.estado_alerta = 'VISTA'
+            alerta.estado_alerta = EstadoAlertaEnum.VISTA
             alerta.usuario_gestion_id = usuario_id
             alerta.timestamp_gestion = datetime.utcnow()
             await self.db.commit()
@@ -89,7 +89,7 @@ class AlertasService:
         """Resolver alerta."""
         alerta = await self.get_alerta(alerta_id)
         if alerta:
-            alerta.estado_alerta = 'GESTIONADA'
+            alerta.estado_alerta = EstadoAlertaEnum.GESTIONADA
             alerta.usuario_gestion_id = usuario_id
             alerta.timestamp_gestion = datetime.utcnow()
             await self.db.commit()
@@ -102,7 +102,7 @@ class AlertasService:
         """Ignorar alerta."""
         alerta = await self.get_alerta(alerta_id)
         if alerta:
-            alerta.estado_alerta = 'GESTIONADA'
+            alerta.estado_alerta = EstadoAlertaEnum.GESTIONADA
             alerta.usuario_gestion_id = usuario_id
             alerta.timestamp_gestion = datetime.utcnow()
             await self.db.commit()

@@ -17,8 +17,8 @@ class Settings(BaseSettings):
     
     # Configuración de la aplicación
     APP_ENV: str = "development"
-    APP_DEBUG: bool = True
-    APP_SECRET_KEY: str = "your-secret-key-here"
+    APP_DEBUG: bool = False
+    APP_SECRET_KEY: str
     APP_DOMAIN: str = "localhost"
     
     # Configuración de la base de datos
@@ -27,12 +27,16 @@ class Settings(BaseSettings):
     DB_PORT: str = "5432"
     DB_NAME: str = "ges_neu_bd"
     DB_USER: str = "postgres"
-    DB_PASSWORD: str = "B3ll1c0s"
-    DB_POOL_SIZE: int = 5
-    DB_MAX_OVERFLOW: int = 10
+    DB_PASSWORD: str
+    DB_POOL_SIZE: int = 20
+    DB_MAX_OVERFLOW: int = 30
+    
+    # Configuración de base de datos de test
+    TEST_DB_DRIVER: str = "sqlite+aiosqlite"
+    TEST_DB_NAME: str = ":memory:"
     
     # Configuración de autenticación
-    JWT_SECRET_KEY: str = "c13c7121e21167cbb5255632542425455466b3e57e18fe1f35debb98ae19db81"
+    JWT_SECRET_KEY: str = "test-secret-key-for-development-only"
     JWT_ALGORITHM: str = "HS256"
     JWT_ACCESS_TOKEN_EXPIRE_MINUTES: int = 30
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 30
@@ -53,9 +57,14 @@ class Settings(BaseSettings):
     def SQLALCHEMY_DATABASE_URI(self) -> str:
         return f"{self.DB_DRIVER}://{self.DB_USER}:{self.DB_PASSWORD}@{self.DB_HOST}:{self.DB_PORT}/{self.DB_NAME}"
     
+    @property
+    def TEST_SQLALCHEMY_DATABASE_URI(self) -> str:
+        """URI de base de datos para tests (SQLite en memoria)."""
+        return f"{self.TEST_DB_DRIVER}:///{self.TEST_DB_NAME}"
+    
     # Configuración del servidor
-    SERVER_HOST: str = "0.0.0.0"
-    SERVER_PORT: int = 8001
+    SERVER_HOST: str = "127.0.0.1"
+    SERVER_PORT: int = 8000
     WORKERS: int = 1
     
     # Configuración de la API

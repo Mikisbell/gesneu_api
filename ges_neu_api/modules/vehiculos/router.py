@@ -5,7 +5,7 @@ Sin rutas genéricas conflictivas
 from typing import List
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from ...core.database import get_session
@@ -30,6 +30,7 @@ def get_vehiculos_service(db: AsyncSession = Depends(get_session)) -> VehiculosS
 # ENDPOINTS DE TIPOS DE VEHÍCULO
 # ============================================================================
 
+@router.get("/tipos-vehiculo/", response_model=List[TiposVehiculoRead])
 @router.get("/tipos", response_model=List[TiposVehiculoRead])
 async def get_tipos_vehiculo(
     skip: int = 0,
@@ -55,13 +56,7 @@ async def get_tipo_vehiculo(
     service: VehiculosService = Depends(get_vehiculos_service)
 ):
     """Obtiene un tipo de vehículo por ID"""
-    tipo = await service.get_tipo_vehiculo(tipo_id)
-    if not tipo:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Tipo de vehículo no encontrado"
-        )
-    return tipo
+    return await service.get_tipo_vehiculo(tipo_id)
 
 
 @router.put("/tipos/{tipo_id}", response_model=TiposVehiculoRead)
@@ -71,13 +66,7 @@ async def update_tipo_vehiculo(
     service: VehiculosService = Depends(get_vehiculos_service)
 ):
     """Actualiza un tipo de vehículo"""
-    tipo = await service.update_tipo_vehiculo(tipo_id, tipo_in)
-    if not tipo:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Tipo de vehículo no encontrado"
-        )
-    return tipo
+    return await service.update_tipo_vehiculo(tipo_id, tipo_in)
 
 
 # ============================================================================
@@ -109,13 +98,7 @@ async def get_configuracion_eje(
     service: VehiculosService = Depends(get_vehiculos_service)
 ):
     """Obtiene una configuración de eje por ID"""
-    config = await service.get_configuracion_eje(config_id)
-    if not config:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Configuración de eje no encontrada"
-        )
-    return config
+    return await service.get_configuracion_eje(config_id)
 
 
 @router.put("/configuraciones-eje/{config_id}", response_model=ConfiguracionesEjeRead)
@@ -125,13 +108,7 @@ async def update_configuracion_eje(
     service: VehiculosService = Depends(get_vehiculos_service)
 ):
     """Actualiza una configuración de eje"""
-    config = await service.update_configuracion_eje(config_id, config_in)
-    if not config:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Configuración de eje no encontrada"
-        )
-    return config
+    return await service.update_configuracion_eje(config_id, config_in)
 
 
 # ============================================================================
@@ -163,13 +140,7 @@ async def get_posicion_neumatico(
     service: VehiculosService = Depends(get_vehiculos_service)
 ):
     """Obtiene una posición de neumático por ID"""
-    posicion = await service.get_posicion_neumatico(posicion_id)
-    if not posicion:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Posición de neumático no encontrada"
-        )
-    return posicion
+    return await service.get_posicion_neumatico(posicion_id)
 
 
 @router.put("/posiciones-neumatico/{posicion_id}", response_model=PosicionesNeumaticoRead)
@@ -179,13 +150,7 @@ async def update_posicion_neumatico(
     service: VehiculosService = Depends(get_vehiculos_service)
 ):
     """Actualiza una posición de neumático"""
-    posicion = await service.update_posicion_neumatico(posicion_id, posicion_in)
-    if not posicion:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Posición de neumático no encontrada"
-        )
-    return posicion
+    return await service.update_posicion_neumatico(posicion_id, posicion_in)
 
 
 # ============================================================================
@@ -217,13 +182,7 @@ async def get_vehiculo(
     service: VehiculosService = Depends(get_vehiculos_service)
 ):
     """Obtiene un vehículo por ID"""
-    vehiculo = await service.get_vehiculo(vehiculo_id)
-    if not vehiculo:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Vehículo no encontrado"
-        )
-    return vehiculo
+    return await service.get_vehiculo(vehiculo_id)
 
 
 @router.put("/vehiculo/{vehiculo_id}", response_model=VehiculosRead)
@@ -233,13 +192,7 @@ async def update_vehiculo(
     service: VehiculosService = Depends(get_vehiculos_service)
 ):
     """Actualiza un vehículo"""
-    vehiculo = await service.update_vehiculo(vehiculo_id, vehiculo_in)
-    if not vehiculo:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Vehículo no encontrado"
-        )
-    return vehiculo
+    return await service.update_vehiculo(vehiculo_id, vehiculo_in)
 
 
 @router.delete("/vehiculo/{vehiculo_id}")
@@ -248,10 +201,4 @@ async def delete_vehiculo(
     service: VehiculosService = Depends(get_vehiculos_service)
 ):
     """Elimina un vehículo (soft delete)"""
-    deleted_id = await service.delete_vehiculo(vehiculo_id)
-    if not deleted_id:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Vehículo no encontrado"
-        )
-    return {"message": "Vehículo eliminado correctamente", "id": deleted_id}
+    return await service.delete_vehiculo(vehiculo_id)

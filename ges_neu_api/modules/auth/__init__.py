@@ -20,8 +20,7 @@ from .models import (
     Rol,
     Usuario,
     RolesPermisos,
-    UsuariosRoles,
-    AuditoriaRolUsuario
+    UsuariosRoles
 )
 
 # Exportar esquemas (SOLO los que existen en schemas.py)
@@ -90,7 +89,6 @@ __all__ = [
     'Usuario',
     'RolesPermisos',
     'UsuariosRoles',
-    'AuditoriaRolUsuario',
     
     # Esquemas
     'Token',

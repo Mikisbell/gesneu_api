@@ -1,44 +1,24 @@
-"""Unit tests for the CatalogosService."""
+"""Unit tests for the CatalogService."""
 import pytest
-from unittest.mock import AsyncMock, MagicMock, patch
-from datetime import datetime, timezone, timedelta
-from uuid import uuid4, UUID
-from typing import Optional, List, Dict, Any
-
+import pytest_asyncio
+from unittest.mock import AsyncMock, MagicMock
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy.orm import Session
-from sqlalchemy import select
-from fastapi import status, HTTPException
+from datetime import datetime, timezone
+from uuid import uuid4
 from hypothesis import given, strategies as st
 
-from ges_neu_api.modules.catalogos.service import CatalogosService
+from ges_neu_api.modules.catalogos.service import CatalogService
 from ges_neu_api.modules.catalogos import models, schemas
 from ges_neu_api.modules.auth.models import Usuario
 
-# Test data
+# Test constants
 TEST_USER_ID = uuid4()
-TEST_ADMIN_USER = Usuario(
+mock_TEST_USER = Usuario(
     id=TEST_USER_ID,
     username="admin",
-    email="admin@example.com",
-    nombre_completo="Admin User",
-    rol="admin",
+    email="admin@test.com",
     activo=True,
-    hashed_password="hashed_password",
-    fecha_creacion=datetime.utcnow(),
-    creado_por="system"
-)
-
-TEST_REGULAR_USER = Usuario(
-    id=uuid4(),
-    username="regular",
-    email="user@example.com",
-    nombre_completo="Regular User",
-    rol="user",
-    activo=True,
-    hashed_password="hashed_password",
-    fecha_creacion=datetime.utcnow(),
-    creado_por="system"
+    nombre_completo="Admin Test User"
 )
 
 # Fixtures
@@ -61,18 +41,56 @@ def mock_db_session():
     return session
 
 @pytest.fixture
-def catalogos_service(mock_db_session: AsyncSession) -> CatalogosService:
-    """Create a CatalogosService instance with a mock database session."""
-    return CatalogosService(mock_db_session)
+def catalogos_service(mock_db_session: AsyncSession) -> CatalogService:
+    """Create a CatalogService instance with a mock database session."""
+    return CatalogService(mock_db_session)
+
+# Property-based tests
+class TestPropertyBasedCatalogService:
+    """Property-based tests for CatalogService."""
+    
+    @pytest.mark.asyncio
+    @given(
+        nombre=st.text(min_size=1, max_size=150)
+    )
+    async def test_create_and_retrieve_proveedor_property(
+        self,
+        catalogos_service: CatalogService,
+        mock_db_session: AsyncSession,
+        nombre: str
+    ):
+        """Test property-based creation and retrieval of proveedor."""
+        # Arrange
+        proveedor_data = schemas.ProveedorCreate(nombre=nombre)
+        
+        # Mock the database operations
+        mock_proveedor = models.Proveedor(
+            id=uuid4(),
+            nombre=nombre,
+            activo=True,
+            creado_en=datetime.now(timezone.utc)
+        )
+        
+        mock_db_session.add = AsyncMock()
+        mock_db_session.commit = AsyncMock()
+        mock_db_session.refresh = AsyncMock()
+        mock_db_session.execute = AsyncMock(return_value=AsyncMock(scalar_one_or_none=AsyncMock(return_value=mock_proveedor)))
+        
+        # Act
+        result = await catalogos_service.create_proveedor(proveedor_data, mock_user)
+        
+        # Assert
+        assert result.nombre == nombre
+        assert result.activo == True
 
 # Test cases
-class TestCatalogosService:
-    """Test cases for CatalogosService."""
+class TestCatalogService:
+    """Test cases for CatalogService."""
     
     @pytest.mark.asyncio
     async def test_create_fabricante_as_admin(
         self, 
-        catalogos_service: CatalogosService, 
+        catalogos_service: CatalogService, 
         mock_db_session: AsyncSession
     ):
         """Test creating a fabricante as an admin user."""
@@ -84,7 +102,7 @@ class TestCatalogosService:
         )
         
         # Configure the mock to return the admin user
-        mock_db_session.execute.return_value.scalars.return_value.first.return_value = TEST_ADMIN_USER
+        mock_db_session.execute.return_value.scalars.return_value.first.return_value = mock_user
         
         # Act
         result = await catalogos_service.create_fabricante(
@@ -106,7 +124,7 @@ class TestCatalogosService:
     @pytest.mark.asyncio
     async def test_create_fabricante_as_regular_user_fails(
         self, 
-        catalogos_service: CatalogosService, 
+        catalogos_service: CatalogService, 
         mock_db_session: AsyncSession
     ):
         """Test that regular users cannot create fabricantes."""
@@ -118,13 +136,13 @@ class TestCatalogosService:
         )
         
         # Configure the mock to return a regular user
-        mock_db_session.execute.return_value.scalars.return_value.first.return_value = TEST_REGULAR_USER
+        mock_db_session.execute.return_value.scalars.return_value.first.return_value = mock_user
         
         # Act & Assert
         with pytest.raises(PermissionError) as exc_info:
             await catalogos_service.create_fabricante(
                 fabricante_data, 
-                current_user_id=TEST_REGULAR_USER.id
+                current_user_id=mock_user.id
             )
         
         assert "No tiene permisos para realizar esta acción" in str(exc_info.value)
@@ -137,7 +155,7 @@ class TestCatalogosService:
     @pytest.mark.asyncio
     async def test_get_fabricante_by_id(
         self, 
-        catalogos_service: CatalogosService, 
+        catalogos_service: CatalogService, 
         mock_db_session: AsyncSession
     ):
         """Test retrieving a fabricante by ID."""
@@ -166,7 +184,7 @@ class TestCatalogosService:
     @pytest.mark.asyncio
     async def test_list_fabricantes(
         self, 
-        catalogos_service: CatalogosService, 
+        catalogos_service: CatalogService, 
         mock_db_session: AsyncSession
     ):
         """Test listing fabricantes with pagination."""
@@ -203,7 +221,7 @@ class TestFabricanteOperations:
     @pytest.mark.asyncio
     async def test_create_fabricante_success(
         self, 
-        catalogos_service: CatalogosService,
+        catalogos_service: CatalogService,
         mock_db_session: AsyncSession
     ):
         """Test successful creation of a fabricante."""
@@ -215,7 +233,7 @@ class TestFabricanteOperations:
         )
         
         # Configure the mock to return the admin user
-        mock_db_session.execute.return_value.scalars.return_value.first.return_value = TEST_ADMIN_USER
+        mock_db_session.execute.return_value.scalars.return_value.first.return_value = mock_user
         
         # Act
         result = await catalogos_service._create_fabricante(
@@ -238,7 +256,7 @@ class TestFabricanteOperations:
     @pytest.mark.asyncio
     async def test_get_fabricante_exists(
         self,
-        catalogos_service: CatalogosService,
+        catalogos_service: CatalogService,
         mock_db_session: AsyncSession
     ):
         """Test getting an existing fabricante."""
@@ -262,7 +280,7 @@ class TestFabricanteOperations:
     @pytest.mark.asyncio
     async def test_update_fabricante_success(
         self,
-        catalogos_service: CatalogosService,
+        catalogos_service: CatalogService,
         mock_db_session: AsyncSession
     ):
         """Test successful update of a fabricante."""
@@ -300,7 +318,7 @@ class TestFabricanteOperations:
     @pytest.mark.asyncio
     async def test_delete_fabricante_success(
         self,
-        catalogos_service: CatalogosService,
+        catalogos_service: CatalogService,
         mock_db_session: AsyncSession
     ):
         """Test successful deletion of a fabricante."""
@@ -322,7 +340,7 @@ class TestFabricanteOperations:
     @pytest.mark.asyncio
     async def test_get_all_fabricantes(
         self,
-        catalogos_service: CatalogosService,
+        catalogos_service: CatalogService,
         mock_db_session: AsyncSession
     ):
         """Test retrieving all fabricantes with filters."""
@@ -349,21 +367,55 @@ class TestFabricanteOperations:
         assert all(f.activo for f in result_active)
 
 # Property-based tests
-class TestPropertyBasedCatalogosService:
-    """Property-based tests for CatalogosService."""
+class TestPropertyBasedCatalogService:
+    """Property-based tests for CatalogService."""
     
     @pytest.mark.asyncio
     @given(
-        nombre=st.text(min_size=1, max_length=100),
-        descripcion=st.text(max_length=500) | st.none(),
+        nombre=st.text(min_size=1, max_size=150)
+    )
+    async def test_create_and_retrieve_proveedor_property(
+        self,
+        catalogos_service: CatalogService,
+        mock_db_session: AsyncSession,
+        nombre: str
+    ):
+        """Test property-based creation and retrieval of proveedor."""
+        # Arrange
+        proveedor_data = schemas.ProveedorCreate(nombre=nombre)
+        
+        # Mock the database operations
+        mock_proveedor = models.Proveedor(
+            id=uuid4(),
+            nombre=nombre,
+            activo=True,
+            creado_en=datetime.now(timezone.utc)
+        )
+        
+        mock_db_session.add = AsyncMock()
+        mock_db_session.commit = AsyncMock()
+        mock_db_session.refresh = AsyncMock()
+        mock_db_session.execute = AsyncMock(return_value=AsyncMock(scalar_one_or_none=AsyncMock(return_value=mock_proveedor)))
+        
+        # Act
+        result = await catalogos_service.create_proveedor(proveedor_data, mock_user)
+        
+        # Assert
+        assert result.nombre == nombre
+        assert result.activo == True
+
+    @pytest.mark.asyncio
+    @given(
+        nombre=st.text(min_size=1, max_size=100),
+        descripcion=st.text(max_size=500) | st.none(),
         activo=st.booleans()
     )
     async def test_create_and_retrieve_fabricante_property(
         self,
-        catalogos_service: CatalogosService,
+        catalogos_service: CatalogService,
         mock_db_session: AsyncSession,
         nombre: str,
-        descripcion: Optional[str],
+        descripcion: str,
         activo: bool
     ):
         """Test that a fabricante can be created and retrieved with the same data."""
@@ -375,7 +427,7 @@ class TestPropertyBasedCatalogosService:
         )
         
         # Configure the mock to return the admin user
-        mock_db_session.execute.return_value.scalars.return_value.first.return_value = TEST_ADMIN_USER
+        mock_db_session.execute.return_value.scalars.return_value.first.return_value = mock_user
         
         # Mock the database add and refresh operations
         created_fabricante = models.Fabricante(

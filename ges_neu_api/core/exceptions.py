@@ -108,6 +108,110 @@ class BusinessRuleError(AppException):
         super().__init__(message=message, **kwargs)
 
 
+# ========================================
+# EXCEPCIONES ESPECÍFICAS DEL DOMINIO
+# ========================================
+
+class RecursoNoEncontradoError(NotFoundException):
+    """Excepción para recursos específicos no encontrados."""
+    
+    def __init__(self, recurso: str, identificador: str, **kwargs):
+        message = f"{recurso} con ID '{identificador}' no encontrado"
+        super().__init__(resource=recurso, **kwargs)
+        self.detail = message
+        self.recurso = recurso
+        self.identificador = identificador
+
+
+class OperacionInvalidaError(BusinessRuleError):
+    """Excepción para operaciones que violan reglas de negocio."""
+    
+    def __init__(self, operacion: str, razon: str, **kwargs):
+        message = f"Operación '{operacion}' inválida: {razon}"
+        super().__init__(message=message, **kwargs)
+        self.operacion = operacion
+        self.razon = razon
+
+
+class EstadoInvalidoError(BusinessRuleError):
+    """Excepción para transiciones de estado inválidas."""
+    
+    def __init__(self, recurso: str, estado_actual: str, estado_destino: str, **kwargs):
+        message = f"{recurso} no puede cambiar de '{estado_actual}' a '{estado_destino}'"
+        super().__init__(message=message, **kwargs)
+        self.recurso = recurso
+        self.estado_actual = estado_actual
+        self.estado_destino = estado_destino
+
+
+class DuplicadoError(ConflictException):
+    """Excepción para recursos duplicados."""
+    
+    def __init__(self, recurso: str, campo: str, valor: str, **kwargs):
+        message = f"{recurso} con {campo} '{valor}' ya existe"
+        super().__init__(message=message, **kwargs)
+        self.recurso = recurso
+        self.campo = campo
+        self.valor = valor
+
+
+class DependenciaError(BusinessRuleError):
+    """Excepción para errores de dependencias entre recursos."""
+    
+    def __init__(self, recurso: str, dependencia: str, **kwargs):
+        message = f"No se puede procesar {recurso}: dependencia con {dependencia}"
+        super().__init__(message=message, **kwargs)
+        self.recurso = recurso
+        self.dependencia = dependencia
+
+
+class InventarioInsuficienteError(BusinessRuleError):
+    """Excepción para stock insuficiente."""
+    
+    def __init__(self, producto: str, disponible: int, requerido: int, **kwargs):
+        message = f"Stock insuficiente de {producto}: disponible {disponible}, requerido {requerido}"
+        super().__init__(message=message, **kwargs)
+        self.producto = producto
+        self.disponible = disponible
+        self.requerido = requerido
+
+
+class NeumaticoNoDisponibleError(BusinessRuleError):
+    """Excepción para neumáticos no disponibles para operación."""
+    
+    def __init__(self, neumatico_id: str, estado_actual: str, operacion: str, **kwargs):
+        message = f"Neumático {neumatico_id} en estado '{estado_actual}' no disponible para {operacion}"
+        super().__init__(message=message, **kwargs)
+        self.neumatico_id = neumatico_id
+        self.estado_actual = estado_actual
+        self.operacion = operacion
+
+
+class VehiculoOcupadoError(BusinessRuleError):
+    """Excepción para vehículos ocupados."""
+    
+    def __init__(self, vehiculo_id: str, **kwargs):
+        message = f"Vehículo {vehiculo_id} está ocupado y no puede ser modificado"
+        super().__init__(message=message, **kwargs)
+        self.vehiculo_id = vehiculo_id
+
+
+# ========================================
+# MAPEO DE EXCEPCIONES A HTTP STATUS
+# ========================================
+
+EXCEPTION_STATUS_MAP = {
+    RecursoNoEncontradoError: status.HTTP_404_NOT_FOUND,
+    OperacionInvalidaError: status.HTTP_422_UNPROCESSABLE_ENTITY,
+    EstadoInvalidoError: status.HTTP_422_UNPROCESSABLE_ENTITY,
+    DuplicadoError: status.HTTP_409_CONFLICT,
+    DependenciaError: status.HTTP_422_UNPROCESSABLE_ENTITY,
+    InventarioInsuficienteError: status.HTTP_422_UNPROCESSABLE_ENTITY,
+    NeumaticoNoDisponibleError: status.HTTP_422_UNPROCESSABLE_ENTITY,
+    VehiculoOcupadoError: status.HTTP_422_UNPROCESSABLE_ENTITY,
+}
+
+
 async def global_exception_handler(request, exc):
     """Manejador global de excepciones.
     
@@ -138,16 +242,14 @@ async def global_exception_handler(request, exc):
             content=response.dict(exclude_none=True)
         )
     
-    # Manejar excepciones HTTP estándar
+    # Manejar excepciones HTTP estándar devolviendo estructura FastAPI por defecto
     if isinstance(exc, HTTPException):
-        response = ErrorResponse(
-            status="error",
-            message=str(exc.detail),
-            code="http_error"
-        )
+        headers = getattr(exc, "headers", None)
+        content = {"detail": exc.detail}
         return JSONResponse(
             status_code=exc.status_code,
-            content=response.dict(exclude_none=True)
+            content=content,
+            headers=headers
         )
     
     # Manejar cualquier otra excepción no controlada

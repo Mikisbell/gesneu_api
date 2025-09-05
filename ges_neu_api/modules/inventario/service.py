@@ -10,6 +10,7 @@ from sqlmodel import select, func
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import and_, or_, text
 
+from ...core.exceptions import RecursoNoEncontradoError, InventarioInsuficienteError
 from .models import ParametrosInventario, InventarioView, ResumenInventario, TipoParametroInventarioEnum
 from ..neumaticos.models import Neumatico, ModeloNeumatico
 from ..catalogos.models import Almacen
@@ -78,11 +79,68 @@ class InventarioService:
             
             result = await self.db.execute(stmt)
             parametros = list(result.scalars().all())
-            logger.info(f"Encontrados {len(parametros)} parámetros de inventario")
+            
+            logger.info(f"Parámetros obtenidos exitosamente: {len(parametros)} registros")
             return parametros
-                
+            
         except Exception as e:
             logger.error(f"Error en get_parametros_inventario: {str(e)}")
+            logger.error(traceback.format_exc())
+            raise
+
+    # ============================================================================
+    # INVENTARIO DE NEUMÁTICOS (métodos adicionales requeridos)
+    # ============================================================================
+    
+    async def get_inventario_neumaticos(self, skip: int = 0, limit: int = 100) -> List[Dict[str, Any]]:
+        """Obtener inventario de neumáticos con información básica."""
+        try:
+            logger.info(f"Obteniendo inventario de neumáticos - skip: {skip}, limit: {limit}")
+            
+            # Consulta básica de neumáticos con información de modelo y fabricante
+            stmt = select(Neumatico).offset(skip).limit(limit)
+            result = await self.db.execute(stmt)
+            neumaticos = list(result.scalars().all())
+            
+            # Convertir a diccionario para respuesta - alineado con ESQUEMA_COMPLETO_BD.md
+            inventario = []
+            for neumatico in neumaticos:
+                inventario.append({
+                    "id": str(neumatico.id),
+                    "numero_serie": neumatico.numero_serie,
+                    "estado_actual": neumatico.estado_actual.value if neumatico.estado_actual else None,
+                    "fecha_compra": neumatico.fecha_compra.isoformat() if neumatico.fecha_compra else None,
+                    "costo_compra": float(neumatico.costo_compra) if neumatico.costo_compra else None,
+                    "modelo_id": str(neumatico.modelo_id) if neumatico.modelo_id else None,
+                    "vida_actual": neumatico.vida_actual,
+                    "kilometraje_acumulado": neumatico.kilometraje_acumulado,
+                    "profundidad_remanente_actual_mm": float(neumatico.profundidad_remanente_actual_mm) if neumatico.profundidad_remanente_actual_mm else None,
+                    "ubicacion_almacen_id": str(neumatico.ubicacion_almacen_id) if neumatico.ubicacion_almacen_id else None,
+                    "activo": neumatico.activo
+                })
+            
+            logger.info(f"Inventario obtenido exitosamente: {len(inventario)} neumáticos")
+            return inventario
+            
+        except Exception as e:
+            logger.error(f"Error en get_inventario_neumaticos: {str(e)}")
+            logger.error(traceback.format_exc())
+            raise
+
+    async def get_movimientos_inventario(self, skip: int = 0, limit: int = 100) -> List[Dict[str, Any]]:
+        """Obtener movimientos de inventario."""
+        try:
+            logger.info(f"Obteniendo movimientos de inventario - skip: {skip}, limit: {limit}")
+            
+            # Por ahora retornamos lista vacía ya que no hay tabla específica de movimientos
+            # En el futuro se podría implementar con una tabla de auditoría
+            movimientos = []
+            
+            logger.info(f"Movimientos obtenidos: {len(movimientos)} registros")
+            return movimientos
+            
+        except Exception as e:
+            logger.error(f"Error en get_movimientos_inventario: {str(e)}")
             logger.error(traceback.format_exc())
             raise
     
@@ -205,7 +263,7 @@ class InventarioService:
                 ModeloNeumatico.nombre.label('modelo_nombre'),
                 Almacen.id.label('almacen_id'),
                 Almacen.nombre.label('almacen_nombre'),
-                ParametrosInventario.valor_parametro.label('stock_minimo'),
+                ParametrosInventario.valor_numerico.label('stock_minimo'),
                 func.coalesce(stock_actual.c.cantidad_actual, 0).label('stock_actual')
             ).select_from(
                 ParametrosInventario
@@ -223,7 +281,7 @@ class InventarioService:
                 and_(
                     ParametrosInventario.parametro_tipo == 'STOCK_MINIMO',
                     ParametrosInventario.activo == True,
-                    func.coalesce(stock_actual.c.cantidad_actual, 0) < ParametrosInventario.valor_parametro
+                    func.coalesce(stock_actual.c.cantidad_actual, 0) < ParametrosInventario.valor_numerico
                 )
             )
             
@@ -265,7 +323,7 @@ class InventarioService:
                 "parametro_tipo": parametro_tipo,
                 "modelo_id": modelo_id,
                 "ubicacion_almacen_id": almacen_id,
-                "valor_parametro": valor,
+                "valor_numerico": valor,
                 "creado_por": creado_por
             }
             parametro = await crud_parametros.create(self.db, parametro_data)
@@ -285,7 +343,7 @@ class InventarioService:
             parametro = await self.get_parametro_inventario(parametro_id)
             if parametro:
                 update_data = {
-                    "valor_parametro": valor,
+                    "valor_numerico": valor,
                     "actualizado_por": actualizado_por
                 }
                 parametro_actualizado = await crud_parametros.update(self.db, parametro_id, update_data)

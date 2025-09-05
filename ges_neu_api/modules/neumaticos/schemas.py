@@ -7,26 +7,44 @@ from uuid import UUID
 from decimal import Decimal
 from pydantic import BaseModel, Field
 
-# from .models import EstadoNeumaticoEnum  # Comentado para evitar conflictos de metadata
+# Esquemas para Neumáticos (alineados con el esquema real de PostgreSQL)
+class NeumaticoCreate(BaseModel):
+    """Esquema para crear un neumático (Database-First)."""
+    modelo_id: UUID = Field(..., description="ID del modelo de neumático")
+    fecha_compra: date = Field(..., description="Fecha de compra del neumático")
+    profundidad_remanente_actual_mm: Decimal = Field(..., description="Profundidad remanente actual en mm")
 
-
-# Esquemas para Neumáticos
-class NeumaticoBase(BaseModel):
-    """Esquema base para neumáticos."""
-    numero_serie: str = Field(..., max_length=100, description="Número de serie único del neumático")
-    estado: str = Field(default="EN_STOCK", description="Estado actual del neumático")
-    medida: Optional[str] = Field(None, max_length=50, description="Medida del neumático (ej: 295/80R22.5)")
-    marca: Optional[str] = Field(None, max_length=100, description="Marca del neumático")
-    modelo: Optional[str] = Field(None, max_length=100, description="Modelo del neumático")
-    fecha_compra: Optional[date] = Field(None, description="Fecha de compra del neumático")
-    precio_compra: Optional[Decimal] = Field(None, ge=0, description="Precio de compra del neumático")
-    kilometraje_actual: Optional[int] = Field(0, ge=0, description="Kilometraje actual del neumático")
-    observaciones: Optional[str] = Field(None, description="Observaciones adicionales")
-
-
-class NeumaticoCreate(NeumaticoBase):
-    """Esquema para crear un neumático."""
-    pass
+    # Opcionales según tabla real
+    numero_serie: Optional[str] = Field(None, max_length=100)
+    dot: Optional[str] = None
+    fecha_fabricacion: Optional[date] = None
+    costo_compra: Optional[Decimal] = Field(None, ge=0)
+    moneda_compra: Optional[str] = Field(None, max_length=3)
+    proveedor_compra_id: Optional[UUID] = None
+    es_reencauchado: Optional[bool] = None
+    vida_actual: Optional[int] = Field(None, ge=1)
+    estado_actual: Optional[str] = Field(None, description="Estado actual del neumático")
+    ubicacion_actual_vehiculo_id: Optional[UUID] = None
+    ubicacion_actual_posicion_id: Optional[UUID] = None
+    fecha_ultimo_evento: Optional[datetime] = None
+    profundidad_inicial_mm: Optional[Decimal] = None
+    kilometraje_acumulado: Optional[int] = Field(None, ge=0)
+    reencauches_realizados: Optional[int] = Field(None, ge=0)
+    fecha_desecho: Optional[date] = None
+    motivo_desecho_id: Optional[UUID] = None
+    ubicacion_almacen_id: Optional[UUID] = None
+    sensor_id: Optional[str] = Field(None, max_length=100)
+    fecha_ultima_medicion_profundidad: Optional[datetime] = None
+    kilometraje_vida_actual: Optional[int] = Field(None, ge=0)
+    fecha_inicio_vida_actual: Optional[date] = None
+    odometro_instalacion_vida_actual: Optional[int] = Field(None, ge=0)
+    tasa_desgaste_actual_mm_km: Optional[Decimal] = None
+    vida_util_restante_km: Optional[int] = Field(None, ge=0)
+    fecha_ultimo_reencauche: Optional[date] = None
+    activo: Optional[bool] = None
+    proxima_inspeccion_fecha: Optional[date] = None
+    proxima_inspeccion_km: Optional[int] = Field(None, ge=0)
+    profundidad_inicio_vida_actual_mm: Optional[Decimal] = None
 
 
 class NeumaticoUpdate(BaseModel):
@@ -42,9 +60,54 @@ class NeumaticoUpdate(BaseModel):
     observaciones: Optional[str] = None
 
 
-class NeumaticoResponse(NeumaticoBase):
-    """Esquema de respuesta para neumáticos."""
+class NeumaticoResponse(BaseModel):
+    """Esquema de respuesta para neumáticos - Alineado con modelo BD real + campos IA."""
     id: UUID
+    numero_serie: Optional[str]
+    dot: Optional[str]
+    modelo_id: UUID
+    fecha_compra: date
+    fecha_fabricacion: Optional[date]
+    costo_compra: Optional[Decimal]
+    moneda_compra: Optional[str]
+    proveedor_compra_id: Optional[UUID]
+    es_reencauchado: bool
+    vida_actual: int
+    estado_actual: str
+    ubicacion_actual_vehiculo_id: Optional[UUID]
+    ubicacion_actual_posicion_id: Optional[UUID]
+    fecha_ultimo_evento: Optional[datetime]
+    profundidad_inicial_mm: Optional[Decimal]
+    kilometraje_acumulado: int
+    reencauches_realizados: int
+    fecha_desecho: Optional[date]
+    motivo_desecho_id: Optional[UUID]
+    ubicacion_almacen_id: Optional[UUID]
+    sensor_id: Optional[str]
+    profundidad_remanente_actual_mm: Decimal
+    fecha_ultima_medicion_profundidad: Optional[datetime]
+    kilometraje_vida_actual: Optional[int]
+    fecha_inicio_vida_actual: Optional[date]
+    odometro_instalacion_vida_actual: Optional[int]
+    tasa_desgaste_actual_mm_km: Optional[Decimal]
+    vida_util_restante_km: Optional[int]
+    fecha_ultimo_reencauche: Optional[date]
+    activo: Optional[bool]
+    proxima_inspeccion_fecha: Optional[date]
+    proxima_inspeccion_km: Optional[int]
+    profundidad_inicio_vida_actual_mm: Optional[Decimal]
+    
+    # Campos de IA para predicciones - Sprint 1
+    prediccion_fecha_reemplazo: Optional[date] = Field(None, description="Fecha predicha para reemplazo del neumático")
+    confianza_prediccion: Optional[Decimal] = Field(None, ge=0, le=1, description="Confianza de la predicción (0.0-1.0)")
+    fecha_ultima_prediccion: Optional[datetime] = Field(None, description="Fecha de la última predicción realizada")
+    modelo_prediccion_version: Optional[str] = Field(None, description="Versión del modelo ML utilizado")
+    
+    # Campos de auditoría
+    creado_en: datetime
+    creado_por: Optional[UUID]
+    actualizado_en: Optional[datetime]
+    actualizado_por: Optional[UUID]
     
     class Config:
         from_attributes = True

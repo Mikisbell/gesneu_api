@@ -50,13 +50,36 @@ class BitacoraService:
         return await self.bitacora_mantenimiento_crud.get(self.db, id=bitacora_id)
 
     # Bitácora de Operaciones
+    async def get_bitacora_operacion(self, operacion_id: UUID) -> Optional[BitacoraOperaciones]:
+        """Obtener bitácora de operación por ID."""
+        return await self.bitacora_operaciones_crud.get(self.db, id=operacion_id)
+
     async def create_bitacora_operacion(self, operacion_data: dict) -> BitacoraOperaciones:
         """Crear nueva operación en bitácora."""
         return await self.bitacora_operaciones_crud.create(self.db, obj_in=operacion_data)
 
-    async def get_bitacoras_operaciones(self, skip: int = 0, limit: int = 100) -> List[BitacoraOperaciones]:
-        """Obtener bitácoras de operaciones."""
-        return await self.bitacora_operaciones_crud.get_multi(self.db, skip=skip, limit=limit)
+    async def update_bitacora_operacion(self, operacion_id: UUID, operacion_data: dict) -> Optional[BitacoraOperaciones]:
+        """Actualizar bitácora de operación."""
+        return await self.bitacora_operaciones_crud.update(self.db, db_obj_id=operacion_id, obj_in=operacion_data)
+
+    async def get_bitacoras_operaciones(
+        self, 
+        skip: int = 0, 
+        limit: int = 100,
+        tipo_operacion: Optional[str] = None,
+        estado_operacion: Optional[str] = None
+    ) -> List[BitacoraOperaciones]:
+        """Obtener bitácoras de operaciones con filtros opcionales."""
+        query = select(BitacoraOperaciones)
+        
+        if tipo_operacion:
+            query = query.where(BitacoraOperaciones.tipo_operacion == tipo_operacion)
+        if estado_operacion:
+            query = query.where(BitacoraOperaciones.estado_operacion == estado_operacion)
+            
+        query = query.offset(skip).limit(limit)
+        result = await self.db.exec(query)
+        return result.all()
 
     # Auditoría
     async def get_auditoria_logs(self, skip: int = 0, limit: int = 100) -> List[AuditoriaLog]:

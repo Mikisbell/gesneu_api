@@ -34,6 +34,10 @@ class TipoParametroInventarioEnum(str, enum.Enum):
     STOCK_MAXIMO = "STOCK_MAXIMO"
     VIDA_UTIL_KM = "VIDA_UTIL_KM"
     VIDA_UTIL_ANIOS = "VIDA_UTIL_ANIOS"
+    TIEMPO_DE_ENTREGA = "TIEMPO_DE_ENTREGA"
+
+# NOTA: FabricanteNeumatico se encuentra en el módulo neumaticos según ESQUEMA_COMPLETO_BD.md
+# Los fabricantes de neumáticos no pertenecen al módulo de catálogos
 
 # ============================================================================
 # PROVEEDORES

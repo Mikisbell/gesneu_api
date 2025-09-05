@@ -7,7 +7,7 @@ from typing import Optional, List, TYPE_CHECKING
 from uuid import UUID, uuid4
 
 from sqlmodel import SQLModel, Field
-from sqlalchemy import Column, String, Boolean, DateTime, Text, Integer, Numeric, CheckConstraint, TIMESTAMP, ForeignKey
+from sqlalchemy import Column, String, Boolean, DateTime, Text, Integer, Numeric, CheckConstraint, TIMESTAMP, ForeignKey, JSON
 from sqlalchemy.dialects.postgresql import UUID as PG_UUID
 from sqlalchemy import Enum as SQLAlchemyEnum, text, Index
 
@@ -19,26 +19,15 @@ if TYPE_CHECKING:
     from ..catalogos.models import ParametroInventario
 
 # Enums exactos del esquema real
-class TipoAlertaEnum(str, Enum):
-    STOCK_BAJO = "STOCK_BAJO"
-    PROFUNDIDAD_CRITICA = "PROFUNDIDAD_CRITICA"
-    VENCIMIENTO_GARANTIA = "VENCIMIENTO_GARANTIA"
-    INSPECCION_PENDIENTE = "INSPECCION_PENDIENTE"
-    ROTACION_RECOMENDADA = "ROTACION_RECOMENDADA"
-    REENCAUCHE_RECOMENDADO = "REENCAUCHE_RECOMENDADO"
-    DESECHO_RECOMENDADO = "DESECHO_RECOMENDADO"
-
-class PrioridadAlertaEnum(str, Enum):
-    BAJA = "BAJA"
-    MEDIA = "MEDIA"
-    ALTA = "ALTA"
-    CRITICA = "CRITICA"
+class NivelSeveridadEnum(str, Enum):
+    INFO = "INFO"
+    WARN = "WARN"
+    CRITICAL = "CRITICAL"
 
 class EstadoAlertaEnum(str, Enum):
-    PENDIENTE = "PENDIENTE"
+    NUEVA = "NUEVA"
     VISTA = "VISTA"
-    RESUELTA = "RESUELTA"
-    IGNORADA = "IGNORADA"
+    GESTIONADA = "GESTIONADA"
 
 # ============================================================================
 # ALERTAS
@@ -54,36 +43,33 @@ class Alertas(SQLModel, table=True):
         sa_column=Column(PG_UUID(as_uuid=True), primary_key=True, server_default=text("gen_random_uuid()"))
     )
     tipo_alerta: str = Field(sa_column=Column(String(50), nullable=False))
-    neumatico_id: Optional[UUID] = Field(default=None, sa_column=Column(PG_UUID(as_uuid=True), ForeignKey("neumaticos.id")))
-    parametro_id: Optional[UUID] = Field(default=None, sa_column=Column(PG_UUID(as_uuid=True), ForeignKey("parametros_inventario.id")))
     mensaje: str = Field(sa_column=Column(Text, nullable=False))
-    nivel_prioridad: str = Field(default="medium", sa_column=Column(String(20), nullable=False, server_default=text("'medium'")))
-    fecha_generacion: datetime = Field(default_factory=datetime.utcnow, sa_column=Column(DateTime(timezone=True), nullable=False, server_default=text('now()')))
-    fecha_vencimiento: Optional[datetime] = Field(default=None, sa_column=Column(DateTime(timezone=True)))
-    leida: bool = Field(default=False, sa_column=Column(Boolean, nullable=False, server_default=text('false')))
-    activo: bool = Field(default=True, sa_column=Column(Boolean, nullable=False, server_default=text('true')))
-    creado_en: datetime = Field(
-        default_factory=datetime.utcnow,
-        sa_column=Column(TIMESTAMP, nullable=False, server_default=text("now()"))
+    nivel_severidad: NivelSeveridadEnum = Field(
+        default=NivelSeveridadEnum.INFO, 
+        sa_column=Column(String(20), nullable=False, server_default=text("'INFO'"))
     )
-    creado_por: Optional[UUID] = Field(default=None, sa_column=Column(PG_UUID(as_uuid=True), ForeignKey("usuarios.id", ondelete="SET NULL")))
-    actualizado_en: Optional[datetime] = Field(default=None, sa_column=Column(TIMESTAMP))
-    actualizado_por: Optional[UUID] = Field(default=None, sa_column=Column(PG_UUID(as_uuid=True), ForeignKey("usuarios.id", ondelete="SET NULL")))
-    estado: EstadoAlertaEnum = Field(default=EstadoAlertaEnum.PENDIENTE, sa_column=Column(SQLAlchemyEnum(EstadoAlertaEnum), nullable=False, server_default=text("'PENDIENTE'")))
-    vista_por: Optional[UUID] = Field(default=None, sa_column=Column(PG_UUID(as_uuid=True), ForeignKey("usuarios.id", ondelete="SET NULL")))
-    fecha_vista: Optional[datetime] = Field(default=None, sa_column=Column(DateTime(timezone=True)))
-    resuelta_por: Optional[UUID] = Field(default=None, sa_column=Column(PG_UUID(as_uuid=True), ForeignKey("usuarios.id", ondelete="SET NULL")))
-    fecha_resolucion: Optional[datetime] = Field(default=None, sa_column=Column(DateTime(timezone=True)))
-    observaciones_resolucion: Optional[str] = Field(default=None, sa_column=Column(Text))
+    estado_alerta: EstadoAlertaEnum = Field(
+        default=EstadoAlertaEnum.NUEVA, 
+        sa_column=Column(String(20), nullable=False, server_default=text("'NUEVA'"))
+    )
+    timestamp_generacion: datetime = Field(
+        default_factory=datetime.utcnow, 
+        sa_column=Column(DateTime(timezone=True), nullable=False, server_default=text('now()'))
+    )
+    timestamp_gestion: Optional[datetime] = Field(default=None, sa_column=Column(DateTime(timezone=True)))
+    usuario_gestion_id: Optional[UUID] = Field(default=None, sa_column=Column(PG_UUID(as_uuid=True), ForeignKey("usuarios.id")))
+    neumatico_id: Optional[UUID] = Field(default=None, sa_column=Column(PG_UUID(as_uuid=True), ForeignKey("neumaticos.id")))
+    vehiculo_id: Optional[UUID] = Field(default=None, sa_column=Column(PG_UUID(as_uuid=True), ForeignKey("vehiculos.id")))
+    modelo_id: Optional[UUID] = Field(default=None, sa_column=Column(PG_UUID(as_uuid=True), ForeignKey("modelos_neumatico.id")))
+    almacen_id: Optional[UUID] = Field(default=None, sa_column=Column(PG_UUID(as_uuid=True), ForeignKey("almacenes.id")))
+    parametro_id: Optional[UUID] = Field(default=None, sa_column=Column(PG_UUID(as_uuid=True), ForeignKey("parametros_inventario.id")))
+    datos_contexto: Optional[dict] = Field(default=None, sa_column=Column("datos_contexto", JSON))
     
     # Constraints exactos del esquema real
     __table_args__ = (
-        CheckConstraint("nivel_prioridad IN ('low', 'medium', 'high')", name='alertas_prioridad_check'),
-        CheckConstraint("tipo_alerta IN ('STOCK_BAJO', 'PROFUNDIDAD_CRITICA', 'VENCIMIENTO_GARANTIA', 'INSPECCION_PENDIENTE', 'ROTACION_RECOMENDADA', 'REENCAUCHE_RECOMENDADO', 'DESECHO_RECOMENDADO')", name='alertas_tipo_check'),
-        Index('idx_alertas_tipo', 'tipo_alerta'),
-        Index('idx_alertas_prioridad', 'nivel_prioridad'),
-        Index('idx_alertas_fecha_generacion', 'fecha_generacion'),
-        Index('idx_alertas_neumatico', 'neumatico_id'),
+        CheckConstraint("nivel_severidad IN ('INFO', 'WARN', 'CRITICAL')", name='alertas_nivel_severidad_check'),
+        CheckConstraint("estado_alerta IN ('NUEVA', 'VISTA', 'GESTIONADA')", name='alertas_estado_alerta_check'),
+        Index('idx_alertas_estado_ts', 'estado_alerta', 'timestamp_generacion'),
     )
     
     # Relationships - removed to avoid circular imports

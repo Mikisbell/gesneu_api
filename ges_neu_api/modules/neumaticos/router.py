@@ -1,7 +1,7 @@
 """
 Router completo para el módulo de neumáticos.
 """
-from typing import List
+from typing import List, Optional
 from uuid import UUID
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -13,12 +13,24 @@ from .schemas import (
     FabricanteCreate, FabricanteUpdate, FabricanteResponse,
     ModeloCreate, ModeloUpdate, ModeloResponse
 )
+from ..auth.dependencies import get_current_user
+from ..auth import schemas as auth_schemas
 
 router = APIRouter(
     tags=["neumaticos"]
 )
 
 # Endpoints para Neumáticos
+@router.get("/health", summary="Estado del módulo de neumáticos")
+async def health_neumaticos():
+    """Verifica el estado del módulo de neumáticos."""
+    return {
+        "module": "neumaticos",
+        "status": "active",
+        "models_status": "functional",
+        "endpoints_status": "complete"
+    }
+
 @router.post("/", response_model=NeumaticoResponse)
 async def create_neumatico(
     neumatico_data: NeumaticoCreate,
@@ -29,6 +41,7 @@ async def create_neumatico(
 
 # Endpoints para Fabricantes (ANTES de rutas con parámetros)
 @router.post("/fabricantes", response_model=FabricanteResponse)
+@router.post("/fabricantes/", response_model=FabricanteResponse)
 async def create_fabricante(
     fabricante_data: FabricanteCreate,
     service: NeumaticoService = Depends(get_neumatico_service)
@@ -37,6 +50,7 @@ async def create_fabricante(
     return await service.create_fabricante(fabricante_data)
 
 @router.get("/fabricantes", response_model=List[FabricanteResponse])
+@router.get("/fabricantes/", response_model=List[FabricanteResponse])
 async def get_fabricantes(
     skip: int = Query(0, ge=0, description="Número de registros a omitir"),
     limit: int = Query(100, ge=1, le=1000, description="Número máximo de registros a retornar"),
@@ -46,41 +60,37 @@ async def get_fabricantes(
     return await service.get_fabricantes(skip=skip, limit=limit)
 
 @router.get("/fabricantes/{fabricante_id}", response_model=FabricanteResponse)
+@router.get("/fabricantes/{fabricante_id}/", response_model=FabricanteResponse)
 async def get_fabricante(
     fabricante_id: UUID,
     service: NeumaticoService = Depends(get_neumatico_service)
 ):
     """Obtener un fabricante por ID."""
-    fabricante = await service.get_fabricante(fabricante_id)
-    if not fabricante:
-        raise HTTPException(status_code=404, detail="Fabricante no encontrado")
-    return fabricante
+    return await service.get_fabricante(fabricante_id)
 
 @router.put("/fabricantes/{fabricante_id}", response_model=FabricanteResponse)
+@router.put("/fabricantes/{fabricante_id}/", response_model=FabricanteResponse)
 async def update_fabricante(
     fabricante_id: UUID,
     fabricante_data: FabricanteUpdate,
     service: NeumaticoService = Depends(get_neumatico_service)
 ):
     """Actualizar un fabricante."""
-    fabricante = await service.update_fabricante(fabricante_id, fabricante_data)
-    if not fabricante:
-        raise HTTPException(status_code=404, detail="Fabricante no encontrado")
-    return fabricante
+    return await service.update_fabricante(fabricante_id, fabricante_data)
 
 @router.delete("/fabricantes/{fabricante_id}")
+@router.delete("/fabricantes/{fabricante_id}/")
 async def delete_fabricante(
     fabricante_id: UUID,
     service: NeumaticoService = Depends(get_neumatico_service)
 ):
     """Eliminar un fabricante."""
-    success = await service.delete_fabricante(fabricante_id)
-    if not success:
-        raise HTTPException(status_code=404, detail="Fabricante no encontrado")
+    await service.delete_fabricante(fabricante_id)
     return {"message": "Fabricante eliminado exitosamente"}
 
 # Endpoints para Modelos
 @router.post("/modelos", response_model=ModeloResponse)
+@router.post("/modelos/", response_model=ModeloResponse)
 async def create_modelo(
     modelo_data: ModeloCreate,
     service: NeumaticoService = Depends(get_neumatico_service)
@@ -89,6 +99,7 @@ async def create_modelo(
     return await service.create_modelo(modelo_data)
 
 @router.get("/modelos", response_model=List[ModeloResponse])
+@router.get("/modelos/", response_model=List[ModeloResponse])
 async def get_modelos(
     skip: int = Query(0, ge=0, description="Número de registros a omitir"),
     limit: int = Query(100, ge=1, le=1000, description="Número máximo de registros a retornar"),
@@ -114,6 +125,7 @@ async def get_modelos(
         )
 
 @router.get("/modelos/{modelo_id}", response_model=ModeloResponse)
+@router.get("/modelos/{modelo_id}/", response_model=ModeloResponse)
 async def get_modelo(
     modelo_id: UUID,
     service: NeumaticoService = Depends(get_neumatico_service)
@@ -125,6 +137,7 @@ async def get_modelo(
     return modelo
 
 @router.put("/modelos/{modelo_id}", response_model=ModeloResponse)
+@router.put("/modelos/{modelo_id}/", response_model=ModeloResponse)
 async def update_modelo(
     modelo_id: UUID,
     modelo_data: ModeloUpdate,
@@ -137,6 +150,7 @@ async def update_modelo(
     return modelo
 
 @router.delete("/modelos/{modelo_id}")
+@router.delete("/modelos/{modelo_id}/")
 async def delete_modelo(
     modelo_id: UUID,
     service: NeumaticoService = Depends(get_neumatico_service)
@@ -151,10 +165,12 @@ async def delete_modelo(
 async def get_neumaticos(
     skip: int = Query(0, ge=0, description="Número de registros a omitir"),
     limit: int = Query(100, ge=1, le=1000, description="Número máximo de registros a retornar"),
-    service: NeumaticoService = Depends(get_neumatico_service)
+    estado: Optional[str] = Query(None, description="Filtrar por estado del neumático"),
+    service: NeumaticoService = Depends(get_neumatico_service),
+    current_user: auth_schemas.UserRead = Depends(get_current_user)
 ):
-    """Obtener lista de neumáticos."""
-    return await service.get_neumaticos(skip=skip, limit=limit)
+    """Obtener lista de neumáticos con filtro opcional por estado."""
+    return await service.get_neumaticos(skip=skip, limit=limit, estado=estado)
 
 @router.get("/{neumatico_id}", response_model=NeumaticoResponse)
 async def get_neumatico(
@@ -162,10 +178,17 @@ async def get_neumatico(
     service: NeumaticoService = Depends(get_neumatico_service)
 ):
     """Obtener un neumático por ID."""
-    neumatico = await service.get_neumatico(neumatico_id)
-    if not neumatico:
-        raise HTTPException(status_code=404, detail="Neumático no encontrado")
-    return neumatico
+    try:
+        neumatico = await service.get_neumatico(neumatico_id)
+        if not neumatico:
+            raise HTTPException(status_code=404, detail="Neumático no encontrado")
+        return neumatico
+    except HTTPException:
+        # Propagar HTTPExceptions controladas
+        raise
+    except Exception as e:
+        # Error inesperado (por ejemplo, base de datos no disponible)
+        raise HTTPException(status_code=500, detail=f"Error interno: {str(e)}")
 
 @router.put("/{neumatico_id}", response_model=NeumaticoResponse)
 async def update_neumatico(
@@ -190,12 +213,4 @@ async def delete_neumatico(
         raise HTTPException(status_code=404, detail="Neumático no encontrado")
     return {"message": "Neumático eliminado exitosamente"}
 
-@router.get("/health", summary="Estado del módulo de neumáticos")
-async def health_neumaticos():
-    """Verifica el estado del módulo de neumáticos."""
-    return {
-        "module": "neumaticos",
-        "status": "active",
-        "models_status": "functional",
-        "endpoints_status": "complete"
-    }
+ 

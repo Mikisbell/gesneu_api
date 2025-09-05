@@ -1,145 +1,198 @@
 """Test configuration and fixtures."""
 import asyncio
+import os
 from typing import AsyncGenerator, Generator
 
 import pytest
 import pytest_asyncio
 from fastapi.testclient import TestClient
-from httpx import AsyncClient
-from sqlalchemy.ext.asyncio import (
-    AsyncConnection,
-    AsyncSession,
-    AsyncEngine,
-    async_sessionmaker,
-    create_async_engine,
-)
-from testcontainers.postgres import PostgresContainer
-
-from core.database import Base, get_db
+from httpx import ASGITransport, AsyncClient
+from sqlalchemy.ext.asyncio import AsyncEngine, AsyncSession, async_sessionmaker, create_async_engine
+from sqlalchemy.pool import StaticPool
+from fastapi import Depends
+from ges_neu_api.core.config import Settings
+from ges_neu_api.core.database import Base, get_db
 from ges_neu_api.main import app
-from tests.factories import UsuarioFactory
-from modules.auth.models.usuario import Usuario
+from tests.auth.factories import UsuarioFactory
+# Import test models for SQLite compatibility
+from ges_neu_api.core.test_models import Usuario, Rol, Permiso, UsuariosRoles, RolesPermisos
 
-# 1. Start PostgreSQL container for the test session
-@pytest.fixture(scope="session")
-def postgres_container() -> Generator[PostgresContainer, None, None]:
-    """Start a PostgreSQL container for testing."""
-    with PostgresContainer("postgres:15-alpine") as container:
-        yield container
 
-@pytest.fixture(scope="session")
-def db_url(postgres_container: PostgresContainer) -> str:
-    """Get the database connection URL from the container."""
-    # Replace 'postgresql' with 'postgresql+asyncpg' for async SQLAlchemy
-    return postgres_container.get_connection_url().replace(
-        "postgresql://", "postgresql+asyncpg://"
-    )
-
-# 2. Create database engine once per session
-@pytest_asyncio.fixture(scope="session")
-async def db_engine(db_url: str) -> AsyncGenerator[AsyncEngine, None]:
-    """Create and configure the SQLAlchemy async engine."""
-    engine = create_async_engine(db_url, echo=False)
-    
-    # Create all tables
-    async with engine.begin() as conn:
-        await conn.run_sync(Base.metadata.create_all)
-    
-    yield engine
-    
-    # Cleanup
-    await engine.dispose()
-
-# 3. Create a database connection for each test
-@pytest_asyncio.fixture(scope="function")
-async def db_connection(
-    db_engine: AsyncEngine
-) -> AsyncGenerator[AsyncConnection, None]:
-    """Create a database connection for each test."""
-    async with db_engine.connect() as connection:
-        # Begin a nested transaction
-        transaction = await connection.begin()
-        
-        try:
-            yield connection
-        finally:
-            # Always roll back the transaction
-            await transaction.rollback()
-
-# 4. Create a database session for each test
-@pytest_asyncio.fixture(scope="function")
-async def db_session(
-    db_connection: AsyncConnection
-) -> AsyncGenerator[AsyncSession, None]:
-    """Create a database session with automatic rollback after each test."""
-    session_maker = async_sessionmaker(
-        bind=db_connection,
-        expire_on_commit=False,
-        autoflush=False
-    )
-    
-    async with session_maker() as session:
-        try:
-            yield session
-        finally:
-            await session.close()
-
-# 5. Event loop for async tests
 @pytest.fixture(scope="session")
 def event_loop() -> Generator[asyncio.AbstractEventLoop, None, None]:
     """Create an event loop for the test session."""
+    # Configuración mejorada para evitar warnings de event loop
     policy = asyncio.get_event_loop_policy()
     loop = policy.new_event_loop()
+    asyncio.set_event_loop(loop)
+    
     yield loop
-    loop.close()
-
-# --- User and Client Fixtures ---
-
-@pytest_asyncio.fixture(scope="function")
-async def test_user(db_session: AsyncSession) -> Usuario:
-    """Create a test user."""
-    return await UsuarioFactory.create(
-        db_session,
-        email="test@example.com",
-        nombre="Test",
-        apellido="User",
-        activo=True
-    )
-
-@pytest_asyncio.fixture(scope="function")
-async def admin_user(db_session: AsyncSession) -> Usuario:
-    """Create an admin user."""
-    return await UsuarioFactory.create(
-        db_session,
-        email="admin@example.com",
-        nombre="Admin",
-        apellido="User",
-        activo=True
-    )
-
-@pytest_asyncio.fixture(scope="function")
-async def client(
-    db_session: AsyncSession
-) -> AsyncGenerator[AsyncClient, None]:
-    """Create a test client that overrides the database dependency."""
-    # Override the get_db dependency
-    async def override_get_db() -> AsyncGenerator[AsyncSession, None]:
+    
+    # Clean shutdown mejorado
+    try:
+        # Cancelar todas las tareas pendientes
+        pending = asyncio.all_tasks(loop)
+        if pending:
+            for task in pending:
+                task.cancel()
+            # Esperar a que las tareas canceladas terminen
+            loop.run_until_complete(asyncio.gather(*pending, return_exceptions=True))
+    except Exception:
+        pass
+    finally:
+        # Cerrar el loop de forma segura
         try:
-            yield db_session
+            loop.run_until_complete(loop.shutdown_asyncgens())
+            loop.run_until_complete(loop.shutdown_default_executor())
+        except Exception:
+            pass
         finally:
-            await db_session.close()
+            if not loop.is_closed():
+                loop.close()
+            asyncio.set_event_loop(None)
+
+
+@pytest_asyncio.fixture(scope="function")
+async def db_engine() -> AsyncGenerator[AsyncEngine, None]:
+    """Database engine fixture using SQLite for tests."""
+    from sqlalchemy.pool import StaticPool
+    settings = Settings()
     
-    # Apply the override
-    app.dependency_overrides[get_db] = override_get_db
+    # Use SQLite in-memory database for tests
+    engine = create_async_engine(
+        settings.TEST_SQLALCHEMY_DATABASE_URI,
+        echo=False,
+        poolclass=StaticPool,
+        connect_args={
+            "check_same_thread": False,
+        },
+    )
     
-    # Create and yield the test client
-    async with AsyncClient(app=app, base_url="http://test") as async_client:
-        yield async_client
+    # Create all tables using test metadata (SQLite compatible)
+    from ges_neu_api.core.test_models import test_metadata
+    async with engine.begin() as conn:
+        await conn.run_sync(test_metadata.create_all)
     
-    # Clean up
-    del app.dependency_overrides[get_db]
+    try:
+        yield engine
+    finally:
+        # Proper async cleanup
+        try:
+            await engine.dispose()
+        except Exception as e:
+            print(f"Warning: Error during engine cleanup: {e}")
+
+
+@pytest_asyncio.fixture(scope="function")
+async def db_session(db_engine: AsyncEngine) -> AsyncGenerator[AsyncSession, None]:
+    """Database session fixture with proper cleanup."""
+    # Create session factory
+    session_factory = async_sessionmaker(
+        bind=db_engine,
+        expire_on_commit=False,
+        autoflush=True,
+        autocommit=False
+    )
+    
+    session = session_factory()
+    
+    try:
+        yield session
+    finally:
+        # Clean shutdown
+        try:
+            await session.rollback()
+            await session.close()
+        except Exception as e:
+            print(f"Warning: Error during session cleanup: {e}")
+
+
+@pytest_asyncio.fixture(scope="function")
+async def client(db_session: AsyncSession) -> AsyncGenerator[AsyncClient, None]:
+    """Create a test client that overrides the database dependency."""
+    
+    async def override_get_session() -> AsyncGenerator[AsyncSession, None]:
+        yield db_session
+
+    # Override auth service to use test models
+    from tests.auth.test_service import TestAuthService
+    from ges_neu_api.modules.auth.router import get_auth_service
+    from ges_neu_api.core.database import get_session
+    
+    def override_get_auth_service(db: AsyncSession = Depends(get_session)) -> TestAuthService:
+        return TestAuthService(db)
+
+    app.dependency_overrides[get_session] = override_get_session
+    app.dependency_overrides[get_auth_service] = override_get_auth_service
+    
+    try:
+        async with AsyncClient(
+            transport=ASGITransport(app=app), 
+            base_url="http://test",
+            timeout=30.0
+        ) as async_client:
+            yield async_client
+    finally:
+        # Clean up dependency overrides
+        if get_session in app.dependency_overrides:
+            del app.dependency_overrides[get_session]
+        if get_auth_service in app.dependency_overrides:
+            del app.dependency_overrides[get_auth_service]
+
 
 @pytest.fixture(scope="function")
-def sync_client() -> TestClient:
+def sync_client(db_session: AsyncSession) -> Generator[TestClient, None, None]:
     """Create a synchronous test client."""
-    return TestClient(app)
+    from ges_neu_api.core.database import get_session
+    
+    def override_get_session() -> Generator[AsyncSession, None, None]:
+        yield db_session
+
+    app.dependency_overrides[get_session] = override_get_session
+    yield TestClient(app)
+    del app.dependency_overrides[get_session]
+
+# --- User and Auth Fixtures ---
+
+@pytest_asyncio.fixture
+async def test_user(db_session: AsyncSession) -> Usuario:
+    """Fixture to create a standard test user."""
+    return await UsuarioFactory.create(
+        db=db_session,
+        activo=True
+    )
+
+@pytest_asyncio.fixture(scope="function")
+async def superuser(db_session: AsyncSession) -> Usuario:
+    """Fixture to create a superuser."""
+    return await UsuarioFactory.create(
+        db=db_session,
+        activo=True
+    )
+
+
+@pytest_asyncio.fixture(scope="function")
+async def get_auth_headers(client: AsyncClient, db_session: AsyncSession) -> dict:
+    """Fixture to get authentication headers for a test user."""
+    password = "testpassword"
+    
+    # Create user with unique values using factory defaults - only valid PostgreSQL schema fields
+    user = await UsuarioFactory.create(
+        db=db_session,
+        password=password,
+        activo=True
+    )
+    
+    print(f"DEBUG: Created user with email: {user.email}, id: {user.id}")
+
+    login_data = {
+        "username": user.email,
+        "password": password,
+    }
+
+    response = await client.post("/api/v1/auth/login", data=login_data)
+    print(f"DEBUG: Login response status: {response.status_code}, body: {response.text}")
+    assert response.status_code == 200, f"Failed to log in: {response.text}"
+    
+    token_data = response.json()
+    return {"Authorization": f"Bearer {token_data['access_token']}"}

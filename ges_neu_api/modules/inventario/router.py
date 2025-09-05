@@ -26,6 +26,40 @@ async def get_inventario_service(db: AsyncSession = Depends(get_session)) -> Inv
 # PARÁMETROS DE INVENTARIO (tabla real)
 # ============================================================================
 
+@router.get("/", response_model=List[dict], summary="Obtener inventario de neumáticos")
+async def get_inventario_neumaticos(
+    skip: int = Query(0, ge=0),
+    limit: int = Query(100, ge=1, le=1000),
+    service: InventarioService = Depends(get_inventario_service)
+):
+    """Obtiene el inventario de neumáticos"""
+    try:
+        return await service.get_inventario_neumaticos(skip=skip, limit=limit)
+    except Exception as e:
+        logger.error(f"Error obteniendo inventario: {str(e)}")
+        logger.error(f"Traceback: {traceback.format_exc()}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Error interno: {str(e)}"
+        )
+
+@router.get("/movimientos/", response_model=List[dict], summary="Obtener movimientos de inventario")
+async def get_movimientos_inventario(
+    skip: int = Query(0, ge=0),
+    limit: int = Query(100, ge=1, le=1000),
+    service: InventarioService = Depends(get_inventario_service)
+):
+    """Obtiene los movimientos de inventario"""
+    try:
+        return await service.get_movimientos_inventario(skip=skip, limit=limit)
+    except Exception as e:
+        logger.error(f"Error obteniendo movimientos: {str(e)}")
+        logger.error(f"Traceback: {traceback.format_exc()}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Error interno: {str(e)}"
+        )
+
 @router.get("/parametros", response_model=List[ParametroInventarioResponse], summary="Obtener parámetros de inventario")
 async def get_parametros_inventario(
     activo: Optional[bool] = Query(None, description="Filtrar por estado activo"),

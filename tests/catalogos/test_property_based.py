@@ -1,102 +1,84 @@
 """Property-based tests for the catalogos module."""
 from hypothesis import given, strategies as st
-from datetime import datetime, timezone
-from uuid import uuid4
-
 import pytest
-from fastapi import status
+import pytest_asyncio
 from sqlalchemy.ext.asyncio import AsyncSession
-
-from ges_neu_api.catalogos import models, schemas
-from ges_neu_api.modules.catalogos.service import CatalogosService
+from ges_neu_api.modules.catalogos import schemas
+from ges_neu_api.modules.catalogos.service import CatalogService
 from ges_neu_api.modules.auth.models import Usuario
 
-# Strategies for generating test data
-non_empty_text = st.text(min_size=1, max_size=100, alphabet=st.characters(blacklist_categories=('Cc', 'Cs')))
-positive_int = st.integers(min_value=1, max_value=1000)
-
-# Strategy for FabricanteCreate
-fabricante_create_strategy = st.builds(
-    schemas.FabricanteCreate,
-    nombre=non_empty_text,
-    descripcion=st.one_of(st.none(), st.text(max_size=500)),
-    activo=st.booleans()
+# Strategies for property-based testing using existing schemas
+proveedor_create_strategy = st.builds(
+    schemas.ProveedorCreate,
+    nombre=st.text(min_size=1, max_size=150)
 )
 
-# Strategy for CatalogoItemCreate
-catalogo_item_create_strategy = st.builds(
-    schemas.CatalogoItemCreate,
-    nombre=non_empty_text,
-    descripcion=st.one_of(st.none(), st.text(max_size=1000)),
-    tipo_id=st.uuids(),
-    activo=st.booleans()
+almacen_create_strategy = st.builds(
+    schemas.AlmacenCreate,
+    codigo=st.text(min_size=1, max_size=20),
+    nombre=st.text(min_size=1, max_size=100),
+    direccion=st.text(max_size=200) | st.none(),
+    responsable=st.text(max_size=200) | st.none(),
+    telefono=st.text(max_size=20) | st.none(),
+    email=st.text(max_size=100) | st.none(),
+    es_principal=st.booleans()
 )
 
 class TestPropertyBasedCatalogos:
-    """Property-based tests for the catalogos module."""
+    """Property-based tests for catalogos module."""
     
-    @given(fabricante_data=fabricante_create_strategy)
+    @given(proveedor_data=proveedor_create_strategy)
     @pytest.mark.asyncio
-    async def test_create_and_retrieve_fabricante_property(
+    async def test_create_and_retrieve_proveedor_property(
         self, 
         db_session: AsyncSession,
-        fabricante_data: schemas.FabricanteCreate,
+        proveedor_data: schemas.ProveedorCreate,
         admin_user: Usuario
     ):
-        """Test that a fabricante can be created and retrieved with the same data."""
+        """Test that a proveedor can be created and retrieved with the same data."""
         # Arrange
-        service = CatalogosService(db_session)
+        service = CatalogService(db_session)
         
         # Act - Create
-        created = await service.create_fabricante(fabricante_data, admin_user)
+        created = await service.create_proveedor(proveedor_data, admin_user)
         
         # Assert - Creation
         assert created is not None
-        assert created.nombre == fabricante_data.nombre
-        assert created.descripcion == fabricante_data.descripcion
+        assert created.nombre == proveedor_data.nombre
         
         # Act - Retrieve
-        retrieved = await service.get_fabricante_by_id(created.id, admin_user)
+        retrieved = await service.get_proveedor_by_id(created.id, admin_user)
         
         # Assert - Retrieval
         assert retrieved is not None
         assert retrieved.id == created.id
         assert retrieved.nombre == created.nombre
-        assert retrieved.descripcion == created.descripcion
     
-    
-    
-    @given(
-        initial_data=fabricante_create_strategy,
-        update_data=fabricante_create_strategy
-    )
+    @given(almacen_data=almacen_create_strategy)
     @pytest.mark.asyncio
-    async def test_update_fabricante_property(
-        self,
+    async def test_create_and_retrieve_almacen_property(
+        self, 
         db_session: AsyncSession,
-        initial_data: schemas.FabricanteCreate,
-        update_data: schemas.FabricanteCreate,
+        almacen_data: schemas.AlmacenCreate,
         admin_user: Usuario
     ):
-        """Test that a fabricante can be updated and maintains data integrity."""
-        # Arrange - Create initial fabricante
-        service = CatalogosService(db_session)
-        created = await service.create_fabricante(initial_data, admin_user)
+        """Test that an almacen can be created and retrieved with the same data."""
+        # Arrange
+        service = CatalogService(db_session)
         
-        # Act - Update
-        updated = await service.update_fabricante(
-            fabricante_id=created.id,
-            fabricante_update=schemas.FabricanteUpdate(**update_data.dict()),
-            user=admin_user
-        )
+        # Act - Create
+        created = await service.create_almacen(almacen_data, admin_user)
         
-        # Assert
-        assert updated is not None
-        assert updated.id == created.id
-        assert updated.nombre == update_data.nombre
-        assert updated.descripcion == update_data.descripcion
+        # Assert - Creation
+        assert created is not None
+        assert created.codigo == almacen_data.codigo
+        assert created.nombre == almacen_data.nombre
         
-        # Verify the update is persisted
-        retrieved = await service.get_fabricante_by_id(created.id, admin_user)
-        assert retrieved.nombre == update_data.nombre
-        assert retrieved.descripcion == update_data.descripcion
+        # Act - Retrieve
+        retrieved = await service.get_almacen_by_id(created.id, admin_user)
+        
+        # Assert - Retrieval
+        assert retrieved is not None
+        assert retrieved.id == created.id
+        assert retrieved.codigo == created.codigo
+        assert retrieved.nombre == created.nombre

@@ -60,10 +60,28 @@ async def create_bitacora_mantenimiento(
 async def get_bitacoras_operaciones(
     skip: int = Query(0, ge=0),
     limit: int = Query(100, ge=1, le=1000),
+    tipo_operacion: Optional[str] = Query(None, description="Filtrar por tipo de operación"),
+    estado_operacion: Optional[str] = Query(None, description="Filtrar por estado de operación"),
     service: BitacoraService = Depends(get_bitacora_service)
 ):
-    """Obtener bitácoras de operaciones."""
-    return await service.get_bitacoras_operaciones(skip=skip, limit=limit)
+    """Obtener bitácoras de operaciones con filtros opcionales."""
+    return await service.get_bitacoras_operaciones(
+        skip=skip, 
+        limit=limit, 
+        tipo_operacion=tipo_operacion, 
+        estado_operacion=estado_operacion
+    )
+
+@router.get("/operaciones/{operacion_id}", response_model=BitacoraOperaciones)
+async def get_bitacora_operacion(
+    operacion_id: UUID,
+    service: BitacoraService = Depends(get_bitacora_service)
+):
+    """Obtener bitácora de operación por ID."""
+    bitacora = await service.get_bitacora_operacion(operacion_id)
+    if not bitacora:
+        raise HTTPException(status_code=404, detail="Bitácora de operación no encontrada")
+    return bitacora
 
 @router.post("/operaciones", response_model=BitacoraOperaciones)
 async def create_bitacora_operacion(
@@ -72,6 +90,18 @@ async def create_bitacora_operacion(
 ):
     """Crear nueva operación en bitácora."""
     return await service.create_bitacora_operacion(operacion_data)
+
+@router.patch("/operaciones/{operacion_id}", response_model=BitacoraOperaciones)
+async def update_bitacora_operacion(
+    operacion_id: UUID,
+    operacion_data: dict,
+    service: BitacoraService = Depends(get_bitacora_service)
+):
+    """Actualizar bitácora de operación."""
+    bitacora = await service.update_bitacora_operacion(operacion_id, operacion_data)
+    if not bitacora:
+        raise HTTPException(status_code=404, detail="Bitácora de operación no encontrada")
+    return bitacora
 
 # Endpoints de Auditoría
 @router.get("/auditoria", response_model=List[AuditoriaLog])

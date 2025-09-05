@@ -74,6 +74,40 @@ async def create_evento(
             detail=f"Error al crear evento: {str(e)}"
         )
 
+@router.get("/historial-estados/", response_model=List[dict])
+async def get_historial_estados(
+    skip: int = 0,
+    limit: int = 100,
+    current_user: UserRead = Depends(get_current_user),
+    service: EventosService = Depends(get_eventos_service)
+):
+    """Obtener historial de estados de neumáticos."""
+    try:
+        historial = await service.get_historial_estados(skip=skip, limit=limit)
+        return historial
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Error al obtener historial de estados: {str(e)}"
+        )
+
+@router.get("/mediciones/", response_model=List[dict])
+async def get_mediciones(
+    skip: int = 0,
+    limit: int = 100,
+    current_user: UserRead = Depends(get_current_user),
+    service: EventosService = Depends(get_eventos_service)
+):
+    """Obtener mediciones de profundidad."""
+    try:
+        mediciones = await service.get_mediciones_profundidad(skip=skip, limit=limit)
+        return mediciones
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Error al obtener mediciones: {str(e)}"
+        )
+
 @router.get("/neumatico/{neumatico_id}", response_model=List[EventoNeumaticoResponse])
 async def get_eventos_by_neumatico(
     neumatico_id: UUID,

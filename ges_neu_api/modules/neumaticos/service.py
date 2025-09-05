@@ -1,11 +1,14 @@
 """
 Servicios del módulo de neumáticos.
+Sprint 3: Integración automática de predicciones ML.
 """
 from typing import List, Optional
 from uuid import UUID
+import logging
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
-from fastapi import HTTPException
+
+from ...core.exceptions import RecursoNoEncontradoError, DuplicadoError
 
 from .models import Neumatico, FabricanteNeumatico, ModeloNeumatico
 from .schemas import (
@@ -14,6 +17,8 @@ from .schemas import (
     ModeloCreate, ModeloUpdate, ModeloResponse
 )
 from .contracts import NeumaticoServiceContract
+
+logger = logging.getLogger(__name__)
 
 
 class NeumaticoService(NeumaticoServiceContract):
@@ -31,32 +36,36 @@ class NeumaticoService(NeumaticoServiceContract):
         await self.db.refresh(neumatico)
         return NeumaticoResponse.model_validate(neumatico)
     
-    async def get_neumatico(self, neumatico_id: UUID) -> Optional[NeumaticoResponse]:
+    async def get_neumatico(self, neumatico_id: UUID) -> NeumaticoResponse:
         """Obtener un neumático por ID."""
         result = await self.db.execute(
             select(Neumatico).where(Neumatico.id == neumatico_id)
         )
         neumatico = result.scalar_one_or_none()
-        if neumatico:
-            return NeumaticoResponse.model_validate(neumatico)
-        return None
+        if not neumatico:
+            raise RecursoNoEncontradoError("Neumático", str(neumatico_id))
+        return NeumaticoResponse.model_validate(neumatico)
     
-    async def get_neumaticos(self, skip: int = 0, limit: int = 100) -> List[NeumaticoResponse]:
-        """Obtener lista de neumáticos."""
-        result = await self.db.execute(
-            select(Neumatico).offset(skip).limit(limit)
-        )
+    async def get_neumaticos(self, skip: int = 0, limit: int = 100, estado: Optional[str] = None) -> List[NeumaticoResponse]:
+        """Obtener lista de neumáticos con filtro opcional por estado."""
+        query = select(Neumatico)
+        
+        if estado:
+            query = query.where(Neumatico.estado_actual == estado)
+            
+        query = query.offset(skip).limit(limit)
+        result = await self.db.execute(query)
         neumaticos = result.scalars().all()
         return [NeumaticoResponse.model_validate(n) for n in neumaticos]
     
-    async def update_neumatico(self, neumatico_id: UUID, neumatico_data: NeumaticoUpdate) -> Optional[NeumaticoResponse]:
+    async def update_neumatico(self, neumatico_id: UUID, neumatico_data: NeumaticoUpdate) -> NeumaticoResponse:
         """Actualizar un neumático."""
         result = await self.db.execute(
             select(Neumatico).where(Neumatico.id == neumatico_id)
         )
         neumatico = result.scalar_one_or_none()
         if not neumatico:
-            return None
+            raise RecursoNoEncontradoError("Neumático", str(neumatico_id))
         
         update_data = neumatico_data.model_dump(exclude_unset=True)
         for field, value in update_data.items():
@@ -66,18 +75,17 @@ class NeumaticoService(NeumaticoServiceContract):
         await self.db.refresh(neumatico)
         return NeumaticoResponse.model_validate(neumatico)
     
-    async def delete_neumatico(self, neumatico_id: UUID) -> bool:
+    async def delete_neumatico(self, neumatico_id: UUID) -> None:
         """Eliminar un neumático."""
         result = await self.db.execute(
             select(Neumatico).where(Neumatico.id == neumatico_id)
         )
         neumatico = result.scalar_one_or_none()
         if not neumatico:
-            return False
+            raise RecursoNoEncontradoError("Neumático", str(neumatico_id))
         
         await self.db.delete(neumatico)
         await self.db.commit()
-        return True
     
     # Servicios para Fabricantes
     async def create_fabricante(self, fabricante_data: FabricanteCreate) -> FabricanteResponse:
@@ -88,15 +96,15 @@ class NeumaticoService(NeumaticoServiceContract):
         await self.db.refresh(fabricante)
         return FabricanteResponse.model_validate(fabricante)
     
-    async def get_fabricante(self, fabricante_id: UUID) -> Optional[FabricanteResponse]:
+    async def get_fabricante(self, fabricante_id: UUID) -> FabricanteResponse:
         """Obtener un fabricante por ID."""
         result = await self.db.execute(
             select(FabricanteNeumatico).where(FabricanteNeumatico.id == fabricante_id)
         )
         fabricante = result.scalar_one_or_none()
-        if fabricante:
-            return FabricanteResponse.model_validate(fabricante)
-        return None
+        if not fabricante:
+            raise RecursoNoEncontradoError("Fabricante", str(fabricante_id))
+        return FabricanteResponse.model_validate(fabricante)
     
     async def get_fabricantes(self, skip: int = 0, limit: int = 100) -> List[FabricanteResponse]:
         """Obtener lista de fabricantes."""
@@ -221,3 +229,22 @@ class NeumaticoService(NeumaticoServiceContract):
         await self.db.delete(modelo)
         await self.db.commit()
         return True
+    
+    async def trigger_ml_prediction(self, neumatico_id: UUID) -> bool:
+        """
+        Disparar predicción ML automáticamente después de eventos críticos.
+        Sprint 3: Integración automática con MLService.
+        """
+        try:
+            from ..ml.service import MLService
+            
+            ml_service = MLService(self.db)
+            await ml_service.predict_single_neumatico(neumatico_id)
+            
+            logger.info(f"Predicción ML ejecutada automáticamente para neumático {neumatico_id}")
+            return True
+            
+        except Exception as e:
+            logger.warning(f"Error en predicción automática para neumático {neumatico_id}: {e}")
+            # No fallar el proceso principal si la predicción falla
+            return False

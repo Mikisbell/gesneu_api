@@ -37,10 +37,38 @@ class EventosService:
             print(f"Error en get_evento_by_id: {e}")
             raise e
     
+    async def get_eventos_by_neumatico(self, neumatico_id: UUID) -> List[EventosNeumaticos]:
+        """Obtener eventos por ID de neumático."""
+        try:
+            stmt = select(EventosNeumaticos).where(EventosNeumaticos.neumatico_id == neumatico_id).order_by(EventosNeumaticos.timestamp_evento.desc())
+            result = await self.session.execute(stmt)
+            return result.scalars().all()
+        except Exception as e:
+            print(f"Error en get_eventos_by_neumatico: {e}")
+            raise e
+    
+    async def get_historial_estados(self, skip: int = 0, limit: int = 100) -> List[dict]:
+        """Obtener historial de estados de neumáticos."""
+        try:
+            # Por ahora retornamos lista vacía - se puede implementar con tabla específica
+            return []
+        except Exception as e:
+            print(f"Error en get_historial_estados: {e}")
+            raise e
+    
+    async def get_mediciones_profundidad(self, skip: int = 0, limit: int = 100) -> List[dict]:
+        """Obtener mediciones de profundidad."""
+        try:
+            # Por ahora retornamos lista vacía - se puede implementar con tabla específica
+            return []
+        except Exception as e:
+            print(f"Error en get_mediciones_profundidad: {e}")
+            raise e
+    
     async def create_evento(self, evento_data: EventoNeumaticoCreate) -> EventosNeumaticos:
         """Crear nuevo evento de neumático."""
         try:
-            evento = EventosNeumaticos(**evento_data.model_dump())
+            evento = EventosNeumaticos(**evento_data.dict())
             self.session.add(evento)
             await self.session.commit()
             await self.session.refresh(evento)

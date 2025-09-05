@@ -17,6 +17,7 @@ router = APIRouter(tags=["garantias"])
 async def get_garantias_service(db: AsyncSession = Depends(get_session)) -> GarantiasService:
     return GarantiasService(db)
 
+@router.get("/", response_model=List[GarantiaNeumaticoResponse])
 @router.get("/neumaticos", response_model=List[GarantiaNeumaticoResponse])
 async def get_garantias_neumaticos(
     skip: int = 0,

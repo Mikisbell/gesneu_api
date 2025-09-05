@@ -6,10 +6,39 @@ from sqlmodel import SQLModel, Field, Relationship
 from typing import Optional, List
 from uuid import UUID, uuid4
 from decimal import Decimal
+import enum
 
-from sqlalchemy import Column, String, Boolean, Text, Integer, Numeric, Date, SmallInteger, TIMESTAMP, BigInteger
+from sqlalchemy import Column, String, Index, func, text, ForeignKey, Integer, Numeric, Boolean, Text, UniqueConstraint, Date, SmallInteger, TIMESTAMP, Enum, BigInteger
 from sqlalchemy.dialects.postgresql import UUID as PG_UUID, JSONB, INTERVAL
-from sqlalchemy import text, ForeignKey
+
+# ============================================================================
+# ENUMS
+# ============================================================================
+
+class TipoOperacionEnum(str, enum.Enum):
+    ROTACION = "ROTACION"
+    BALANCEO = "BALANCEO"
+    ALINEACION = "ALINEACION"
+    REPARACION_GENERAL = "REPARACION_GENERAL"
+    INSPECCION_GENERAL = "INSPECCION_GENERAL"
+    CAMBIO_ACEITE = "CAMBIO_ACEITE"
+    OTRO = "OTRO"
+    DESMONTAJE = "DESMONTAJE"
+
+class EstadoOperacionEnum(str, enum.Enum):
+    PENDIENTE = "PENDIENTE"
+    EN_PROCESO = "EN_PROCESO"
+    COMPLETADA = "COMPLETADA"
+    CANCELADA = "CANCELADA"
+    VENCIDA = "VENCIDA"
+
+class TipoAccionOperacionEnum(str, enum.Enum):
+    INSTALACION = "INSTALACION"
+    DESMONTAJE = "DESMONTAJE"
+    ROTACION = "ROTACION"
+    REPARACION_NEU = "REPARACION_NEU"
+    INSPECCION_NEU = "INSPECCION_NEU"
+    OTRO_NEU = "OTRO_NEU"
 
 # ============================================================================
 # BITÁCORAS DE OPERACIONES
@@ -31,20 +60,35 @@ class BitacoraOperaciones(SQLModel, table=True):
     __tablename__ = "bitacora_operaciones"
     
     id: UUID = Field(default_factory=uuid4, sa_column=Column(PG_UUID(as_uuid=True), primary_key=True, server_default=text("gen_random_uuid()")))
-    fecha_inicio: datetime = Field(sa_column=Column(TIMESTAMP(timezone=True), nullable=False))
-    fecha_fin: Optional[datetime] = Field(default=None, sa_column=Column(TIMESTAMP(timezone=True)))
+    tipo_operacion: TipoOperacionEnum = Field(
+        sa_column=Column(Enum(TipoOperacionEnum, name="tipo_operacion_enum"), nullable=False),
+        description="Tipo de operación"
+    )
     descripcion: str = Field(sa_column=Column(Text, nullable=False))
-    activo: bool = Field(default=True, sa_column=Column(Boolean, nullable=False, server_default=text("true")))
-    creado_en: datetime = Field(default_factory=datetime.utcnow, sa_column=Column(TIMESTAMP(timezone=True), nullable=False, server_default=text("now()")))
-    actualizado_en: datetime = Field(default_factory=datetime.utcnow, sa_column=Column(TIMESTAMP(timezone=True), nullable=False, server_default=text("now()")))
+    fecha_operacion: datetime = Field(
+        sa_column=Column(TIMESTAMP(timezone=True), nullable=False, server_default=text("now()")),
+        description="Fecha de la operación"
+    )
     usuario_id: Optional[UUID] = Field(default=None, sa_column=Column(PG_UUID(as_uuid=True), ForeignKey("usuarios.id")))
     almacen_id: Optional[UUID] = Field(default=None, sa_column=Column(PG_UUID(as_uuid=True), ForeignKey("almacenes.id")))
     vehiculo_id: Optional[UUID] = Field(default=None, sa_column=Column(PG_UUID(as_uuid=True), ForeignKey("vehiculos.id")))
+    estado_operacion: EstadoOperacionEnum = Field(
+        sa_column=Column(Enum(EstadoOperacionEnum, name="estado_operacion_enum"), nullable=False),
+        description="Estado de la operación"
+    )
     duracion_minutos: Optional[int] = Field(default=None, sa_column=Column(Integer))
     costo_estimado: Optional[Decimal] = Field(default=None, sa_column=Column(Numeric(10,2)))
     costo_real: Optional[Decimal] = Field(default=None, sa_column=Column(Numeric(10,2)))
     proveedor_id: Optional[UUID] = Field(default=None, sa_column=Column(PG_UUID(as_uuid=True), ForeignKey("proveedores.id")))
     observaciones: Optional[str] = Field(default=None, sa_column=Column(Text))
+    creado_en: datetime = Field(
+        sa_column=Column(TIMESTAMP(timezone=True), nullable=False, server_default=text("now()")),
+        description="Fecha de creación"
+    )
+    actualizado_en: datetime = Field(
+        sa_column=Column(TIMESTAMP(timezone=True), nullable=False, server_default=text("now()")),
+        description="Fecha de actualización"
+    )
     creado_por: Optional[UUID] = Field(default=None, sa_column=Column(PG_UUID(as_uuid=True), ForeignKey("usuarios.id")))
     actualizado_por: Optional[UUID] = Field(default=None, sa_column=Column(PG_UUID(as_uuid=True), ForeignKey("usuarios.id")))
 
@@ -54,7 +98,10 @@ class BitacoraOperacionesNeumaticos(SQLModel, table=True):
     id: UUID = Field(default_factory=uuid4, sa_column=Column(PG_UUID(as_uuid=True), primary_key=True, server_default=text("gen_random_uuid()")))
     operacion_id: UUID = Field(sa_column=Column(PG_UUID(as_uuid=True), ForeignKey("bitacora_operaciones.id"), nullable=False))
     neumatico_id: UUID = Field(sa_column=Column(PG_UUID(as_uuid=True), ForeignKey("neumaticos.id"), nullable=False))
-    tipo_accion: str = Field(sa_column=Column(String(50), nullable=False))  # Enum como string según esquema
+    tipo_accion: TipoAccionOperacionEnum = Field(
+        sa_column=Column(Enum(TipoAccionOperacionEnum, name="tipo_accion_operacion_enum"), nullable=False),
+        description="Tipo de acción en la operación"
+    )
     posicion_neumatico_id: Optional[UUID] = Field(default=None, sa_column=Column(PG_UUID(as_uuid=True), ForeignKey("posiciones_neumatico.id")))
     profundidad_inicial_mm: Optional[Decimal] = Field(default=None, sa_column=Column(Numeric(5,2)))
     profundidad_final_mm: Optional[Decimal] = Field(default=None, sa_column=Column(Numeric(5,2)))
@@ -75,50 +122,101 @@ class AuditoriaLog(SQLModel, table=True):
     __tablename__ = "auditoria_log"
     
     id: int = Field(sa_column=Column(BigInteger, primary_key=True))
-    timestamp_log: datetime = Field()
-    esquema_tabla: str = Field(max_length=63)
-    nombre_tabla: str = Field(max_length=63)
-    operacion: str = Field(max_length=10)  # INSERT, UPDATE, DELETE
-    usuario_db: str = Field(max_length=63)
-    usuario_aplicacion_id: Optional[UUID] = Field(default=None, foreign_key="usuarios.id")
-    usuario_aplicacion_username: Optional[str] = Field(default=None, max_length=50)
-    direccion_ip: Optional[str] = Field(default=None, max_length=45)
-    user_agent: Optional[str] = Field(default=None)
-    id_entidad: Optional[str] = Field(default=None)
-    datos_antiguos: Optional[dict] = Field(default=None, sa_column=Column(JSONB))
-    datos_nuevos: Optional[dict] = Field(default=None, sa_column=Column(JSONB))
-    cambios: Optional[dict] = Field(default=None, sa_column=Column(JSONB))
-    contexto_aplicacion: Optional[dict] = Field(default=None, sa_column=Column(JSONB))
-    query_ejecutada: Optional[str] = Field(default=None)
+    timestamp_log: datetime = Field(
+        sa_column=Column(TIMESTAMP(timezone=True), nullable=False, server_default=text("now()")),
+        description="Timestamp del log"
+    )
+    esquema_tabla: str = Field(
+        sa_column=Column(String(63), nullable=False),
+        description="Esquema de la tabla"
+    )
+    nombre_tabla: str = Field(
+        sa_column=Column(String(63), nullable=False),
+        description="Nombre de la tabla"
+    )
+    operacion: str = Field(
+        sa_column=Column(String(10), nullable=False),
+        description="Operación realizada (INSERT, UPDATE, DELETE)"
+    )
+    usuario_db: str = Field(
+        sa_column=Column(String(63), nullable=False, server_default=text("CURRENT_USER")),
+        description="Usuario de base de datos"
+    )
+    usuario_aplicacion_id: Optional[UUID] = Field(
+        default=None,
+        sa_column=Column(PG_UUID(as_uuid=True), ForeignKey("usuarios.id"), nullable=True),
+        description="ID del usuario de aplicación"
+    )
+    usuario_aplicacion_username: Optional[str] = Field(
+        default=None,
+        sa_column=Column(String(50), nullable=True),
+        description="Username del usuario de aplicación"
+    )
+    direccion_ip: Optional[str] = Field(
+        default=None,
+        sa_column=Column(String(45), nullable=True),
+        description="Dirección IP"
+    )
+    user_agent: Optional[str] = Field(
+        default=None,
+        sa_column=Column(Text, nullable=True),
+        description="User agent"
+    )
+    id_entidad: Optional[str] = Field(
+        default=None,
+        sa_column=Column(Text, nullable=True),
+        description="ID de la entidad afectada"
+    )
+    datos_antiguos: Optional[dict] = Field(
+        default=None,
+        sa_column=Column(JSONB, nullable=True),
+        description="Datos antes del cambio"
+    )
+    datos_nuevos: Optional[dict] = Field(
+        default=None,
+        sa_column=Column(JSONB, nullable=True),
+        description="Datos después del cambio"
+    )
+    cambios: Optional[dict] = Field(
+        default=None,
+        sa_column=Column(JSONB, nullable=True),
+        description="Cambios realizados"
+    )
+    contexto_aplicacion: Optional[dict] = Field(
+        default=None,
+        sa_column=Column(JSONB, nullable=True),
+        description="Contexto de la aplicación"
+    )
+    query_ejecutada: Optional[str] = Field(
+        default=None,
+        sa_column=Column(Text, nullable=True),
+        description="Query SQL ejecutada"
+    )
 
 class ConfiguracionAuditoria(SQLModel, table=True):
     __tablename__ = "configuracion_auditoria"
     
-    nombre_tabla: str = Field(max_length=63, primary_key=True)
-    activo: bool = Field()
-    prioridad: Optional[str] = Field(default=None, max_length=20)
-    campos_excluidos: Optional[dict] = Field(default=None, sa_column=Column(JSONB))
-    creado_en: Optional[datetime] = Field(default=None)
-    actualizado_en: Optional[datetime] = Field(default=None)
+    nombre_tabla: str = Field(sa_column=Column(String(63), primary_key=True, nullable=False))
+    activo: bool = Field(sa_column=Column(Boolean, nullable=False, server_default=text("true")))
+    prioridad: Optional[str] = Field(default=None, sa_column=Column(String(20)))
+    campos_excluidos: Optional[dict] = Field(default=None, sa_column=Column(JSONB, server_default=text("'{}'")))
+    creado_en: Optional[datetime] = Field(default=None, sa_column=Column(TIMESTAMP(timezone=True), server_default=text("now()")))
+    actualizado_en: Optional[datetime] = Field(default=None, sa_column=Column(TIMESTAMP(timezone=True), server_default=text("now()")))
 
 class ErroresAplicacion(SQLModel, table=True):
     __tablename__ = "errores_aplicacion"
     
-    id: UUID = Field(default_factory=uuid4, primary_key=True)
-    nombre_funcion: str = Field()
-    mensaje_error: str = Field()
+    id: UUID = Field(default_factory=uuid4, sa_column=Column(PG_UUID(as_uuid=True), primary_key=True, server_default=text("gen_random_uuid()")))
+    nombre_funcion: str = Field(sa_column=Column(Text, nullable=False))
+    mensaje_error: str = Field(sa_column=Column(Text, nullable=False))
     detalles: Optional[dict] = Field(default=None, sa_column=Column(JSONB))
-    creado_por: Optional[str] = Field(default=None)
-    creado_en: datetime = Field(default_factory=datetime.utcnow)
-    resuelto: Optional[bool] = Field(default=None)
-    resuelto_por: Optional[str] = Field(default=None)
-    resuelto_en: Optional[datetime] = Field(default=None)
-    comentario_resolucion: Optional[str] = Field(default=None)
+    creado_por: Optional[str] = Field(default="SISTEMA", sa_column=Column(Text, server_default=text("'SISTEMA'")))
+    creado_en: datetime = Field(sa_column=Column(TIMESTAMP(timezone=True), nullable=False, server_default=text("now()")))
+    resuelto: Optional[bool] = Field(default=False, sa_column=Column(Boolean, server_default=text("false")))
+    resuelto_por: Optional[str] = Field(default=None, sa_column=Column(Text))
+    resuelto_en: Optional[datetime] = Field(default=None, sa_column=Column(TIMESTAMP(timezone=True)))
+    comentario_resolucion: Optional[str] = Field(default=None, sa_column=Column(Text))
 
-# ============================================================================
-# NOTA: auditoria_roles_usuarios está definida en el módulo auth/models.py
-# según el esquema real de la base de datos
-# ============================================================================
 
 # ============================================================================
 # SISTEMA
@@ -141,15 +239,15 @@ class TareasProgramadas(SQLModel, table=True):
     
     id: int = Field(sa_column=Column(Integer, primary_key=True))
     nombre_tarea: str = Field(sa_column=Column(String(100), nullable=False))
-    frecuencia_dias: int = Field(default=1, sa_column=Column(Integer, nullable=False, server_default=text("1")))
     descripcion: Optional[str] = Field(default=None, sa_column=Column(Text))
-    ultima_ejecucion: Optional[datetime] = Field(default=None, sa_column=Column(TIMESTAMP))
-    proxima_ejecucion: Optional[datetime] = Field(default=None, sa_column=Column(TIMESTAMP))
+    frecuencia_dias: int = Field(default=1, sa_column=Column(Integer, nullable=False, server_default=text("1")))
+    ultima_ejecucion: Optional[datetime] = Field(default=None, sa_column=Column(TIMESTAMP(timezone=True)))
+    proxima_ejecucion: Optional[datetime] = Field(default=None, sa_column=Column(TIMESTAMP(timezone=True)))
     activa: Optional[bool] = Field(default=True, sa_column=Column(Boolean, server_default=text("true")))
     script_sql: Optional[str] = Field(default=None, sa_column=Column(Text))
-    creado_en: Optional[datetime] = Field(default=None, sa_column=Column(TIMESTAMP, server_default=text("now()")))
+    creado_en: Optional[datetime] = Field(default=None, sa_column=Column(TIMESTAMP(timezone=True), server_default=text("now()")))
     creado_por: Optional[str] = Field(default="SISTEMA", sa_column=Column(String(100), server_default=text("'SISTEMA'")))
-    actualizado_en: Optional[datetime] = Field(default=None, sa_column=Column(TIMESTAMP))
+    actualizado_en: Optional[datetime] = Field(default=None, sa_column=Column(TIMESTAMP(timezone=True)))
     actualizado_por: Optional[str] = Field(default=None, sa_column=Column(String(100)))
 
 class Rutas(SQLModel, table=True):
@@ -159,7 +257,9 @@ class Rutas(SQLModel, table=True):
     codigo: str = Field(sa_column=Column(String(20), nullable=False, unique=True))
     nombre: str = Field(sa_column=Column(String(100), nullable=False))
     descripcion: Optional[str] = Field(default=None, sa_column=Column(Text))
-    activo: bool = Field(default=True, sa_column=Column(Boolean, nullable=False, server_default=text("true")))
+    distancia_total_km: Decimal = Field(sa_column=Column(Numeric(10,2), nullable=False))
+    ida_vuelta: bool = Field(default=True, sa_column=Column(Boolean, nullable=False, server_default=text("true")))
+    activa: bool = Field(default=True, sa_column=Column(Boolean, nullable=False, server_default=text("true")))
     creado_en: datetime = Field(default_factory=datetime.utcnow, sa_column=Column(TIMESTAMP(timezone=True), nullable=False, server_default=text("now()")))
     creado_por: Optional[UUID] = Field(default=None, sa_column=Column(PG_UUID(as_uuid=True), ForeignKey("usuarios.id")))
     actualizado_en: Optional[datetime] = Field(default=None, sa_column=Column(TIMESTAMP(timezone=True)))
@@ -169,11 +269,14 @@ class TiposRuta(SQLModel, table=True):
     __tablename__ = "tipos_ruta"
     
     id: UUID = Field(default_factory=uuid4, sa_column=Column(PG_UUID(as_uuid=True), primary_key=True, server_default=text("gen_random_uuid()")))
-    nombre: str = Field(sa_column=Column(String(100), nullable=False, unique=True))
+    nombre_ruta: str = Field(sa_column=Column(String(150), nullable=False, unique=True))
     descripcion: Optional[str] = Field(default=None, sa_column=Column(Text))
+    distancia_total_km_ciclo: Optional[Decimal] = Field(default=None, sa_column=Column(Numeric(8,2)))
+    distancia_trocha_km_ciclo: Optional[Decimal] = Field(default=0, sa_column=Column(Numeric(8,2), server_default=text("0")))
+    distancia_asfalto_km_ciclo: Optional[Decimal] = Field(default=0, sa_column=Column(Numeric(8,2), server_default=text("0")))
+    distancia_otro_terreno_km_ciclo: Optional[Decimal] = Field(default=0, sa_column=Column(Numeric(8,2), server_default=text("0")))
     porcentaje_promedio_con_carga: Optional[Decimal] = Field(default=None, sa_column=Column(Numeric(5,2)))
-    activo: bool = Field(default=True, sa_column=Column(Boolean, nullable=False, server_default=text("true")))
-    creado_en: datetime = Field(default_factory=datetime.utcnow, sa_column=Column(TIMESTAMP(timezone=True), nullable=False, server_default=text("now()")))
+    creado_en: datetime = Field(sa_column=Column(TIMESTAMP(timezone=True), nullable=False, server_default=text("now()")))
     creado_por: Optional[UUID] = Field(default=None, sa_column=Column(PG_UUID(as_uuid=True), ForeignKey("usuarios.id")))
     actualizado_en: Optional[datetime] = Field(default=None, sa_column=Column(TIMESTAMP(timezone=True)))
     actualizado_por: Optional[UUID] = Field(default=None, sa_column=Column(PG_UUID(as_uuid=True), ForeignKey("usuarios.id")))

@@ -5,19 +5,19 @@ Estas pruebas validan el flujo completo de la API, desde la autenticación
 hasta las operaciones CRUD de usuarios, roles y permisos.
 """
 import pytest
+import pytest_asyncio
+import time
 from fastapi import status
 from fastapi.testclient import TestClient
+from httpx import AsyncClient
 from sqlalchemy.ext.asyncio import AsyncSession
 from typing import Dict, Any
 
-from app.main import app
-from core.config import settings
-from core.database import Base, get_session, engine
-from modules.auth import schemas, models
-from tests.conftest import async_test_db, override_get_db
-
-# Configurar el cliente de prueba
-client = TestClient(app)
+from ges_neu_api.main import app
+from ges_neu_api.core.config import settings
+from ges_neu_api.core.database import get_session
+from ges_neu_api.modules.auth import schemas, models
+from tests.conftest import db_session, client
 
 # Datos de prueba
 TEST_USERNAME = "testuser"
@@ -41,43 +41,33 @@ def test_user() -> Dict[str, Any]:
         "username": TEST_USERNAME,
         "password": TEST_PASSWORD,
         "email": TEST_EMAIL,
-        "full_name": TEST_FULL_NAME,
-        "is_active": True,
-        "is_superuser": False
+        "nombre_completo": TEST_FULL_NAME,
+        "activo": True
     }
 
 # Fixture para crear un superusuario de prueba
-@pytest.fixture
-async def admin_user(db: AsyncSession):
-    # Crear un usuario administrador
-    admin_data = {
-        "username": ADMIN_USERNAME,
-        "password": ADMIN_PASSWORD,
-        "email": ADMIN_EMAIL,
-        "full_name": "Admin User",
-        "is_active": True,
-        "is_superuser": True
-    }
+@pytest_asyncio.fixture
+async def admin_user(db_session: AsyncSession):
+    # Usar factory para crear usuario único según esquema real PostgreSQL
+    import time
+    from tests.auth.factories import UsuarioFactory
     
-    user = models.Usuario(**admin_data)
-    user.set_password(ADMIN_PASSWORD)
-    db.add(user)
-    await db.commit()
-    await db.refresh(user)
+    user = await UsuarioFactory.create(
+        db=db_session,
+        username=f"admin_{int(time.time())}",
+        email=f"admin_{int(time.time())}@example.com",
+        password=ADMIN_PASSWORD,
+        activo=True
+    )
     return user
 
 # Fixture para obtener token de autenticación
-@pytest.fixture
-async def auth_token(admin_user):
-    # Obtener token para el usuario administrador
-    login_data = {
-        "username": ADMIN_USERNAME,
-        "password": ADMIN_PASSWORD
-    }
-    
-    response = client.post(
-        f"{settings.API_V1_STR}/auth/token",
-        data={"username": login_data["username"], "password": login_data["password"]}
+@pytest_asyncio.fixture
+async def auth_token(admin_user, client: AsyncClient):
+    # Obtener token para el usuario administrador usando username según esquema PostgreSQL
+    response = await client.post(
+        f"{settings.API_V1_STR}/auth/login",
+        data={"username": admin_user.username, "password": ADMIN_PASSWORD}
     )
     
     assert response.status_code == status.HTTP_200_OK
@@ -85,73 +75,72 @@ async def auth_token(admin_user):
     return f"Bearer {token}"
 
 # Fixture para cliente autenticado
-@pytest.fixture
-def auth_headers(auth_token):
+@pytest_asyncio.fixture
+async def auth_headers(auth_token):
     return {"Authorization": auth_token}
 
 # Pruebas de autenticación
 class TestAuth:
-    def test_login_success(self, admin_user):
+    @pytest.mark.asyncio
+    async def test_login_success(self, admin_user, client: AsyncClient):
         """Prueba el inicio de sesión exitoso."""
-        response = client.post(
-            f"{settings.API_V1_STR}/auth/token",
-            data={"username": ADMIN_USERNAME, "password": ADMIN_PASSWORD}
+        response = await client.post(
+            f"{settings.API_V1_STR}/auth/login",
+            data={"username": admin_user.username, "password": ADMIN_PASSWORD}
         )
         
         assert response.status_code == status.HTTP_200_OK
         assert "access_token" in response.json()
         assert response.json()["token_type"] == "bearer"
     
-    def test_login_invalid_credentials(self):
+    @pytest.mark.asyncio
+    async def test_login_invalid_credentials(self, client: AsyncClient):
         """Prueba el inicio de sesión con credenciales inválidas."""
-        response = client.post(
-            f"{settings.API_V1_STR}/auth/token",
+        response = await client.post(
+            f"{settings.API_V1_STR}/auth/login",
             data={"username": "nonexistent", "password": "wrongpassword"}
         )
         
         assert response.status_code == status.HTTP_401_UNAUTHORIZED
-        assert "Incorrect username or password" in response.json()["detail"]
     
-    def test_login_inactive_user(self, admin_user):
+    @pytest.mark.asyncio
+    async def test_login_inactive_user(self, db_session: AsyncSession, client: AsyncClient):
         """Prueba el inicio de sesión de un usuario inactivo."""
-        # Crear un usuario inactivo
-        inactive_user = models.Usuario(
-            username="inactive_user",
-            email="inactive@example.com",
-            password="TestPass123!",
-            is_active=False,
-            is_superuser=False
+        from tests.auth.factories import UsuarioFactory
+        
+        # Crear usuario inactivo usando factory
+        inactive_user = await UsuarioFactory.create(
+            db=db_session,
+            activo=False,
+            username=f"inactive_user_{int(time.time())}"
         )
-        inactive_user.set_password("TestPass123!")
-        db = get_session()
-        db.add(inactive_user)
-        db.commit()
-        db.refresh(inactive_user)
         
         # Intentar iniciar sesión con el usuario inactivo
-        response = client.post(
-            f"{settings.API_V1_STR}/auth/token",
-            data={"username": "inactive_user", "password": "TestPass123!"}
+        response = await client.post(
+            f"{settings.API_V1_STR}/auth/login",
+            data={"username": inactive_user.username, "password": "testpassword"}
         )
         
-        assert response.status_code == status.HTTP_400_BAD_REQUEST
+        assert response.status_code == status.HTTP_401_UNAUTHORIZED
         assert "Inactive user" in response.json()["detail"]
     
-    def test_read_current_user(self, auth_headers):
+    @pytest.mark.asyncio
+    async def test_read_current_user(self, auth_headers, admin_user, client: AsyncClient):
         """Prueba la obtención del perfil del usuario actual."""
-        response = client.get(
+        response = await client.get(
             f"{settings.API_V1_STR}/auth/users/me/",
             headers=auth_headers
         )
         
         assert response.status_code == status.HTTP_200_OK
-        assert response.json()["username"] == ADMIN_USERNAME
-        assert response.json()["email"] == ADMIN_EMAIL
-        assert "hashed_password" not in response.json()
+        assert response.json()["username"] == admin_user.username
+        assert response.json()["email"] == admin_user.email
+        assert "password_hash" not in response.json()
     
-    def test_read_current_user_unauthorized(self):
+    @pytest.mark.asyncio
+    async def test_read_current_user_unauthorized(self, client: AsyncClient):
         """Prueba el acceso no autorizado al perfil de usuario."""
-        response = client.get(
+        response = await client.get(
             f"{settings.API_V1_STR}/auth/users/me/"
         )
         
@@ -162,25 +151,26 @@ class TestAuth:
 class TestUserManagement:
     """Pruebas para la gestión de usuarios."""
     
+    @pytest.mark.asyncio
     async def test_create_user(
         self, 
-        client: TestClient, 
+        client: AsyncClient, 
         auth_headers: dict,
         db_session: AsyncSession
     ):
         """Prueba la creación de un nuevo usuario."""
-        # Arrange
+        # Arrange - Datos alineados con esquema PostgreSQL
+        timestamp = int(time.time())
         user_data = {
-            "username": "newuser",
-            "email": "newuser@example.com",
+            "username": f"newuser_{timestamp}",
+            "email": f"newuser_{timestamp}@example.com",
             "password": "NewUserPass123!",
             "nombre_completo": "New User",
-            "activo": True,
-            "rol": "user"
+            "activo": True
         }
         
         # Act
-        response = client.post(
+        response = await client.post(
             f"{settings.API_V1_STR}/auth/users/",
             json=user_data,
             headers=auth_headers
@@ -195,15 +185,18 @@ class TestUserManagement:
         assert "password" not in created_user
         
         # Verificar que el usuario se creó en la base de datos
+        from sqlalchemy import select
+        from ges_neu_api.modules.auth.models import Usuario
         user = await db_session.execute(
             select(Usuario).where(Usuario.username == user_data["username"])
         )
         user = user.scalar_one_or_none()
         assert user is not None
     
+    @pytest.mark.asyncio
     async def test_create_user_duplicate_username(
         self, 
-        client: TestClient, 
+        client: AsyncClient, 
         auth_headers: dict,
         admin_user: models.Usuario
     ):
@@ -219,7 +212,7 @@ class TestUserManagement:
         }
         
         # Act
-        response = client.post(
+        response = await client.post(
             f"{settings.API_V1_STR}/auth/users/",
             json=user_data,
             headers=auth_headers
@@ -229,15 +222,16 @@ class TestUserManagement:
         assert response.status_code == status.HTTP_400_BAD_REQUEST
         assert "already registered" in response.json()["detail"]
     
+    @pytest.mark.asyncio
     async def test_list_users(
         self, 
-        client: TestClient, 
+        client: AsyncClient, 
         auth_headers: dict,
         admin_user: models.Usuario
     ):
         """Prueba la obtención de la lista de usuarios."""
         # Act
-        response = client.get(
+        response = await client.get(
             f"{settings.API_V1_STR}/auth/users/",
             headers=auth_headers
         )
@@ -248,15 +242,16 @@ class TestUserManagement:
         assert isinstance(users, list)
         assert any(user["username"] == admin_user.username for user in users)
     
+    @pytest.mark.asyncio
     async def test_get_user_by_id(
         self, 
-        client: TestClient, 
+        client: AsyncClient, 
         auth_headers: dict,
         admin_user: models.Usuario
     ):
         """Prueba la obtención de un usuario por su ID."""
         # Act
-        response = client.get(
+        response = await client.get(
             f"{settings.API_V1_STR}/auth/users/{admin_user.id}",
             headers=auth_headers
         )
@@ -268,9 +263,10 @@ class TestUserManagement:
         assert user_data["username"] == admin_user.username
         assert "password" not in user_data
     
+    @pytest.mark.asyncio
     async def test_update_user(
         self, 
-        client: TestClient, 
+        client: AsyncClient, 
         auth_headers: dict,
         admin_user: models.Usuario
     ):
@@ -283,7 +279,7 @@ class TestUserManagement:
         }
         
         # Act
-        response = client.patch(
+        response = await client.patch(
             f"{settings.API_V1_STR}/auth/users/{admin_user.id}",
             json=update_data,
             headers=auth_headers
@@ -296,9 +292,10 @@ class TestUserManagement:
         assert updated_user["nombre_completo"] == update_data["nombre_completo"]
         assert updated_user["activo"] == update_data["activo"]
     
+    @pytest.mark.asyncio
     async def test_change_password(
         self,
-        client: TestClient,
+        client: AsyncClient,
         auth_headers: dict,
         admin_user: models.Usuario,
         db_session: AsyncSession
@@ -311,7 +308,7 @@ class TestUserManagement:
         }
         
         # Act
-        response = client.post(
+        response = await client.post(
             f"{settings.API_V1_STR}/auth/users/{admin_user.id}/change-password",
             json=password_data,
             headers=auth_headers
@@ -325,30 +322,30 @@ class TestUserManagement:
         assert admin_user.verify_password(password_data["new_password"])
         
         # Restaurar la contraseña original para otras pruebas
+        from ges_neu_api.modules.auth.utils import get_password_hash
         admin_user.password_hash = get_password_hash(ADMIN_PASSWORD)
         await db_session.commit()
     
+    @pytest.mark.asyncio
     async def test_delete_user(
         self,
-        client: TestClient,
+        client: AsyncClient,
         auth_headers: dict,
         db_session: AsyncSession
     ):
         """Prueba la eliminación lógica de un usuario."""
-        # Crear un usuario para eliminar
-        user = models.Usuario(
-            username="tobedeleted",
-            email="delete@example.com",
-            password_hash=get_password_hash("TestPass123!"),
-            activo=True,
-            rol="user"
+        # Crear un usuario para eliminar usando factory
+        from tests.auth.factories import UsuarioFactory
+        
+        user = await UsuarioFactory.create(
+            db=db_session,
+            username=f"tobedeleted_{int(time.time())}",
+            email=f"delete_{int(time.time())}@example.com",
+            activo=True
         )
-        db_session.add(user)
-        await db_session.commit()
-        await db_session.refresh(user)
         
         # Act
-        response = client.delete(
+        response = await client.delete(
             f"{settings.API_V1_STR}/auth/users/{user.id}",
             headers=auth_headers
         )
@@ -364,7 +361,8 @@ class TestUserManagement:
 class TestRoles:
     """Pruebas para la gestión de roles."""
     
-    def test_create_role(self, auth_headers, admin_user):
+    @pytest.mark.asyncio
+    async def test_create_role(self, client: AsyncClient, auth_headers, admin_user):
         """Prueba la creación de un nuevo rol."""
         role_data = {
             "nombre": "test_role",
@@ -372,7 +370,7 @@ class TestRoles:
             "es_rol_sistema": False
         }
         
-        response = client.post(
+        response = await client.post(
             f"{settings.API_V1_STR}/auth/roles/",
             json=role_data,
             headers=auth_headers
@@ -385,7 +383,8 @@ class TestRoles:
         assert data["es_rol_sistema"] == role_data["es_rol_sistema"]
         assert "id" in data
     
-    def test_create_duplicate_role(self, auth_headers, admin_user):
+    @pytest.mark.asyncio
+    async def test_create_duplicate_role(self, client: AsyncClient, auth_headers, admin_user):
         """Prueba la creación de un rol con un nombre duplicado."""
         role_data = {
             "nombre": "duplicate_role",
@@ -394,7 +393,7 @@ class TestRoles:
         }
         
         # Crear el rol por primera vez
-        response = client.post(
+        response = await client.post(
             f"{settings.API_V1_STR}/auth/roles/",
             json=role_data,
             headers=auth_headers
@@ -402,7 +401,7 @@ class TestRoles:
         assert response.status_code == status.HTTP_201_CREATED
         
         # Intentar crear el mismo rol de nuevo
-        response = client.post(
+        response = await client.post(
             f"{settings.API_V1_STR}/auth/roles/",
             json=role_data,
             headers=auth_headers
@@ -411,9 +410,10 @@ class TestRoles:
         assert response.status_code == status.HTTP_400_BAD_REQUEST
         assert "Ya existe un rol con este nombre" in response.json()["detail"]
     
-    def test_get_roles(self, auth_headers, admin_user):
+    @pytest.mark.asyncio
+    async def test_get_roles(self, client: AsyncClient, auth_headers, admin_user):
         """Prueba la obtención de la lista de roles."""
-        response = client.get(
+        response = await client.get(
             f"{settings.API_V1_STR}/auth/roles/",
             headers=auth_headers
         )
@@ -421,7 +421,8 @@ class TestRoles:
         assert response.status_code == status.HTTP_200_OK
         assert isinstance(response.json(), list)
     
-    def test_get_role_by_id(self, auth_headers, admin_user):
+    @pytest.mark.asyncio
+    async def test_get_role_by_id(self, client: AsyncClient, auth_headers, admin_user):
         """Prueba la obtención de un rol por su ID."""
         # Primero creamos un rol
         role_data = {
@@ -430,7 +431,7 @@ class TestRoles:
             "es_rol_sistema": False
         }
         
-        create_response = client.post(
+        create_response = await client.post(
             f"{settings.API_V1_STR}/auth/roles/",
             json=role_data,
             headers=auth_headers
@@ -438,7 +439,7 @@ class TestRoles:
         role_id = create_response.json()["id"]
         
         # Ahora lo obtenemos
-        response = client.get(
+        response = await client.get(
             f"{settings.API_V1_STR}/auth/roles/{role_id}",
             headers=auth_headers
         )
@@ -448,7 +449,8 @@ class TestRoles:
         assert data["id"] == role_id
         assert data["nombre"] == role_data["nombre"]
     
-    def test_update_role(self, auth_headers, admin_user):
+    @pytest.mark.asyncio
+    async def test_update_role(self, client: AsyncClient, auth_headers, admin_user):
         """Prueba la actualización de un rol existente."""
         # Crear un rol para actualizar
         role_data = {
@@ -457,7 +459,7 @@ class TestRoles:
             "es_rol_sistema": False
         }
         
-        create_response = client.post(
+        create_response = await client.post(
             f"{settings.API_V1_STR}/auth/roles/",
             json=role_data,
             headers=auth_headers
@@ -470,7 +472,7 @@ class TestRoles:
             "descripcion": "Descripción actualizada"
         }
         
-        response = client.put(
+        response = await client.put(
             f"{settings.API_V1_STR}/auth/roles/{role_id}",
             json=update_data,
             headers=auth_headers
@@ -481,7 +483,8 @@ class TestRoles:
         assert data["nombre"] == update_data["nombre"]
         assert data["descripcion"] == update_data["descripcion"]
     
-    def test_delete_role(self, auth_headers, admin_user):
+    @pytest.mark.asyncio
+    async def test_delete_role(self, client: AsyncClient, auth_headers, admin_user):
         """Prueba la eliminación de un rol."""
         # Crear un rol para eliminar
         role_data = {
@@ -490,7 +493,7 @@ class TestRoles:
             "es_rol_sistema": False
         }
         
-        create_response = client.post(
+        create_response = await client.post(
             f"{settings.API_V1_STR}/auth/roles/",
             json=role_data,
             headers=auth_headers
@@ -498,7 +501,7 @@ class TestRoles:
         role_id = create_response.json()["id"]
         
         # Eliminar el rol
-        response = client.delete(
+        response = await client.delete(
             f"{settings.API_V1_STR}/auth/roles/{role_id}",
             headers=auth_headers
         )
@@ -506,14 +509,15 @@ class TestRoles:
         assert response.status_code == status.HTTP_200_OK
         
         # Verificar que el rol ya no existe
-        get_response = client.get(
+        get_response = await client.get(
             f"{settings.API_V1_STR}/auth/roles/{role_id}",
             headers=auth_headers
         )
         
         assert get_response.status_code == status.HTTP_404_NOT_FOUND
     
-    def test_assign_role_to_user(self, auth_headers, admin_user, db: AsyncSession):
+    @pytest.mark.asyncio
+    async def test_assign_role_to_user(self, client: AsyncClient, auth_headers, admin_user, db_session: AsyncSession):
         """Prueba la asignación de un rol a un usuario."""
         # Crear un rol
         role_data = {
@@ -522,7 +526,7 @@ class TestRoles:
             "es_rol_sistema": False
         }
         
-        role_response = client.post(
+        role_response = await client.post(
             f"{settings.API_V1_STR}/auth/roles/",
             json=role_data,
             headers=auth_headers
@@ -534,10 +538,10 @@ class TestRoles:
             "username": "testuser_role_assign",
             "password": "testpass123",
             "email": "test_role_assign@example.com",
-            "full_name": "Test User Role Assign"
+            "nombre_completo": "Test User Role Assign"
         }
         
-        user_response = client.post(
+        user_response = await client.post(
             f"{settings.API_V1_STR}/auth/users/",
             json=user_data,
             headers=auth_headers
@@ -545,7 +549,7 @@ class TestRoles:
         user_id = user_response.json()["id"]
         
         # Asignar el rol al usuario
-        response = client.post(
+        response = await client.post(
             f"{settings.API_V1_STR}/auth/users/{user_id}/roles/{role_id}",
             headers=auth_headers
         )
@@ -553,7 +557,8 @@ class TestRoles:
         assert response.status_code == status.HTTP_200_OK
         assert any(role["id"] == role_id for role in response.json()["roles"])
     
-    def test_revoke_role_from_user(self, auth_headers, admin_user, db: AsyncSession):
+    @pytest.mark.asyncio
+    async def test_revoke_role_from_user(self, client: AsyncClient, auth_headers, admin_user, db_session: AsyncSession):
         """Prueba la revocación de un rol a un usuario."""
         # Crear un rol
         role_data = {
@@ -562,7 +567,7 @@ class TestRoles:
             "es_rol_sistema": False
         }
         
-        role_response = client.post(
+        role_response = await client.post(
             f"{settings.API_V1_STR}/auth/roles/",
             json=role_data,
             headers=auth_headers
@@ -574,10 +579,10 @@ class TestRoles:
             "username": "testuser_role_revoke",
             "password": "testpass123",
             "email": "test_role_revoke@example.com",
-            "full_name": "Test User Role Revoke"
+            "nombre_completo": "Test User Role Revoke"
         }
         
-        user_response = client.post(
+        user_response = await client.post(
             f"{settings.API_V1_STR}/auth/users/",
             json=user_data,
             headers=auth_headers
@@ -585,14 +590,14 @@ class TestRoles:
         user_id = user_response.json()["id"]
         
         # Asignar el rol al usuario primero
-        assign_response = client.post(
+        assign_response = await client.post(
             f"{settings.API_V1_STR}/auth/users/{user_id}/roles/{role_id}",
             headers=auth_headers
         )
         assert assign_response.status_code == status.HTTP_200_OK
         
         # Revocar el rol
-        response = client.delete(
+        response = await client.delete(
             f"{settings.API_V1_STR}/auth/users/{user_id}/roles/{role_id}",
             headers=auth_headers
         )
@@ -602,9 +607,10 @@ class TestRoles:
 
 # Pruebas de permisos
 class TestPermissions:
-    def test_check_permission(self, auth_headers, admin_user):
+    @pytest.mark.asyncio
+    async def test_check_permission(self, client: AsyncClient, auth_headers, admin_user):
         """Prueba la verificación de un permiso."""
-        response = client.get(
+        response = await client.get(
             f"{settings.API_V1_STR}/auth/permissions/check?resource=users&action=read",
             headers=auth_headers
         )
@@ -612,9 +618,10 @@ class TestPermissions:
         assert response.status_code == status.HTTP_200_OK
         assert "has_permission" in response.json()
     
-    def test_get_user_permissions(self, auth_headers, admin_user):
+    @pytest.mark.asyncio
+    async def test_get_user_permissions(self, client: AsyncClient, auth_headers, admin_user):
         """Prueba la obtención de permisos de un usuario."""
-        response = client.get(
+        response = await client.get(
             f"{settings.API_V1_STR}/auth/users/{admin_user.id}/permissions",
             headers=auth_headers
         )

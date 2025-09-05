@@ -109,11 +109,12 @@ class TestPermissionService:
     
     async def test_check_permission_superuser(self, permission_service, mock_db_session):
         """Prueba que un superusuario tenga todos los permisos."""
-        # Configurar el mock para devolver un superusuario
+        # Configurar el mock para devolver un usuario activo
         mock_user = models.Usuario(
             id=uuid4(),
+            username="admin",
             email="admin@example.com",
-            es_superusuario=True
+            activo=True
         )
         mock_db_session.get.return_value = mock_user
         
@@ -188,11 +189,12 @@ class TestPermissionService:
     
     async def test_get_user_permissions_superuser(self, permission_service, mock_db_session):
         """Prueba que un superusuario obtenga todos los permisos."""
-        # Configurar el mock para el superusuario
+        # Configurar el mock para el usuario admin
         mock_user = models.Usuario(
             id=uuid4(),
+            username="admin",
             email="admin@example.com",
-            es_superusuario=True
+            activo=True
         )
         mock_db_session.get.return_value = mock_user
         
@@ -327,5 +329,73 @@ class TestPermissionService:
         mock_db_session.delete.assert_not_called()
         mock_db_session.commit.assert_not_called()
 
-# Se pueden agregar más pruebas para los demás servicios (AuthService, UserService, RoleService)
-# siguiendo el mismo patrón que las pruebas de PermissionService.
+# Pruebas para UserService
+
+class TestUserService:
+    """Pruebas para el servicio de gestión de usuarios."""
+
+    async def test_get_user_by_id_found(self, user_service, mock_db_session):
+        """Prueba que se pueda obtener un usuario por su ID."""
+        user_id = uuid4()
+        mock_user = models.Usuario(id=user_id, username="testuser")
+        mock_db_session.get.return_value = mock_user
+
+        result = await user_service.get_user_by_id(user_id)
+
+        assert result is not None
+        assert result.id == user_id
+        mock_db_session.get.assert_awaited_once_with(models.Usuario, str(user_id))
+
+    async def test_get_user_by_id_not_found(self, user_service, mock_db_session):
+        """Prueba el caso en que el usuario no se encuentra por ID."""
+        mock_db_session.get.return_value = None
+        user_id = uuid4()
+
+        with pytest.raises(NotFoundException):
+            await user_service.get_user_by_id(user_id)
+
+    async def test_create_user_success(self, user_service, mock_db_session):
+        """Prueba la creación exitosa de un usuario."""
+        user_data = schemas.UserCreate(
+            username="newuser",
+            email="new@example.com",
+            nombre_completo="New User",
+            password="password123"
+        )
+        
+        # Mock para la verificación de duplicados (no existe)
+        mock_result = AsyncMock()
+        mock_result.scalars.return_value.first.return_value = None
+        mock_db_session.execute.return_value = mock_result
+
+        # Mock para commit y refresh
+        mock_db_session.commit = AsyncMock()
+        mock_db_session.refresh = AsyncMock()
+
+        result = await user_service.create_user(user_data)
+
+        assert result is not None
+        assert result.username == user_data.username
+        assert result.email == user_data.email
+        mock_db_session.add.assert_called_once()
+        mock_db_session.commit.assert_awaited_once()
+        mock_db_session.refresh.assert_awaited_once()
+
+    async def test_create_user_duplicate_username(self, user_service, mock_db_session):
+        """Prueba que no se pueda crear un usuario con un username duplicado."""
+        user_data = schemas.UserCreate(
+            username="existinguser",
+            email="new@example.com",
+            nombre_completo="New User",
+            password="password123"
+        )
+        
+        # Mock para la verificación de duplicados (sí existe)
+        mock_result = AsyncMock()
+        mock_result.scalars.return_value.first.return_value = models.Usuario(username="existinguser")
+        mock_db_session.execute.return_value = mock_result
+
+        with pytest.raises(BadRequestException) as exc_info:
+            await user_service.create_user(user_data)
+        
+        assert "El username 'existinguser' ya está en uso" in str(exc_info.value)

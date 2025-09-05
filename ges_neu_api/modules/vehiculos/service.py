@@ -4,6 +4,8 @@ from uuid import UUID
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 
+from ...core.exceptions import RecursoNoEncontradoError, DuplicadoError, VehiculoOcupadoError
+
 from .models import (
     Vehiculos, TiposVehiculo, ConfiguracionesEje, 
     PosicionesNeumatico, RegistrosOdometro
@@ -27,12 +29,15 @@ class VehiculosService:
     # VEHICULOS CRUD
     # ============================================================================
     
-    async def get_vehiculo(self, vehiculo_id: UUID) -> Optional[Vehiculos]:
+    async def get_vehiculo(self, vehiculo_id: UUID) -> Vehiculos:
         """Obtiene un vehículo por ID"""
         result = await self.db.execute(
             select(Vehiculos).where(Vehiculos.id == vehiculo_id)
         )
-        return result.scalar_one_or_none()
+        db_obj = result.scalar_one_or_none()
+        if not db_obj:
+            raise RecursoNoEncontradoError("Vehículo", str(vehiculo_id))
+        return db_obj
     
     async def get_multi_vehiculos(self, skip: int = 0, limit: int = 100) -> List[Vehiculos]:
         """Obtiene múltiples vehículos con paginación"""
@@ -56,8 +61,6 @@ class VehiculosService:
     async def update_vehiculo(self, vehiculo_id: UUID, obj_in: VehiculosUpdate) -> Optional[Vehiculos]:
         """Actualiza un vehículo existente"""
         db_obj = await self.get_vehiculo(vehiculo_id)
-        if not db_obj:
-            return None
         
         update_data = obj_in.model_dump(exclude_unset=True)
         for field, value in update_data.items():
@@ -70,8 +73,6 @@ class VehiculosService:
     async def delete_vehiculo(self, vehiculo_id: UUID) -> Optional[UUID]:
         """Elimina un vehículo (soft delete)"""
         db_obj = await self.get_vehiculo(vehiculo_id)
-        if not db_obj:
-            return None
         
         db_obj.activo = False
         await self.db.commit()
@@ -86,7 +87,10 @@ class VehiculosService:
         result = await self.db.execute(
             select(TiposVehiculo).where(TiposVehiculo.id == tipo_id)
         )
-        return result.scalar_one_or_none()
+        db_obj = result.scalar_one_or_none()
+        if not db_obj:
+            raise NotFoundException(resource=f"Tipo de vehículo con id {tipo_id}")
+        return db_obj
     
     async def get_multi_tipos_vehiculo(self, skip: int = 0, limit: int = 100) -> List[TiposVehiculo]:
         """Obtiene múltiples tipos de vehículo con paginación"""
@@ -110,8 +114,6 @@ class VehiculosService:
     async def update_tipo_vehiculo(self, tipo_id: UUID, obj_in: TiposVehiculoUpdate) -> Optional[TiposVehiculo]:
         """Actualiza un tipo de vehículo existente"""
         db_obj = await self.get_tipo_vehiculo(tipo_id)
-        if not db_obj:
-            return None
         
         update_data = obj_in.model_dump(exclude_unset=True)
         for field, value in update_data.items():
@@ -130,7 +132,10 @@ class VehiculosService:
         result = await self.db.execute(
             select(ConfiguracionesEje).where(ConfiguracionesEje.id == config_id)
         )
-        return result.scalar_one_or_none()
+        db_obj = result.scalar_one_or_none()
+        if not db_obj:
+            raise NotFoundException(resource=f"Configuración de eje con id {config_id}")
+        return db_obj
     
     async def get_multi_configuraciones_eje(self, skip: int = 0, limit: int = 100) -> List[ConfiguracionesEje]:
         """Obtiene múltiples configuraciones de eje con paginación"""
@@ -153,8 +158,6 @@ class VehiculosService:
     async def update_configuracion_eje(self, config_id: UUID, obj_in: ConfiguracionesEjeUpdate) -> Optional[ConfiguracionesEje]:
         """Actualiza una configuración de eje existente"""
         db_obj = await self.get_configuracion_eje(config_id)
-        if not db_obj:
-            return None
         
         update_data = obj_in.model_dump(exclude_unset=True)
         for field, value in update_data.items():
@@ -173,7 +176,10 @@ class VehiculosService:
         result = await self.db.execute(
             select(PosicionesNeumatico).where(PosicionesNeumatico.id == posicion_id)
         )
-        return result.scalar_one_or_none()
+        db_obj = result.scalar_one_or_none()
+        if not db_obj:
+            raise NotFoundException(resource=f"Posición de neumático con id {posicion_id}")
+        return db_obj
     
     async def get_multi_posiciones_neumatico(self, skip: int = 0, limit: int = 100) -> List[PosicionesNeumatico]:
         """Obtiene múltiples posiciones de neumático con paginación"""
@@ -196,8 +202,6 @@ class VehiculosService:
     async def update_posicion_neumatico(self, posicion_id: UUID, obj_in: PosicionesNeumaticoUpdate) -> Optional[PosicionesNeumatico]:
         """Actualiza una posición de neumático existente"""
         db_obj = await self.get_posicion_neumatico(posicion_id)
-        if not db_obj:
-            return None
         
         update_data = obj_in.model_dump(exclude_unset=True)
         for field, value in update_data.items():
@@ -216,7 +220,10 @@ class VehiculosService:
         result = await self.db.execute(
             select(RegistrosOdometro).where(RegistrosOdometro.id == registro_id)
         )
-        return result.scalar_one_or_none()
+        db_obj = result.scalar_one_or_none()
+        if not db_obj:
+            raise NotFoundException(resource=f"Registro de odómetro con id {registro_id}")
+        return db_obj
     
     async def get_multi_registros_odometro(self, vehiculo_id: Optional[UUID] = None, skip: int = 0, limit: int = 100) -> List[RegistrosOdometro]:
         """Obtiene múltiples registros de odómetro con paginación"""
@@ -244,8 +251,6 @@ class VehiculosService:
     async def update_registro_odometro(self, registro_id: UUID, obj_in: RegistrosOdometroUpdate) -> Optional[RegistrosOdometro]:
         """Actualiza un registro de odómetro existente"""
         db_obj = await self.get_registro_odometro(registro_id)
-        if not db_obj:
-            return None
         
         update_data = obj_in.model_dump(exclude_unset=True)
         for field, value in update_data.items():
@@ -258,8 +263,6 @@ class VehiculosService:
     async def delete_registro_odometro(self, registro_id: UUID) -> Optional[UUID]:
         """Elimina un registro de odómetro"""
         db_obj = await self.get_registro_odometro(registro_id)
-        if not db_obj:
-            return None
         
         await self.db.delete(db_obj)
         await self.db.commit()

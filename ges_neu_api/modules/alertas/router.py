@@ -8,8 +8,10 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from ...core.database import get_session
+from ..auth.dependencies import get_current_user
+from ..auth.schemas import UserRead
 from .service import AlertasService
-from .models_fixed import Alertas
+from .models import Alertas
 
 router = APIRouter(tags=["alertas"])
 
@@ -19,6 +21,7 @@ async def get_alertas_service(db: AsyncSession = Depends(get_session)) -> Alerta
 @router.get("/{alerta_id}", response_model=Alertas)
 async def get_alerta(
     alerta_id: UUID,
+    current_user: UserRead = Depends(get_current_user),
     service: AlertasService = Depends(get_alertas_service)
 ):
     """Obtener alerta por ID."""
@@ -34,6 +37,7 @@ async def get_alerta(
 async def get_alertas_pendientes(
     skip: int = 0,
     limit: int = 100,
+    current_user: UserRead = Depends(get_current_user),
     service: AlertasService = Depends(get_alertas_service)
 ):
     """Obtener alertas pendientes."""
@@ -44,6 +48,7 @@ async def get_alertas_by_tipo(
     tipo_alerta: str,
     skip: int = 0,
     limit: int = 100,
+    current_user: UserRead = Depends(get_current_user),
     service: AlertasService = Depends(get_alertas_service)
 ):
     """Obtener alertas por tipo."""
@@ -54,6 +59,7 @@ async def get_alertas_by_prioridad(
     prioridad: str,
     skip: int = 0,
     limit: int = 100,
+    current_user: UserRead = Depends(get_current_user),
     service: AlertasService = Depends(get_alertas_service)
 ):
     """Obtener alertas por prioridad."""
@@ -66,6 +72,7 @@ async def crear_alerta(
     nivel_severidad: str = 'INFO',
     neumatico_id: Optional[UUID] = None,
     parametro_id: Optional[UUID] = None,
+    current_user: UserRead = Depends(get_current_user),
     service: AlertasService = Depends(get_alertas_service)
 ):
     """Crear nueva alerta."""
@@ -77,6 +84,7 @@ async def crear_alerta(
 async def marcar_como_vista(
     alerta_id: UUID,
     usuario_id: UUID,
+    current_user: UserRead = Depends(get_current_user),
     service: AlertasService = Depends(get_alertas_service)
 ):
     """Marcar alerta como vista."""
@@ -93,6 +101,7 @@ async def resolver_alerta(
     alerta_id: UUID,
     usuario_id: UUID,
     observaciones_resolucion: Optional[str] = None,
+    current_user: UserRead = Depends(get_current_user),
     service: AlertasService = Depends(get_alertas_service)
 ):
     """Resolver alerta."""
@@ -108,6 +117,7 @@ async def resolver_alerta(
 async def ignorar_alerta(
     alerta_id: UUID,
     usuario_id: UUID,
+    current_user: UserRead = Depends(get_current_user),
     service: AlertasService = Depends(get_alertas_service)
 ):
     """Ignorar alerta."""
