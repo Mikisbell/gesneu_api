@@ -60,8 +60,8 @@
 ### Calidad de Código
 - **Complejidad ciclomática** (objetivo: <5 promedio)
 - **Duplicación de código** (objetivo: <5%)
-- **Type hints coverage** (objetivo: >80%)
-- **Issues de estilo** (ruff compliance)
+- **TypeScript coverage** (objetivo: >95%)
+- **Issues de estilo** (ESLint + Prettier compliance)
 
 ### Monitoreo
 - **Prometheus metrics** configurado
@@ -72,10 +72,10 @@
 ## 🎯 PRÓXIMOS PASOS RECOMENDADOS
 
 ### Inmediato (Esta semana)
-1. **Ejecutar suite completa**: `python scripts/run_all_tests.py`
-2. **Revisar métricas de calidad**: `python scripts/code_quality_check.py`
-3. **Configurar entorno de staging** con `environments/staging.env`
-4. **Activar pipeline CI/CD** en GitHub
+1. **Deploy a Vercel**: Conectar GitHub → Vercel automáticamente
+2. **Configurar variables de entorno**: Supabase PostgreSQL en producción
+3. **Ejecutar suite de pruebas**: `npm test` y testing manual de endpoints
+4. **Activar pipeline CI/CD** en Vercel con GitHub Actions
 
 ### Corto plazo (2-4 semanas)
 1. **Implementar RBAC real** (actualmente permisivo)
