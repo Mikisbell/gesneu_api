@@ -73,7 +73,7 @@ async def login_for_access_token(
             form_data.username, form_data.password
         )
         
-        access_token_expires = timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES)
+        access_token_expires = timedelta(minutes=settings.access_token_expire_minutes)
         access_token = auth_service.create_access_token(
             data={"sub": str(user.id)}, expires_delta=access_token_expires
         )

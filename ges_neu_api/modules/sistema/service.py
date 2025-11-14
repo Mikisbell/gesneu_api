@@ -8,7 +8,7 @@ from datetime import datetime
 from sqlmodel import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from ...core.crud import CRUDBase
-from ..bitacoras.models import ParametrosSistema, TareasProgramadas, Rutas, TiposRuta
+from .models import ParametrosSistema, TareasProgramadas, Rutas, TiposRuta
 
 class SistemaService:
     """Servicio para gestión de parámetros y configuración del sistema."""

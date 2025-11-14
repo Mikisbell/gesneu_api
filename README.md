@@ -248,10 +248,6 @@ Una API REST moderna construida con FastAPI para la gestión integral de neumát
 
 ### Backend
 - **API**: FastAPI 0.111.0
-- **Base de Datos**: PostgreSQL 15+
-- **ORM**: SQLModel + SQLAlchemy 2.0
-- **IA/ML**: scikit-learn, XGBoost, pandas
-- **Autenticación**: JWT con python-jose
 
 ### 🗄️ **IMPORTANTE: Esquema de Base de Datos**
 
@@ -278,6 +274,23 @@ CREATE TABLE tipos_vehiculo (
 2. Verificar compatibilidad con PostgreSQL existente
 3. Solo agregar campos nuevos via migraciones Alembic
 4. Mantener tipos de datos y restricciones exactas
+
+#### ✅ Verificación automática de alineación (Database-First)
+Para asegurar que el código siempre esté alineado con `ESQUEMA_COMPLETO_BD.md`:
+- Pre-commit ejecuta una verificación automática y bloquea el commit si hay desalineación.
+- En CI, el pipeline falla si los modelos no coinciden con el esquema.
+
+Comandos útiles:
+
+```bash
+# Ejecutar verificación manual de alineación
+poetry run verify-alignment
+
+# Si no tienes instalado el hook aún
+poetry run pre-commit install
+```
+
+Criterio de aprobación: 100% de tablas alineadas y sin tablas extra/faltantes respecto al esquema.
 
 ### Frontend (MVP Operador - COMPLETADO)
 - **Framework**: Next.js 14 + React 18

@@ -6,7 +6,7 @@ global para convertirlas en respuestas HTTP apropiadas.
 """
 from typing import Any, Dict, Optional
 
-from fastapi import HTTPException, status
+from fastapi import HTTPException, status, Request
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel
 
@@ -49,7 +49,7 @@ class BadRequestException(AppException):
     status_code = status.HTTP_400_BAD_REQUEST
     code = "bad_request"
     
-    def __init__(self, message: str = "Solicitud incorrecta", **kwargs):
+    def __init__(self, message: str = "Solicitud incorrecta", **kwargs: Any):
         super().__init__(message=message, **kwargs)
 
 
@@ -58,7 +58,7 @@ class NotFoundException(AppException):
     status_code = status.HTTP_404_NOT_FOUND
     code = "not_found"
     
-    def __init__(self, resource: str, **kwargs):
+    def __init__(self, resource: str, **kwargs: Any):
         message = f"{resource} no encontrado"
         super().__init__(message=message, **kwargs)
 
@@ -68,7 +68,7 @@ class UnauthorizedException(AppException):
     status_code = status.HTTP_401_UNAUTHORIZED
     code = "unauthorized"
     
-    def __init__(self, message: str = "No autorizado", **kwargs):
+    def __init__(self, message: str = "No autorizado", **kwargs: Any):
         super().__init__(message=message, **kwargs)
 
 
@@ -77,7 +77,7 @@ class ForbiddenException(AppException):
     status_code = status.HTTP_403_FORBIDDEN
     code = "forbidden"
     
-    def __init__(self, message: str = "Acceso denegado", **kwargs):
+    def __init__(self, message: str = "Acceso denegado", **kwargs: Any):
         super().__init__(message=message, **kwargs)
 
 
@@ -86,7 +86,7 @@ class ValidationException(AppException):
     status_code = status.HTTP_422_UNPROCESSABLE_ENTITY
     code = "validation_error"
     
-    def __init__(self, message: str = "Error de validación", **kwargs):
+    def __init__(self, message: str = "Error de validación", **kwargs: Any):
         super().__init__(message=message, **kwargs)
 
 
@@ -95,7 +95,7 @@ class ConflictException(AppException):
     status_code = status.HTTP_409_CONFLICT
     code = "conflict"
     
-    def __init__(self, message: str = "Conflicto con el recurso", **kwargs):
+    def __init__(self, message: str = "Conflicto con el recurso", **kwargs: Any):
         super().__init__(message=message, **kwargs)
 
 
@@ -104,7 +104,7 @@ class BusinessRuleError(AppException):
     status_code = status.HTTP_422_UNPROCESSABLE_ENTITY
     code = "business_rule_error"
     
-    def __init__(self, message: str = "Error de regla de negocio", **kwargs):
+    def __init__(self, message: str = "Error de regla de negocio", **kwargs: Any):
         super().__init__(message=message, **kwargs)
 
 
@@ -115,7 +115,7 @@ class BusinessRuleError(AppException):
 class RecursoNoEncontradoError(NotFoundException):
     """Excepción para recursos específicos no encontrados."""
     
-    def __init__(self, recurso: str, identificador: str, **kwargs):
+    def __init__(self, recurso: str, identificador: str, **kwargs: Any):
         message = f"{recurso} con ID '{identificador}' no encontrado"
         super().__init__(resource=recurso, **kwargs)
         self.detail = message
@@ -126,7 +126,7 @@ class RecursoNoEncontradoError(NotFoundException):
 class OperacionInvalidaError(BusinessRuleError):
     """Excepción para operaciones que violan reglas de negocio."""
     
-    def __init__(self, operacion: str, razon: str, **kwargs):
+    def __init__(self, operacion: str, razon: str, **kwargs: Any):
         message = f"Operación '{operacion}' inválida: {razon}"
         super().__init__(message=message, **kwargs)
         self.operacion = operacion
@@ -136,7 +136,7 @@ class OperacionInvalidaError(BusinessRuleError):
 class EstadoInvalidoError(BusinessRuleError):
     """Excepción para transiciones de estado inválidas."""
     
-    def __init__(self, recurso: str, estado_actual: str, estado_destino: str, **kwargs):
+    def __init__(self, recurso: str, estado_actual: str, estado_destino: str, **kwargs: Any):
         message = f"{recurso} no puede cambiar de '{estado_actual}' a '{estado_destino}'"
         super().__init__(message=message, **kwargs)
         self.recurso = recurso
@@ -147,7 +147,7 @@ class EstadoInvalidoError(BusinessRuleError):
 class DuplicadoError(ConflictException):
     """Excepción para recursos duplicados."""
     
-    def __init__(self, recurso: str, campo: str, valor: str, **kwargs):
+    def __init__(self, recurso: str, campo: str, valor: str, **kwargs: Any):
         message = f"{recurso} con {campo} '{valor}' ya existe"
         super().__init__(message=message, **kwargs)
         self.recurso = recurso
@@ -158,7 +158,7 @@ class DuplicadoError(ConflictException):
 class DependenciaError(BusinessRuleError):
     """Excepción para errores de dependencias entre recursos."""
     
-    def __init__(self, recurso: str, dependencia: str, **kwargs):
+    def __init__(self, recurso: str, dependencia: str, **kwargs: Any):
         message = f"No se puede procesar {recurso}: dependencia con {dependencia}"
         super().__init__(message=message, **kwargs)
         self.recurso = recurso
@@ -168,7 +168,7 @@ class DependenciaError(BusinessRuleError):
 class InventarioInsuficienteError(BusinessRuleError):
     """Excepción para stock insuficiente."""
     
-    def __init__(self, producto: str, disponible: int, requerido: int, **kwargs):
+    def __init__(self, producto: str, disponible: int, requerido: int, **kwargs: Any):
         message = f"Stock insuficiente de {producto}: disponible {disponible}, requerido {requerido}"
         super().__init__(message=message, **kwargs)
         self.producto = producto
@@ -179,7 +179,7 @@ class InventarioInsuficienteError(BusinessRuleError):
 class NeumaticoNoDisponibleError(BusinessRuleError):
     """Excepción para neumáticos no disponibles para operación."""
     
-    def __init__(self, neumatico_id: str, estado_actual: str, operacion: str, **kwargs):
+    def __init__(self, neumatico_id: str, estado_actual: str, operacion: str, **kwargs: Any):
         message = f"Neumático {neumatico_id} en estado '{estado_actual}' no disponible para {operacion}"
         super().__init__(message=message, **kwargs)
         self.neumatico_id = neumatico_id
@@ -190,7 +190,7 @@ class NeumaticoNoDisponibleError(BusinessRuleError):
 class VehiculoOcupadoError(BusinessRuleError):
     """Excepción para vehículos ocupados."""
     
-    def __init__(self, vehiculo_id: str, **kwargs):
+    def __init__(self, vehiculo_id: str, **kwargs: Any):
         message = f"Vehículo {vehiculo_id} está ocupado y no puede ser modificado"
         super().__init__(message=message, **kwargs)
         self.vehiculo_id = vehiculo_id
@@ -212,7 +212,7 @@ EXCEPTION_STATUS_MAP = {
 }
 
 
-async def global_exception_handler(request, exc):
+async def global_exception_handler(request: Request, exc: Exception) -> JSONResponse:
     """Manejador global de excepciones.
     
     Convierte excepciones en respuestas JSON estandarizadas.

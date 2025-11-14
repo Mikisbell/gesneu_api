@@ -193,8 +193,6 @@ class MLService:
         self,
         neumatico_id: UUID,
         vida_util_restante_km: Optional[int],
-        prediccion_fecha_reemplazo: Optional[date],
-        confianza_prediccion: Optional[Decimal],
         modelo_version: str
     ) -> bool:
         """
@@ -203,8 +201,6 @@ class MLService:
         Args:
             neumatico_id: ID del neumático
             vida_util_restante_km: Vida útil restante predicha
-            prediccion_fecha_reemplazo: Fecha predicha de reemplazo
-            confianza_prediccion: Confianza de la predicción (0.0-1.0)
             modelo_version: Versión del modelo ML utilizado
         """
         result = await self.db.execute(
@@ -215,12 +211,8 @@ class MLService:
         if not neumatico:
             raise RecursoNoEncontradoError("Neumático", str(neumatico_id))
         
-        # Actualizar campos de predicción
+        # Actualizar campos de predicción - Solo campos que existen en BD
         neumatico.vida_util_restante_km = vida_util_restante_km
-        neumatico.prediccion_fecha_reemplazo = prediccion_fecha_reemplazo
-        neumatico.confianza_prediccion = confianza_prediccion
-        neumatico.fecha_ultima_prediccion = datetime.utcnow()
-        neumatico.modelo_prediccion_version = modelo_version
         
         await self.db.commit()
         return True
@@ -272,8 +264,6 @@ class MLService:
             await self.update_prediction_fields(
                 neumatico_id=neumatico_id,
                 vida_util_restante_km=result_dict.get('vida_util_restante_km'),
-                prediccion_fecha_reemplazo=datetime.fromisoformat(result_dict['fecha_estimada_reemplazo']).date() if result_dict.get('fecha_estimada_reemplazo') else None,
-                confianza_prediccion=Decimal(str(result_dict.get('confianza_prediccion', 0.5))),
                 modelo_version=result_dict.get('modelo_version', 'v1.0')
             )
             

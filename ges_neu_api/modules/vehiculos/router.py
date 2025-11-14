@@ -9,12 +9,13 @@ from fastapi import APIRouter, Depends, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from ...core.database import get_session
-from .models import Vehiculos, TiposVehiculo, ConfiguracionesEje, PosicionesNeumatico
+from .models import Vehiculos, TiposVehiculo, ConfiguracionesEje, PosicionesNeumatico, RegistrosOdometro
 from .schemas import (
     VehiculosRead, VehiculosCreate, VehiculosUpdate,
     TiposVehiculoRead, TiposVehiculoCreate, TiposVehiculoUpdate,
     ConfiguracionesEjeRead, ConfiguracionesEjeCreate, ConfiguracionesEjeUpdate,
-    PosicionesNeumaticoRead, PosicionesNeumaticoCreate, PosicionesNeumaticoUpdate
+    PosicionesNeumaticoRead, PosicionesNeumaticoCreate, PosicionesNeumaticoUpdate,
+    RegistrosOdometroRead, RegistrosOdometroCreate, RegistrosOdometroUpdate
 )
 from .service import VehiculosService
 
@@ -202,3 +203,45 @@ async def delete_vehiculo(
 ):
     """Elimina un vehículo (soft delete)"""
     return await service.delete_vehiculo(vehiculo_id)
+
+
+# ============================================================================
+# ENDPOINTS DE REGISTROS DE ODÓMETRO
+# ============================================================================
+
+@router.get("/registros-odometro", response_model=List[RegistrosOdometroRead])
+async def get_registros_odometro(
+    skip: int = 0,
+    limit: int = 100,
+    service: VehiculosService = Depends(get_vehiculos_service)
+):
+    """Obtiene todos los registros de odómetro"""
+    return await service.get_multi_registros_odometro(skip=skip, limit=limit)
+
+
+@router.post("/registros-odometro", response_model=RegistrosOdometroRead, status_code=status.HTTP_201_CREATED)
+async def create_registro_odometro(
+    registro_in: RegistrosOdometroCreate,
+    service: VehiculosService = Depends(get_vehiculos_service)
+):
+    """Crea un nuevo registro de odómetro"""
+    return await service.create_registro_odometro(registro_in)
+
+
+@router.get("/registros-odometro/{registro_id}", response_model=RegistrosOdometroRead)
+async def get_registro_odometro(
+    registro_id: UUID,
+    service: VehiculosService = Depends(get_vehiculos_service)
+):
+    """Obtiene un registro de odómetro por ID"""
+    return await service.get_registro_odometro(registro_id)
+
+
+@router.put("/registros-odometro/{registro_id}", response_model=RegistrosOdometroRead)
+async def update_registro_odometro(
+    registro_id: UUID,
+    registro_in: RegistrosOdometroUpdate,
+    service: VehiculosService = Depends(get_vehiculos_service)
+):
+    """Actualiza un registro de odómetro"""
+    return await service.update_registro_odometro(registro_id, registro_in)

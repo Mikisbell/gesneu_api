@@ -4,7 +4,7 @@ Router para el módulo de bitácoras y auditoría.
 from typing import List, Optional
 from uuid import UUID
 from fastapi import APIRouter, Depends, HTTPException, Query
-from sqlmodel import Session
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from ...core.database import get_session
 from .service import BitacoraService
@@ -12,6 +12,9 @@ from .models import (
     BitacoraMantenimiento,
     BitacoraOperaciones,
     AuditoriaLog,
+    AuditoriaRolesUsuarios
+)
+from ..sistema.models import (
     ConfiguracionAuditoria,
     ErroresAplicacion,
     ParametrosSistema,
@@ -22,7 +25,7 @@ from .models import (
 
 router = APIRouter()
 
-def get_bitacora_service(db: Session = Depends(get_session)) -> BitacoraService:
+async def get_bitacora_service(db: AsyncSession = Depends(get_session)) -> BitacoraService:
     """Dependency para obtener el servicio de bitácoras."""
     return BitacoraService(db)
 
@@ -115,6 +118,15 @@ async def get_auditoria_logs(
     if tabla:
         return await service.get_auditoria_by_tabla(tabla, skip=skip, limit=limit)
     return await service.get_auditoria_logs(skip=skip, limit=limit)
+
+@router.get("/auditoria-roles", response_model=List[AuditoriaRolesUsuarios])
+async def get_auditoria_roles(
+    skip: int = Query(0, ge=0),
+    limit: int = Query(100, ge=1, le=1000),
+    service: BitacoraService = Depends(get_bitacora_service)
+):
+    """Obtener auditoría específica de roles y usuarios."""
+    return await service.get_auditoria_roles_usuarios(skip=skip, limit=limit)
 
 @router.get("/auditoria/configuracion", response_model=List[ConfiguracionAuditoria])
 async def get_configuracion_auditoria(
@@ -210,7 +222,7 @@ async def get_tareas_programadas(
 
 @router.put("/sistema/tareas/{tarea_id}")
 async def update_tarea_programada(
-    tarea_id: int,
+    tarea_id: UUID,
     tarea_data: dict,
     service: BitacoraService = Depends(get_bitacora_service)
 ):

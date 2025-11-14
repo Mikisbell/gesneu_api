@@ -7,8 +7,7 @@ from .models import (
     BitacoraOperaciones,
     BitacoraOperacionesNeumaticos,
     AuditoriaLog,
-    ConfiguracionAuditoria,
-    ErroresAplicacion
+    AuditoriaRolesUsuarios
 )
 
 __all__ = [
@@ -16,6 +15,5 @@ __all__ = [
     "BitacoraOperaciones", 
     "BitacoraOperacionesNeumaticos",
     "AuditoriaLog",
-    "ConfiguracionAuditoria",
-    "ErroresAplicacion"
+    "AuditoriaRolesUsuarios"
 ]

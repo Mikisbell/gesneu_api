@@ -2,7 +2,7 @@
 
 import logging
 from datetime import datetime, timedelta, timezone
-from typing import Optional
+from typing import Optional, Any, cast
 
 from passlib.context import CryptContext
 from jose import JWTError, jwt
@@ -26,7 +26,7 @@ def verify_password(plain_password: str, hashed_password: str) -> bool:
     Verifica si una contraseña en texto plano coincide con una hasheada.
     """
     try:
-        is_valid = pwd_context.verify(plain_password, hashed_password)
+        is_valid = cast(bool, pwd_context.verify(plain_password, hashed_password))
         if not is_valid:
             logger.warning("La contraseña proporcionada no coincide con el hash almacenado")
         return is_valid
@@ -39,12 +39,12 @@ def get_password_hash(password: str) -> str:
     Convierte una contraseña en texto plano a un hash seguro.
     """
     try:
-        return pwd_context.hash(password)
+        return cast(str, pwd_context.hash(password))
     except Exception as e:
         logger.error(f"Error al hashear la contraseña: {str(e)}", exc_info=True)
         raise ValueError("No se pudo hashear la contraseña") from e
 
-def create_access_token(data: dict, expires_delta: Optional[timedelta] = None) -> str:
+def create_access_token(data: dict[str, Any], expires_delta: Optional[timedelta] = None) -> str:
     """
     Crea un nuevo token de acceso (JWT).
     """
@@ -55,29 +55,29 @@ def create_access_token(data: dict, expires_delta: Optional[timedelta] = None) -
         else:
             # Si no se especifica tiempo, usamos el de la configuración (30 min)
             expire = datetime.now(timezone.utc) + timedelta(
-                minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES
+                minutes=settings.access_token_expire_minutes
             )
         
         to_encode.update({"exp": expire})
         
         # Validar que tenemos los datos necesarios
-        if not settings.JWT_SECRET_KEY:
+        if not settings.jwt_secret_key:
             logger.error("JWT_SECRET_KEY no está configurada")
             raise ValueError("JWT_SECRET_KEY no está configurada")
             
-        if not settings.JWT_ALGORITHM:
+        if not settings.jwt_algorithm:
             logger.error("JWT_ALGORITHM no está configurado")
             raise ValueError("JWT_ALGORITHM no está configurado")
         
         # Usamos nuestra JWT_SECRET_KEY y JWT_ALGORITHM del archivo .env para firmar el token
         encoded_jwt = jwt.encode(
             to_encode, 
-            settings.JWT_SECRET_KEY, 
-            algorithm=settings.JWT_ALGORITHM
+            settings.jwt_secret_key, 
+            algorithm=settings.jwt_algorithm
         )
         
         logger.debug(f"Token JWT generado exitosamente para el sujeto: {to_encode.get('sub')}")
-        return encoded_jwt
+        return cast(str, encoded_jwt)
         
     except JWTError as e:
         logger.error(f"Error JWT al crear token: {str(e)}", exc_info=True)
@@ -86,23 +86,23 @@ def create_access_token(data: dict, expires_delta: Optional[timedelta] = None) -
         logger.error(f"Error inesperado al crear token: {str(e)}", exc_info=True)
         raise ValueError("No se pudo generar el token de acceso") from e
 
-def decode_access_token(token: str) -> dict:
+def decode_access_token(token: str) -> dict[str, Any]:
     """
     Decodifica y valida un token JWT.
     """
     try:
-        if not settings.JWT_SECRET_KEY:
+        if not settings.jwt_secret_key:
             logger.error("JWT_SECRET_KEY no está configurada")
             raise ValueError("JWT_SECRET_KEY no está configurada")
             
         payload = jwt.decode(
             token, 
-            settings.JWT_SECRET_KEY, 
-            algorithms=[settings.JWT_ALGORITHM]
+            settings.jwt_secret_key, 
+            algorithms=[settings.jwt_algorithm]
         )
         
         logger.debug(f"Token JWT decodificado exitosamente para el sujeto: {payload.get('sub')}")
-        return payload
+        return cast(dict[str, Any], payload)
         
     except JWTError as e:
         logger.warning(f"Error JWT al decodificar token: {str(e)}")

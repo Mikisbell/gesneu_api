@@ -21,7 +21,7 @@ from .models import Usuario
 from .service import AuthService, UserService, RoleService, PermissionService
 
 # Esquema de autenticación OAuth2
-oauth2_scheme = OAuth2PasswordBearer(tokenUrl=f"{settings.API_V1_STR}/auth/login")
+oauth2_scheme = OAuth2PasswordBearer(tokenUrl=f"{settings.api_v1_str}/auth/login")
 
 
 # Proveedores de servicios

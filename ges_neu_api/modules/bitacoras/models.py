@@ -193,90 +193,28 @@ class AuditoriaLog(SQLModel, table=True):
         description="Query SQL ejecutada"
     )
 
-class ConfiguracionAuditoria(SQLModel, table=True):
-    __tablename__ = "configuracion_auditoria"
-    
-    nombre_tabla: str = Field(sa_column=Column(String(63), primary_key=True, nullable=False))
-    activo: bool = Field(sa_column=Column(Boolean, nullable=False, server_default=text("true")))
-    prioridad: Optional[str] = Field(default=None, sa_column=Column(String(20)))
-    campos_excluidos: Optional[dict] = Field(default=None, sa_column=Column(JSONB, server_default=text("'{}'")))
-    creado_en: Optional[datetime] = Field(default=None, sa_column=Column(TIMESTAMP(timezone=True), server_default=text("now()")))
-    actualizado_en: Optional[datetime] = Field(default=None, sa_column=Column(TIMESTAMP(timezone=True), server_default=text("now()")))
+# ConfiguracionAuditoria movido a ges_neu_api/modules/sistema/models.py
 
-class ErroresAplicacion(SQLModel, table=True):
-    __tablename__ = "errores_aplicacion"
+class AuditoriaRolesUsuarios(SQLModel, table=True):
+    __tablename__ = "auditoria_roles_usuarios"
     
-    id: UUID = Field(default_factory=uuid4, sa_column=Column(PG_UUID(as_uuid=True), primary_key=True, server_default=text("gen_random_uuid()")))
-    nombre_funcion: str = Field(sa_column=Column(Text, nullable=False))
-    mensaje_error: str = Field(sa_column=Column(Text, nullable=False))
-    detalles: Optional[dict] = Field(default=None, sa_column=Column(JSONB))
-    creado_por: Optional[str] = Field(default="SISTEMA", sa_column=Column(Text, server_default=text("'SISTEMA'")))
-    creado_en: datetime = Field(sa_column=Column(TIMESTAMP(timezone=True), nullable=False, server_default=text("now()")))
-    resuelto: Optional[bool] = Field(default=False, sa_column=Column(Boolean, server_default=text("false")))
-    resuelto_por: Optional[str] = Field(default=None, sa_column=Column(Text))
-    resuelto_en: Optional[datetime] = Field(default=None, sa_column=Column(TIMESTAMP(timezone=True)))
-    comentario_resolucion: Optional[str] = Field(default=None, sa_column=Column(Text))
+    id: int = Field(sa_column=Column(BigInteger, primary_key=True))
+    usuario_id: UUID = Field(sa_column=Column(PG_UUID(as_uuid=True), nullable=False))
+    rol_id: UUID = Field(sa_column=Column(PG_UUID(as_uuid=True), nullable=False))
+    accion: str = Field(sa_column=Column(String(10), nullable=False))
+    ejecutado_por: Optional[UUID] = Field(default=None, sa_column=Column(PG_UUID(as_uuid=True)))
+    ejecutado_en: datetime = Field(sa_column=Column(TIMESTAMP(timezone=True), nullable=False, server_default=text("now()")))
+    audit_metadata: Optional[dict] = Field(default=None, sa_column=Column("metadata", JSONB))
+
+# ErroresAplicacion movido a ges_neu_api/modules/sistema/models.py
 
 
 # ============================================================================
-# SISTEMA
+# NOTA: Modelos de sistema movidos a ges_neu_api/modules/sistema/models.py
 # ============================================================================
-
-class ParametrosSistema(SQLModel, table=True):
-    __tablename__ = "parametros_sistema"
-    
-    id: int = Field(sa_column=Column(Integer, primary_key=True))
-    clave: str = Field(sa_column=Column(String(100), nullable=False, unique=True))
-    valor: str = Field(sa_column=Column(Text, nullable=False))
-    descripcion: Optional[str] = Field(default=None, sa_column=Column(Text))
-    creado_en: Optional[datetime] = Field(default=None, sa_column=Column(TIMESTAMP, server_default=text("now()")))
-    actualizado_en: Optional[datetime] = Field(default=None, sa_column=Column(TIMESTAMP, server_default=text("now()")))
-    creado_por: Optional[str] = Field(default="SISTEMA", sa_column=Column(String(100), server_default=text("'SISTEMA'")))
-    actualizado_por: Optional[str] = Field(default="SISTEMA", sa_column=Column(String(100), server_default=text("'SISTEMA'")))
-
-class TareasProgramadas(SQLModel, table=True):
-    __tablename__ = "tareas_programadas"
-    
-    id: int = Field(sa_column=Column(Integer, primary_key=True))
-    nombre_tarea: str = Field(sa_column=Column(String(100), nullable=False))
-    descripcion: Optional[str] = Field(default=None, sa_column=Column(Text))
-    frecuencia_dias: int = Field(default=1, sa_column=Column(Integer, nullable=False, server_default=text("1")))
-    ultima_ejecucion: Optional[datetime] = Field(default=None, sa_column=Column(TIMESTAMP(timezone=True)))
-    proxima_ejecucion: Optional[datetime] = Field(default=None, sa_column=Column(TIMESTAMP(timezone=True)))
-    activa: Optional[bool] = Field(default=True, sa_column=Column(Boolean, server_default=text("true")))
-    script_sql: Optional[str] = Field(default=None, sa_column=Column(Text))
-    creado_en: Optional[datetime] = Field(default=None, sa_column=Column(TIMESTAMP(timezone=True), server_default=text("now()")))
-    creado_por: Optional[str] = Field(default="SISTEMA", sa_column=Column(String(100), server_default=text("'SISTEMA'")))
-    actualizado_en: Optional[datetime] = Field(default=None, sa_column=Column(TIMESTAMP(timezone=True)))
-    actualizado_por: Optional[str] = Field(default=None, sa_column=Column(String(100)))
-
-class Rutas(SQLModel, table=True):
-    __tablename__ = "rutas"
-    
-    id: UUID = Field(default_factory=uuid4, sa_column=Column(PG_UUID(as_uuid=True), primary_key=True, server_default=text("gen_random_uuid()")))
-    codigo: str = Field(sa_column=Column(String(20), nullable=False, unique=True))
-    nombre: str = Field(sa_column=Column(String(100), nullable=False))
-    descripcion: Optional[str] = Field(default=None, sa_column=Column(Text))
-    distancia_total_km: Decimal = Field(sa_column=Column(Numeric(10,2), nullable=False))
-    ida_vuelta: bool = Field(default=True, sa_column=Column(Boolean, nullable=False, server_default=text("true")))
-    activa: bool = Field(default=True, sa_column=Column(Boolean, nullable=False, server_default=text("true")))
-    creado_en: datetime = Field(default_factory=datetime.utcnow, sa_column=Column(TIMESTAMP(timezone=True), nullable=False, server_default=text("now()")))
-    creado_por: Optional[UUID] = Field(default=None, sa_column=Column(PG_UUID(as_uuid=True), ForeignKey("usuarios.id")))
-    actualizado_en: Optional[datetime] = Field(default=None, sa_column=Column(TIMESTAMP(timezone=True)))
-    actualizado_por: Optional[UUID] = Field(default=None, sa_column=Column(PG_UUID(as_uuid=True), ForeignKey("usuarios.id")))
-
-class TiposRuta(SQLModel, table=True):
-    __tablename__ = "tipos_ruta"
-    
-    id: UUID = Field(default_factory=uuid4, sa_column=Column(PG_UUID(as_uuid=True), primary_key=True, server_default=text("gen_random_uuid()")))
-    nombre_ruta: str = Field(sa_column=Column(String(150), nullable=False, unique=True))
-    descripcion: Optional[str] = Field(default=None, sa_column=Column(Text))
-    distancia_total_km_ciclo: Optional[Decimal] = Field(default=None, sa_column=Column(Numeric(8,2)))
-    distancia_trocha_km_ciclo: Optional[Decimal] = Field(default=0, sa_column=Column(Numeric(8,2), server_default=text("0")))
-    distancia_asfalto_km_ciclo: Optional[Decimal] = Field(default=0, sa_column=Column(Numeric(8,2), server_default=text("0")))
-    distancia_otro_terreno_km_ciclo: Optional[Decimal] = Field(default=0, sa_column=Column(Numeric(8,2), server_default=text("0")))
-    porcentaje_promedio_con_carga: Optional[Decimal] = Field(default=None, sa_column=Column(Numeric(5,2)))
-    creado_en: datetime = Field(sa_column=Column(TIMESTAMP(timezone=True), nullable=False, server_default=text("now()")))
-    creado_por: Optional[UUID] = Field(default=None, sa_column=Column(PG_UUID(as_uuid=True), ForeignKey("usuarios.id")))
-    actualizado_en: Optional[datetime] = Field(default=None, sa_column=Column(TIMESTAMP(timezone=True)))
-    actualizado_por: Optional[UUID] = Field(default=None, sa_column=Column(PG_UUID(as_uuid=True), ForeignKey("usuarios.id")))
+# - ParametrosSistema
+# - TareasProgramadas  
+# - Rutas
+# - TiposRuta
+# - ErroresAplicacion
+# - ConfiguracionAuditoria

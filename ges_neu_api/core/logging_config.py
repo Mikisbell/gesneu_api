@@ -26,28 +26,33 @@ LOG_LEVELS = ["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"]
 class LoggingSettings(BaseSettings):
     """Configuración del sistema de logging."""
     
-    LOG_LEVEL: str = Field(
+    log_level: str = Field(
         default="INFO",
+        alias="LOG_LEVEL",
         description="Nivel de logging (DEBUG, INFO, WARNING, ERROR, CRITICAL)"
     )
     
-    LOG_FORMAT: str = Field(
+    log_format: str = Field(
         default="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
+        alias="LOG_FORMAT",
         description="Formato de los mensajes de log"
     )
     
-    LOG_FILE: str = Field(
+    log_file: str = Field(
         default=str(LOG_DIR / "app.log"),
+        alias="LOG_FILE",
         description="Ruta del archivo de log principal"
     )
     
-    LOG_MAX_BYTES: int = Field(
+    log_max_bytes: int = Field(
         default=10 * 1024 * 1024,  # 10 MB
+        alias="LOG_MAX_BYTES",
         description="Tamaño máximo del archivo de log antes de rotar"
     )
     
-    LOG_BACKUP_COUNT: int = Field(
+    log_backup_count: int = Field(
         default=5,
+        alias="LOG_BACKUP_COUNT",
         description="Número de archivos de respaldo a mantener"
     )
     
@@ -82,16 +87,21 @@ def setup_logging() -> None:
     try:
         settings = LoggingSettings()
         
+        # Si el formato es 'json', usar un formato básico válido para logging.basicConfig
+        log_format = settings.log_format
+        if log_format.lower() == 'json':
+            log_format = "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+        
         # Configuración básica
         logging.basicConfig(
-            level=settings.LOG_LEVEL,
-            format=settings.LOG_FORMAT,
+            level=settings.log_level,
+            format=log_format,
             handlers=[
                 logging.StreamHandler(sys.stdout),
                 logging.handlers.RotatingFileHandler(
-                    settings.LOG_FILE,
-                    maxBytes=settings.LOG_MAX_BYTES,
-                    backupCount=settings.LOG_BACKUP_COUNT,
+                    settings.log_file,
+                    maxBytes=settings.log_max_bytes,
+                    backupCount=settings.log_backup_count,
                     encoding="utf-8"
                 )
             ]
@@ -152,16 +162,16 @@ def setup_structured_logging() -> None:
         
         # Configurar el handler de archivo
         file_handler = logging.handlers.RotatingFileHandler(
-            settings.LOG_FILE.replace('.log', '_structured.log'),
-            maxBytes=settings.LOG_MAX_BYTES,
-            backupCount=settings.LOG_BACKUP_COUNT,
+            settings.log_file.replace('.log', '_structured.log'),
+            maxBytes=settings.log_max_bytes,
+            backupCount=settings.log_backup_count,
             encoding="utf-8"
         )
         file_handler.setFormatter(formatter)
         
         # Configurar el logger raíz
         root_logger = logging.getLogger()
-        root_logger.setLevel(settings.LOG_LEVEL)
+        root_logger.setLevel(settings.log_level)
         
         # Eliminar handlers existentes
         for handler in root_logger.handlers[:]:

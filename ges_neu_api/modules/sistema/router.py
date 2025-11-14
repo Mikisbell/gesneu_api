@@ -1,15 +1,15 @@
 """
-Router para el módulo de sistema.
+Router para el módulo de sistema - Reescrito completamente.
+Endpoints para ParametrosSistema, TareasProgramadas, Rutas y TiposRuta.
 """
-from typing import List, Optional
+from typing import List
 from uuid import UUID
-from datetime import datetime
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from ...core.database import get_session
 from .service import SistemaService
-from ..bitacoras.models import ParametrosSistema, TareasProgramadas, Rutas, TiposRuta
+from .models import ParametrosSistema, TareasProgramadas, Rutas, TiposRuta
 
 router = APIRouter()
 
@@ -17,147 +17,128 @@ def get_sistema_service(db: AsyncSession = Depends(get_session)) -> SistemaServi
     """Dependency para obtener el servicio de sistema."""
     return SistemaService(db)
 
-# Endpoints de Parámetros del Sistema
+# ============================================================================
+# ENDPOINTS BÁSICOS CRUD - PARAMETROS SISTEMA
+# ============================================================================
+
 @router.get("/parametros", response_model=List[ParametrosSistema])
 async def get_parametros_sistema(
+    skip: int = Query(0, ge=0),
+    limit: int = Query(100, ge=1, le=1000),
     service: SistemaService = Depends(get_sistema_service)
 ):
     """Obtener todos los parámetros del sistema."""
-    return await service.get_parametros_sistema()
+    return await service.parametros_sistema_crud.get_multi(skip=skip, limit=limit)
 
-@router.get("/parametros/{clave}", response_model=ParametrosSistema)
+@router.get("/parametros/{parametro_id}", response_model=ParametrosSistema)
 async def get_parametro_sistema(
-    clave: str,
+    parametro_id: UUID,
     service: SistemaService = Depends(get_sistema_service)
 ):
-    """Obtener parámetro específico del sistema por clave."""
-    parametro = await service.get_parametro_sistema(clave)
+    """Obtener parámetro específico del sistema por ID."""
+    parametro = await service.parametros_sistema_crud.get(parametro_id)
     if not parametro:
         raise HTTPException(status_code=404, detail="Parámetro no encontrado")
     return parametro
 
 @router.post("/parametros", response_model=ParametrosSistema)
 async def create_parametro_sistema(
-    parametro_data: dict,
+    parametro: ParametrosSistema,
     service: SistemaService = Depends(get_sistema_service)
 ):
     """Crear nuevo parámetro del sistema."""
-    return await service.create_parametro_sistema(parametro_data)
+    return await service.parametros_sistema_crud.create(parametro)
 
-@router.put("/parametros/{clave}", response_model=ParametrosSistema)
+@router.put("/parametros/{parametro_id}", response_model=ParametrosSistema)
 async def update_parametro_sistema(
-    clave: str,
-    valor: str,
-    descripcion: Optional[str] = None,
+    parametro_id: UUID,
+    parametro_update: ParametrosSistema,
     service: SistemaService = Depends(get_sistema_service)
 ):
     """Actualizar parámetro del sistema."""
-    parametro = await service.update_parametro_sistema(clave, valor, descripcion)
+    parametro = await service.parametros_sistema_crud.update(parametro_id, parametro_update)
     if not parametro:
         raise HTTPException(status_code=404, detail="Parámetro no encontrado")
     return parametro
 
 @router.delete("/parametros/{parametro_id}")
 async def delete_parametro_sistema(
-    parametro_id: int,
+    parametro_id: UUID,
     service: SistemaService = Depends(get_sistema_service)
 ):
     """Eliminar parámetro del sistema."""
-    success = await service.delete_parametro_sistema(parametro_id)
-    if not success:
+    parametro = await service.parametros_sistema_crud.remove(parametro_id)
+    if not parametro:
         raise HTTPException(status_code=404, detail="Parámetro no encontrado")
     return {"message": "Parámetro eliminado exitosamente"}
 
-# Endpoints de Tareas Programadas
+# ============================================================================
+# ENDPOINTS BÁSICOS CRUD - TAREAS PROGRAMADAS
+# ============================================================================
+
 @router.get("/tareas", response_model=List[TareasProgramadas])
 async def get_tareas_programadas(
-    activa: Optional[bool] = Query(None, description="Filtrar por estado activo"),
+    skip: int = Query(0, ge=0),
+    limit: int = Query(100, ge=1, le=1000),
     service: SistemaService = Depends(get_sistema_service)
 ):
     """Obtener tareas programadas."""
-    return await service.get_tareas_programadas(activa=activa)
+    return await service.tareas_programadas_crud.get_multi(skip=skip, limit=limit)
 
 @router.get("/tareas/{tarea_id}", response_model=TareasProgramadas)
 async def get_tarea_programada(
-    tarea_id: int,
+    tarea_id: UUID,
     service: SistemaService = Depends(get_sistema_service)
 ):
     """Obtener tarea programada por ID."""
-    tarea = await service.get_tarea_programada(tarea_id)
+    tarea = await service.tareas_programadas_crud.get(tarea_id)
     if not tarea:
         raise HTTPException(status_code=404, detail="Tarea no encontrada")
     return tarea
 
 @router.post("/tareas", response_model=TareasProgramadas)
 async def create_tarea_programada(
-    tarea_data: dict,
+    tarea: TareasProgramadas,
     service: SistemaService = Depends(get_sistema_service)
 ):
     """Crear nueva tarea programada."""
-    return await service.create_tarea_programada(tarea_data)
+    return await service.tareas_programadas_crud.create(tarea)
 
 @router.put("/tareas/{tarea_id}", response_model=TareasProgramadas)
 async def update_tarea_programada(
-    tarea_id: int,
-    tarea_data: dict,
+    tarea_id: UUID,
+    tarea_update: TareasProgramadas,
     service: SistemaService = Depends(get_sistema_service)
 ):
     """Actualizar tarea programada."""
-    tarea = await service.update_tarea_programada(tarea_id, tarea_data)
+    tarea = await service.tareas_programadas_crud.update(tarea_id, tarea_update)
     if not tarea:
         raise HTTPException(status_code=404, detail="Tarea no encontrada")
     return tarea
 
-@router.put("/tareas/{tarea_id}/estado", response_model=TareasProgramadas)
-async def activar_desactivar_tarea(
-    tarea_id: int,
-    activa: bool,
+@router.delete("/tareas/{tarea_id}")
+async def delete_tarea_programada(
+    tarea_id: UUID,
     service: SistemaService = Depends(get_sistema_service)
 ):
-    """Activar o desactivar tarea programada."""
-    tarea = await service.activar_desactivar_tarea(tarea_id, activa)
+    """Eliminar tarea programada."""
+    tarea = await service.tareas_programadas_crud.remove(tarea_id)
     if not tarea:
         raise HTTPException(status_code=404, detail="Tarea no encontrada")
-    return tarea
+    return {"message": "Tarea eliminada exitosamente"}
 
-@router.put("/tareas/{tarea_id}/ejecucion", response_model=TareasProgramadas)
-async def actualizar_ejecucion_tarea(
-    tarea_id: int,
-    proxima_ejecucion: Optional[datetime] = None,
-    service: SistemaService = Depends(get_sistema_service)
-):
-    """Actualizar fechas de ejecución de tarea."""
-    tarea = await service.actualizar_ejecucion_tarea(tarea_id, proxima_ejecucion)
-    if not tarea:
-        raise HTTPException(status_code=404, detail="Tarea no encontrada")
-    return tarea
+# ============================================================================
+# ENDPOINTS BÁSICOS CRUD - RUTAS
+# ============================================================================
 
-# Endpoints de Rutas
 @router.get("/rutas", response_model=List[Rutas])
 async def get_rutas(
     skip: int = Query(0, ge=0),
     limit: int = Query(100, ge=1, le=1000),
-    activo: Optional[bool] = Query(None, description="Filtrar por estado activo"),
     service: SistemaService = Depends(get_sistema_service)
 ):
     """Obtener rutas."""
-    try:
-        import logging
-        logger = logging.getLogger(__name__)
-        logger.info(f"Obteniendo rutas: skip={skip}, limit={limit}, activo={activo}")
-        
-        rutas = await service.get_rutas(skip=skip, limit=limit, activo=activo)
-        logger.info(f"Rutas obtenidas exitosamente: {len(rutas)} registros")
-        return rutas
-    except Exception as e:
-        import traceback
-        logger = logging.getLogger(__name__)
-        logger.error(f"Error en get_rutas: {str(e)}")
-        logger.error(f"Traceback completo: {traceback.format_exc()}")
-        raise HTTPException(
-            status_code=500,
-            detail=f"Error interno: {str(e)}"
-        )
+    return await service.rutas_crud.get_multi(skip=skip, limit=limit)
 
 @router.get("/rutas/{ruta_id}", response_model=Rutas)
 async def get_ruta(
@@ -165,38 +146,27 @@ async def get_ruta(
     service: SistemaService = Depends(get_sistema_service)
 ):
     """Obtener ruta por ID."""
-    ruta = await service.get_ruta(ruta_id)
-    if not ruta:
-        raise HTTPException(status_code=404, detail="Ruta no encontrada")
-    return ruta
-
-@router.get("/rutas/codigo/{codigo}", response_model=Rutas)
-async def get_ruta_by_codigo(
-    codigo: str,
-    service: SistemaService = Depends(get_sistema_service)
-):
-    """Obtener ruta por código."""
-    ruta = await service.get_ruta_by_codigo(codigo)
+    ruta = await service.rutas_crud.get(ruta_id)
     if not ruta:
         raise HTTPException(status_code=404, detail="Ruta no encontrada")
     return ruta
 
 @router.post("/rutas", response_model=Rutas)
 async def create_ruta(
-    ruta_data: dict,
+    ruta: Rutas,
     service: SistemaService = Depends(get_sistema_service)
 ):
     """Crear nueva ruta."""
-    return await service.create_ruta(ruta_data)
+    return await service.rutas_crud.create(ruta)
 
 @router.put("/rutas/{ruta_id}", response_model=Rutas)
 async def update_ruta(
     ruta_id: UUID,
-    ruta_data: dict,
+    ruta_update: Rutas,
     service: SistemaService = Depends(get_sistema_service)
 ):
     """Actualizar ruta."""
-    ruta = await service.update_ruta(ruta_id, ruta_data)
+    ruta = await service.rutas_crud.update(ruta_id, ruta_update)
     if not ruta:
         raise HTTPException(status_code=404, detail="Ruta no encontrada")
     return ruta
@@ -206,38 +176,24 @@ async def delete_ruta(
     ruta_id: UUID,
     service: SistemaService = Depends(get_sistema_service)
 ):
-    """Eliminar ruta (desactivar)."""
-    success = await service.delete_ruta(ruta_id)
-    if not success:
+    """Eliminar ruta."""
+    ruta = await service.rutas_crud.remove(ruta_id)
+    if not ruta:
         raise HTTPException(status_code=404, detail="Ruta no encontrada")
-    return {"message": "Ruta desactivada exitosamente"}
+    return {"message": "Ruta eliminada exitosamente"}
 
-# Endpoints de Tipos de Ruta
+# ============================================================================
+# ENDPOINTS BÁSICOS CRUD - TIPOS RUTA
+# ============================================================================
+
 @router.get("/tipos-ruta", response_model=List[TiposRuta])
 async def get_tipos_ruta(
     skip: int = Query(0, ge=0),
     limit: int = Query(100, ge=1, le=1000),
-    activo: Optional[bool] = Query(None, description="Filtrar por estado activo"),
     service: SistemaService = Depends(get_sistema_service)
 ):
     """Obtener tipos de ruta."""
-    try:
-        import logging
-        logger = logging.getLogger(__name__)
-        logger.info(f"Obteniendo tipos-ruta: skip={skip}, limit={limit}, activo={activo}")
-        
-        tipos = await service.get_tipos_ruta(skip=skip, limit=limit, activo=activo)
-        logger.info(f"Tipos-ruta obtenidos exitosamente: {len(tipos)} registros")
-        return tipos
-    except Exception as e:
-        import traceback
-        logger = logging.getLogger(__name__)
-        logger.error(f"Error en get_tipos_ruta: {str(e)}")
-        logger.error(f"Traceback completo: {traceback.format_exc()}")
-        raise HTTPException(
-            status_code=500,
-            detail=f"Error interno: {str(e)}"
-        )
+    return await service.tipos_ruta_crud.get_multi(skip=skip, limit=limit)
 
 @router.get("/tipos-ruta/{tipo_id}", response_model=TiposRuta)
 async def get_tipo_ruta(
@@ -245,38 +201,27 @@ async def get_tipo_ruta(
     service: SistemaService = Depends(get_sistema_service)
 ):
     """Obtener tipo de ruta por ID."""
-    tipo = await service.get_tipo_ruta(tipo_id)
-    if not tipo:
-        raise HTTPException(status_code=404, detail="Tipo de ruta no encontrado")
-    return tipo
-
-@router.get("/tipos-ruta/nombre/{nombre}", response_model=TiposRuta)
-async def get_tipo_ruta_by_nombre(
-    nombre: str,
-    service: SistemaService = Depends(get_sistema_service)
-):
-    """Obtener tipo de ruta por nombre."""
-    tipo = await service.get_tipo_ruta_by_nombre(nombre)
+    tipo = await service.tipos_ruta_crud.get(tipo_id)
     if not tipo:
         raise HTTPException(status_code=404, detail="Tipo de ruta no encontrado")
     return tipo
 
 @router.post("/tipos-ruta", response_model=TiposRuta)
 async def create_tipo_ruta(
-    tipo_data: dict,
+    tipo: TiposRuta,
     service: SistemaService = Depends(get_sistema_service)
 ):
     """Crear nuevo tipo de ruta."""
-    return await service.create_tipo_ruta(tipo_data)
+    return await service.tipos_ruta_crud.create(tipo)
 
 @router.put("/tipos-ruta/{tipo_id}", response_model=TiposRuta)
 async def update_tipo_ruta(
     tipo_id: UUID,
-    tipo_data: dict,
+    tipo_update: TiposRuta,
     service: SistemaService = Depends(get_sistema_service)
 ):
     """Actualizar tipo de ruta."""
-    tipo = await service.update_tipo_ruta(tipo_id, tipo_data)
+    tipo = await service.tipos_ruta_crud.update(tipo_id, tipo_update)
     if not tipo:
         raise HTTPException(status_code=404, detail="Tipo de ruta no encontrado")
     return tipo
@@ -286,23 +231,8 @@ async def delete_tipo_ruta(
     tipo_id: UUID,
     service: SistemaService = Depends(get_sistema_service)
 ):
-    """Eliminar tipo de ruta (desactivar)."""
-    success = await service.delete_tipo_ruta(tipo_id)
-    if not success:
+    """Eliminar tipo de ruta."""
+    tipo = await service.tipos_ruta_crud.remove(tipo_id)
+    if not tipo:
         raise HTTPException(status_code=404, detail="Tipo de ruta no encontrado")
-    return {"message": "Tipo de ruta desactivado exitosamente"}
-
-# Endpoints de Utilidad
-@router.get("/configuracion")
-async def get_configuracion_completa(
-    service: SistemaService = Depends(get_sistema_service)
-):
-    """Obtener configuración completa del sistema."""
-    return await service.get_configuracion_completa()
-
-@router.get("/backup")
-async def backup_configuracion(
-    service: SistemaService = Depends(get_sistema_service)
-):
-    """Crear backup de la configuración del sistema."""
-    return await service.backup_configuracion()
+    return {"message": "Tipo de ruta eliminado exitosamente"}

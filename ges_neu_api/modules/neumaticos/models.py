@@ -174,12 +174,6 @@ class Neumatico(SQLModel, table=True):
     proxima_inspeccion_km: Optional[int] = Field(default=None, sa_column=Column(Integer))
     profundidad_inicio_vida_actual_mm: Optional[Decimal] = Field(default=None, sa_column=Column(Numeric(5, 2)))
     
-    # Campos de IA para predicciones - Sprint 1
-    prediccion_fecha_reemplazo: Optional[date] = Field(default=None, sa_column=Column(Date))
-    confianza_prediccion: Optional[Decimal] = Field(default=None, sa_column=Column(Numeric(3, 2)))
-    fecha_ultima_prediccion: Optional[datetime] = Field(default=None, sa_column=Column(TIMESTAMP))
-    modelo_prediccion_version: Optional[str] = Field(default=None, sa_column=Column(String(50)))
-    
     __table_args__ = (
         # Constraints exactos según ESQUEMA_COMPLETO_BD.md líneas 1344-1375
         CheckConstraint('vida_actual >= 1 AND vida_actual <= 11', name='neumaticos_vida_actual_check'),
@@ -192,7 +186,6 @@ class Neumatico(SQLModel, table=True):
         CheckConstraint('tasa_desgaste_actual_mm_km IS NULL OR tasa_desgaste_actual_mm_km > 0', name='neumaticos_tasa_desgaste_actual_check'),
         CheckConstraint('vida_util_restante_km IS NULL OR vida_util_restante_km >= 0', name='neumaticos_vida_util_restante_check'),
         CheckConstraint('fecha_fabricacion IS NULL OR fecha_fabricacion <= fecha_compra', name='neumaticos_fechas_check'),
-        CheckConstraint('confianza_prediccion IS NULL OR (confianza_prediccion >= 0.0 AND confianza_prediccion <= 1.0)', name='neumaticos_confianza_prediccion_check'),
         # Constraint complejo de ubicación mutuamente exclusiva según línea 1360
         CheckConstraint(
             '''((ubicacion_almacen_id IS NOT NULL AND ubicacion_actual_vehiculo_id IS NULL AND ubicacion_actual_posicion_id IS NULL AND estado_actual != 'INSTALADO') OR 

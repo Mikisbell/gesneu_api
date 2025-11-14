@@ -1,11 +1,11 @@
 from enum import Enum
 
 class LadoVehiculoEnum(str, Enum):
+    """Enum alineado exactamente con lado_vehiculo_enum de PostgreSQL"""
     IZQUIERDO = "IZQUIERDO"
     DERECHO = "DERECHO"
-    CENTRO = "CENTRO"
-    TRASERO = "TRASERO"
-    DELANTERO = "DELANTERO"
+    CENTRAL = "CENTRAL"
+    INDETERMINADO = "INDETERMINADO"
 
 
 class TipoEjeEnum(str, Enum):

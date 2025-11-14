@@ -14,8 +14,8 @@ processors:
     spike_limit_mib: 500
 
 exporters:
-  logging:
-    loglevel: info
+  debug:
+    verbosity: detailed
   prometheus:
     endpoint: "0.0.0.0:8889"
     const_labels:
@@ -30,12 +30,12 @@ service:
     traces:
       receivers: [otlp]
       processors: [batch]
-      exporters: [logging, jaeger]
+      exporters: [debug, jaeger]
     metrics:
       receivers: [otlp]
       processors: [memory_limiter, batch]
-      exporters: [logging, prometheus]
+      exporters: [debug, prometheus]
     logs:
       receivers: [otlp]
       processors: [batch]
-      exporters: [logging]
+      exporters: [debug]

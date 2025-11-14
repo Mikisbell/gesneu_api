@@ -120,5 +120,16 @@ module = [
     "alembic.*",
     "pydantic.*",
     "fastapi.*",
+    "jose.*",
+    "passlib.*",
 ]
 ignore_missing_imports = true
+
+[[tool.mypy.overrides]]
+module = [
+    "ges_neu_api.modules.inventario.router_broken",
+]
+ignore_errors = true
+
+[tool.poetry.scripts]
+verify-alignment = "scripts.run_verify_alignment:main"

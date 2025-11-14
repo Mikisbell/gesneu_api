@@ -1,0 +1,46 @@
+{
+  "timestamp": "2025-11-13T19:23:48.822264",
+  "test_suites": {
+    "basic_api": {
+      "status": "failed",
+      "returncode": 2,
+      "duration_seconds": 0,
+      "stdout": "",
+      "stderr": "C:\\Users\\Mateo\\AppData\\Local\\Programs\\Python\\Python313\\python.exe: can't open file '\\\\\\\\wsl.localhost\\\\Ubuntu-24.04\\\\home\\\\mateo\\\\gesneu_api\\\\test_completo_api.py': [Errno 2] No such file or directory\n"
+    },
+    "pytest": {
+      "status": "failed",
+      "returncode": 4,
+      "stdout": "2025-11-13 19:23:52,030 - ges_neu_api.core.logging_config - INFO - Sistema de logging configurado correctamente\n2025-11-13 19:23:54,354 - ges_neu_api.core.monitoring - INFO - Monitoreo bÃ¡sico configurado\n",
+      "stderr": "ERROR: usage: __main__.py [options] [file_or_dir] [file_or_dir] [...]\n__main__.py: error: unrecognized arguments: --cov=ges_neu_api --cov-report=term-missing --cov-report=json\n  inifile: \\\\wsl.localhost\\Ubuntu-24.04\\home\\mateo\\gesneu_api\\pytest.ini\n  rootdir: \\\\wsl.localhost\\Ubuntu-24.04\\home\\mateo\\gesneu_api\n\n"
+    },
+    "performance": {
+      "status": "error",
+      "error": "No module named 'test_performance'"
+    },
+    "security": {
+      "status": "error",
+      "error": "No module named 'test_security'"
+    },
+    "integration": {
+      "status": "error",
+      "error": "No module named 'test_integration'"
+    },
+    "code_quality": {
+      "status": "failed",
+      "returncode": 1,
+      "stdout": "",
+      "stderr": "Traceback (most recent call last):\n  File \"\\\\wsl.localhost\\Ubuntu-24.04\\home\\mateo\\gesneu_api\\scripts\\code_quality_check.py\", line 460, in <module>\n    analyzer.run_full_analysis()\n    ~~~~~~~~~~~~~~~~~~~~~~~~~~^^\n  File \"\\\\wsl.localhost\\Ubuntu-24.04\\home\\mateo\\gesneu_api\\scripts\\code_quality_check.py\", line 352, in run_full_analysis\n    print(\"\\U0001f50d INICIANDO ANÁLISIS DE CALIDAD DE CÓDIGO\")\n    ~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"C:\\Users\\Mateo\\AppData\\Local\\Programs\\Python\\Python313\\Lib\\encodings\\cp1252.py\", line 19, in encode\n    return codecs.charmap_encode(input,self.errors,encoding_table)[0]\n           ~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\nUnicodeEncodeError: 'charmap' codec can't encode character '\\U0001f50d' in position 0: character maps to <undefined>\n"
+    }
+  },
+  "summary": {
+    "total_suites": 6,
+    "successful_suites": 0,
+    "failed_suites": 6,
+    "success_rate": 0.0,
+    "total_duration_seconds": 6.54
+  },
+  "recommendations": [
+    "Corregir tests básicos de API antes de continuar"
+  ]
+}

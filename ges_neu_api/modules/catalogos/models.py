@@ -43,7 +43,7 @@ class TipoParametroInventarioEnum(str, enum.Enum):
 # PROVEEDORES
 # ============================================================================
 
-class Proveedor(BaseModel, table=True):
+class Proveedor(SQLModel, table=True):
     __tablename__ = 'proveedores'
     id: UUID = Field(
         default_factory=uuid4,
@@ -126,7 +126,7 @@ class Proveedor(BaseModel, table=True):
 # ALMACENES
 # ============================================================================
 
-class MotivoDesecho(BaseModel, table=True):
+class MotivoDesecho(SQLModel, table=True):
     __tablename__ = 'motivos_desecho'
     id: UUID = Field(
         default_factory=uuid4,
@@ -175,7 +175,7 @@ class MotivoDesecho(BaseModel, table=True):
 # PROVEEDORES
 # ============================================================================
 
-class Almacen(BaseModel, table=True):
+class Almacen(SQLModel, table=True):
     __tablename__ = 'almacenes'
     id: UUID = Field(
         default_factory=uuid4,
@@ -229,7 +229,7 @@ class Almacen(BaseModel, table=True):
 # PROVEEDORES
 # ============================================================================
 
-class ParametroInventario(BaseModel, table=True):
+class ParametroInventario(SQLModel, table=True):
     __tablename__ = 'parametros_inventario'
     id: UUID = Field(
         default_factory=uuid4,

@@ -111,10 +111,20 @@ class Usuario(SQLModel, table=True):
     actualizado_por: Optional[UUID] = Field(default=None, foreign_key="usuarios.id")
     
     def verify_password(self, password: str) -> bool:
-        """Verifica si la contraseña proporcionada coincide con el hash almacenado."""
+        """Verifica si la contraseña proporcionada coincide con el hash almacenado.
+        
+        Args:
+            password: La contraseña a verificar
+            
+        Returns:
+            bool: True si la contraseña es válida, False en caso contrario
+        """
         if not self.password_hash:
             return False
-        return pwd_context.verify(password, self.password_hash)
+        try:
+            return bool(pwd_context.verify(password, self.password_hash))
+        except Exception:
+            return False
 
 class Rol(SQLModel, table=True):
     """Modelo Rol para tests - Compatible con SQLite"""
@@ -200,29 +210,29 @@ class ModeloNeumatico(SQLModel, table=True):
     __table_args__ = {'extend_existing': True}
     metadata = test_metadata
     
-    id: Optional[UUID] = Field(default_factory=uuid4, primary_key=True)
-    fabricante_id: UUID = Field(foreign_key="fabricantes_neumatico.id")  # NOT NULL
-    nombre_modelo: str = Field(max_length=100)  # NOT NULL
-    medida: str = Field(max_length=20)  # NOT NULL, max 20 chars
-    indice_carga: Optional[str] = Field(default=None, max_length=5)  # NULLABLE
-    indice_velocidad: Optional[str] = Field(default=None, max_length=2)  # NULLABLE
-    profundidad_original_mm: Decimal = Field(decimal_places=2)  # NOT NULL, NUMERIC(5,2)
-    presion_recomendada_psi: Optional[Decimal] = Field(default=None, decimal_places=2)  # NULLABLE
-    permite_reencauche: bool = Field(default=False)  # NOT NULL
-    reencauches_maximos: Optional[int] = Field(default=0)  # NULLABLE, smallint
+    id: UUID = Field(default_factory=uuid4, primary_key=True)
+    fabricante_id: UUID = Field(foreign_key="fabricantes_neumatico.id")
+    nombre_modelo: str = Field(max_length=100)
+    medida: str = Field(max_length=20)
+    indice_carga: Optional[str] = Field(default=None, max_length=5)
+    indice_velocidad: Optional[str] = Field(default=None, max_length=2)
+    profundidad_original_mm: Decimal = Field(sa_column=Column(Numeric(5, 2)))
+    presion_recomendada_psi: Optional[Decimal] = Field(default=None, sa_column=Column(Numeric(5, 2)))
+    permite_reencauche: bool = Field(default=False)
+    reencauches_maximos: int = Field(default=0)
     patron_dibujo: Optional[str] = Field(default=None, max_length=50)
     tipo_servicio: Optional[str] = Field(default=None, max_length=50)
-    vida_util_teorica_km: Optional[int] = None  # NULLABLE
-    profundidad_minima_retiro_mm: Decimal = Field(default=Decimal("1.6"), decimal_places=2)  # NOT NULL
-    tasa_desgaste_esperada_mm_km: Decimal = Field(decimal_places=8)  # NOT NULL, NUMERIC(10,8)
-    activo: Optional[bool] = Field(default=True)  # NULLABLE
-    frecuencia_inspeccion_km: Optional[int] = Field(default=5000)  # NULLABLE
-    max_vidas_utiles: Optional[int] = Field(default=5)  # NULLABLE
-    porcentaje_desgaste_por_vida: Optional[Decimal] = Field(default=Decimal("10.0"), decimal_places=2)  # NULLABLE
-    creado_en: Optional[datetime] = Field(default_factory=datetime.utcnow)  # NOT NULL
-    creado_por: Optional[UUID] = None
+    vida_util_teorica_km: Optional[int] = None
+    profundidad_minima_retiro_mm: Decimal = Field(default=Decimal("1.6"), sa_column=Column(Numeric(5, 2)))
+    tasa_desgaste_esperada_mm_km: Decimal = Field(sa_column=Column(Numeric(10, 8)))
+    activo: bool = Field(default=True)
+    frecuencia_inspeccion_km: int = Field(default=5000)
+    max_vidas_utiles: int = Field(default=5)
+    porcentaje_desgaste_por_vida: Decimal = Field(default=Decimal("10.0"), sa_column=Column(Numeric(5, 2)))
+    creado_en: datetime = Field(default_factory=datetime.utcnow)
+    creado_por: Optional[UUID] = Field(default=None, foreign_key="usuarios.id")
     actualizado_en: Optional[datetime] = None
-    actualizado_por: Optional[UUID] = None
+    actualizado_por: Optional[UUID] = Field(default=None, foreign_key="usuarios.id")
 
 class Neumatico(SQLModel, table=True):
     """Modelo Neumatico para tests - Exacto según esquema PostgreSQL"""
@@ -231,50 +241,44 @@ class Neumatico(SQLModel, table=True):
     metadata = test_metadata
     
     # Campos obligatorios (NOT NULL)
-    id: Optional[UUID] = Field(default_factory=uuid4, primary_key=True)  # uuid NOT NULL DEFAULT gen_random_uuid()
-    modelo_id: UUID = Field(foreign_key="modelos_neumatico.id")  # uuid NOT NULL
-    fecha_compra: date = Field()  # date NOT NULL
-    es_reencauchado: bool = Field(default=False)  # boolean NOT NULL DEFAULT false
-    vida_actual: int = Field(default=1, ge=1, le=11)  # smallint NOT NULL DEFAULT 1
-    estado_actual: EstadoNeumaticoEnum = Field(default=EstadoNeumaticoEnum.EN_STOCK)  # estado_neumatico_enum NOT NULL DEFAULT 'EN_STOCK'
-    kilometraje_acumulado: int = Field(default=0, ge=0)  # integer NOT NULL DEFAULT 0
-    reencauches_realizados: int = Field(default=0, ge=0)  # smallint NOT NULL DEFAULT 0
-    creado_en: Optional[datetime] = Field(default_factory=datetime.utcnow)  # timestamp with time zone NOT NULL DEFAULT now()
-    profundidad_remanente_actual_mm: Decimal = Field(decimal_places=2, ge=0, le=50)  # numeric(5,2) NOT NULL
-    
-    # Campos opcionales (NULLABLE)
-    numero_serie: Optional[str] = Field(default=None, max_length=100)  # character varying(100)
-    dot: Optional[str] = None  # text
-    fecha_fabricacion: Optional[date] = None  # date
-    costo_compra: Optional[Decimal] = Field(default=None, decimal_places=2, ge=0)  # numeric(10,2)
-    moneda_compra: Optional[str] = Field(default="PEN", max_length=3)  # character varying(3) DEFAULT 'PEN'
-    proveedor_compra_id: Optional[UUID] = None  # uuid
-    ubicacion_actual_vehiculo_id: Optional[UUID] = None  # uuid
-    ubicacion_actual_posicion_id: Optional[UUID] = None  # uuid
-    fecha_ultimo_evento: Optional[datetime] = None  # timestamp with time zone
-    profundidad_inicial_mm: Optional[Decimal] = Field(default=None, decimal_places=2, gt=0)  # numeric(5,2)
-    fecha_desecho: Optional[date] = None  # date
-    motivo_desecho_id: Optional[UUID] = None  # uuid
-    creado_por: Optional[UUID] = None  # uuid
-    actualizado_en: Optional[datetime] = None  # timestamp with time zone
-    actualizado_por: Optional[UUID] = None  # uuid
-    ubicacion_almacen_id: Optional[UUID] = None  # uuid
-    sensor_id: Optional[str] = Field(default=None, max_length=100)  # character varying(100)
-    fecha_ultima_medicion_profundidad: Optional[datetime] = None  # timestamp with time zone
-    kilometraje_vida_actual: Optional[int] = Field(default=0, ge=0)  # integer DEFAULT 0
-    fecha_inicio_vida_actual: Optional[date] = None  # date
-    odometro_instalacion_vida_actual: Optional[int] = None  # integer
-    tasa_desgaste_actual_mm_km: Optional[Decimal] = Field(default=None, decimal_places=8, gt=0)  # numeric(10,8)
-    vida_util_restante_km: Optional[int] = Field(default=None, ge=0)  # integer
-    fecha_ultimo_reencauche: Optional[date] = None  # date
-    activo: Optional[bool] = Field(default=True)  # boolean DEFAULT true
-    proxima_inspeccion_fecha: Optional[date] = None  # date
-    proxima_inspeccion_km: Optional[int] = None  # integer
-    profundidad_inicio_vida_actual_mm: Optional[Decimal] = Field(default=None, decimal_places=2)  # numeric(5,2)
+    id: UUID = Field(default_factory=uuid4, primary_key=True)
+    modelo_id: UUID = Field(foreign_key="modelos_neumatico.id")
+    numero_serie: str = Field(max_length=50, unique=True)
+    fecha_fabricacion: date
+    fecha_compra: date
+    estado_actual: str = Field(max_length=50)
+    reencauches_actual: int = Field(default=0)
+    profundidad_actual_mm: Decimal = Field(sa_column=Column(Numeric(5, 2)))
+    presion_actual_psi: Optional[Decimal] = Field(default=None, sa_column=Column(Numeric(5, 2)))
+    kilometraje_actual_km: int = Field(default=0)
+    fecha_ultimo_montaje: Optional[date] = None
+    fecha_ultimo_desmontaje: Optional[date] = None
+    tasa_desgaste_actual_mm_km: Optional[Decimal] = Field(default=None, sa_column=Column(Numeric(10, 8)))
+    posicion_actual: Optional[str] = Field(default=None, max_length=20)
+    vehiculo_id: Optional[UUID] = Field(default=None, foreign_key="vehiculos.id")
+    almacen_id: Optional[UUID] = Field(default=None, foreign_key="almacenes.id")
+    proveedor_id: Optional[UUID] = Field(default=None, foreign_key="proveedores.id")
+    motivo_desecho_id: Optional[UUID] = Field(default=None, foreign_key="motivos_desecho.id")
+    fecha_desecho: Optional[date] = None
+    comentarios: Optional[str] = None
+    activo: bool = Field(default=True)
+    creado_en: datetime = Field(default_factory=datetime.utcnow)
+    actualizado_en: Optional[datetime] = None
+    creado_por: Optional[UUID] = Field(default=None, foreign_key="usuarios.id")
+    actualizado_por: Optional[UUID] = Field(default=None, foreign_key="usuarios.id")
+    fecha_ultima_medicion_profundidad: Optional[datetime] = None
+    kilometraje_vida_actual: Optional[int] = Field(default=0, ge=0)
+    fecha_inicio_vida_actual: Optional[date] = None
+    odometro_instalacion_vida_actual: Optional[int] = None
+    vida_util_restante_km: Optional[int] = Field(default=None, ge=0)
+    fecha_ultimo_reencauche: Optional[date] = None
+    proxima_inspeccion_fecha: Optional[date] = None
+    proxima_inspeccion_km: Optional[int] = None
+    profundidad_inicio_vida_actual_mm: Optional[Decimal] = Field(default=None, sa_column=Column(Numeric(5, 2)))  # numeric(5,2)
     
     # Campos AI agregados en Sprint 1
     prediccion_fecha_reemplazo: Optional[date] = None
-    confianza_prediccion: Optional[Decimal] = Field(default=None, decimal_places=3, ge=0.0, le=1.0)
+    confianza_prediccion: Optional[Decimal] = Field(default=None, sa_column=Column(Numeric(4, 3)), ge=0.0, le=1.0)
     fecha_ultima_prediccion: Optional[datetime] = None
     modelo_prediccion_version: Optional[str] = Field(default=None, max_length=50)
 
@@ -326,7 +330,7 @@ class Vehiculos(SQLModel, table=True):
     creado_por: Optional[UUID] = None  # uuid
     actualizado_en: Optional[datetime] = None  # timestamp with time zone
     actualizado_por: Optional[UUID] = None  # uuid
-    peso_carga_maxima_diseno_ton: Optional[Decimal] = Field(default=None, decimal_places=2)  # numeric(5,2)
+    peso_carga_maxima_diseno_ton: Optional[Decimal] = Field(default=None, max_digits=10, decimal_places=2)  # numeric(5,2)
 
 class ConfiguracionesEje(SQLModel, table=True):
     """Configuraciones de eje para tests - Exacto según esquema PostgreSQL"""
@@ -409,8 +413,8 @@ class BitacoraOperaciones(SQLModel, table=True):
     vehiculo_id: Optional[UUID] = Field(default=None, foreign_key="vehiculos.id")
     estado_operacion: str = Field()  # USER-DEFINED enum en PostgreSQL
     duracion_minutos: Optional[int] = Field(default=None)
-    costo_estimado: Optional[Decimal] = Field(default=None, decimal_places=2)
-    costo_real: Optional[Decimal] = Field(default=None, decimal_places=2)
+    costo_estimado: Optional[Decimal] = Field(default=None, max_digits=12, decimal_places=2)
+    costo_real: Optional[Decimal] = Field(default=None, max_digits=12, decimal_places=2)
     proveedor_id: Optional[UUID] = Field(default=None, foreign_key="proveedores.id")
     observaciones: Optional[str] = Field(default=None)
     creado_en: datetime = Field(default_factory=datetime.utcnow)

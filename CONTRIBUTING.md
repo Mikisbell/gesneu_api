@@ -119,6 +119,33 @@ docs: actualizar README con instrucciones de instalación
    pytest
    ```
 
+## Database-First y Verificación de Alineación
+
+Para este proyecto, la base de datos PostgreSQL es la fuente de verdad. Los modelos deben adaptarse al esquema real descrito en `ESQUEMA_COMPLETO_BD.md`.
+
+### Reglas obligatorias
+
+- No modificar el esquema existente de la BD para que coincida con los modelos.
+- Los modelos SQLModel deben coincidir exactamente con nombres de tablas, columnas, tipos, constraints y enums.
+- Solo se permiten migraciones para funcionalidades nuevas (campos/tablas nuevas), sin romper compatibilidad.
+
+### Verificación automática
+
+- Pre-commit ejecuta una verificación que bloquea el commit si hay desalineación.
+- El pipeline de CI falla si la verificación no es 100%.
+
+### Cómo verificar localmente
+
+```bash
+# Instalar hooks (una sola vez)
+poetry run pre-commit install
+
+# Verificar alineación manualmente (debe dar 100% y sin tablas extra/faltantes)
+poetry run verify-alignment
+```
+
+Si la verificación falla, adapta los modelos/servicios para alinearlos con `ESQUEMA_COMPLETO_BD.md` antes de abrir un Pull Request.
+
 5. Sube tus cambios y crea un Pull Request:
    ```bash
    git push -u origin feature/descripcion-breve

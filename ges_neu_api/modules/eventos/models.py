@@ -28,16 +28,13 @@ class TipoEventoNeumaticoEnum(str, Enum):
     TRANSFERENCIA_UBICACION = "TRANSFERENCIA_UBICACION"
 
 class EstadoNeumaticoEnumDestino(str, Enum):
+    """Enum exacto según ESQUEMA_COMPLETO_BD.md - estadoneumaticoenum"""
     EN_STOCK = "EN_STOCK"
     INSTALADO = "INSTALADO"
     EN_REPARACION = "EN_REPARACION"
     EN_REENCAUCHE = "EN_REENCAUCHE"
     DESECHADO = "DESECHADO"
-    PARA_REPARACION = "PARA_REPARACION"
-    REPARADO = "REPARADO"
-    PARA_REENCAUCHE = "PARA_REENCAUCHE"
-    REENCAUCHADO = "REENCAUCHADO"
-    EN_TRANSITO = "EN_TRANSITO"
+    BAJA = "BAJA"
 
 class EventosNeumaticos(SQLModel, table=True):
     """Modelo para tabla eventos_neumaticos - Exacto al esquema PostgreSQL."""

@@ -44,6 +44,16 @@ repos:
         args: [--strict, --ignore-missing-imports]
         exclude: ^tests/
 
+  - repo: local
+    hooks:
+      - id: verify-db-alignment
+        name: Verify API models align with ESQUEMA_COMPLETO_BD.md (Database-First)
+        entry: python -c "import sys; import verify_complete_alignment as v; r=v.verify_alignment();
+          sys.exit(0 if r and r.get('alignment_score')==100 and not r.get('extra_tables') and not r.get('missing_tables') else 1)"
+        language: system
+        pass_filenames: false
+        stages: [pre-commit]
+
   - repo: https://github.com/pre-commit/mirrors-prettier
     rev: v3.0.3
     hooks:

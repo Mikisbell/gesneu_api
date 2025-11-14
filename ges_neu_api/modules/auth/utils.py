@@ -2,6 +2,7 @@
 Utilidades para autenticación y manejo de contraseñas.
 """
 from passlib.context import CryptContext
+from typing import cast
 
 # Configuración del contexto de contraseñas
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
@@ -17,7 +18,7 @@ def get_password_hash(password: str) -> str:
     Returns:
         Hash de la contraseña
     """
-    return pwd_context.hash(password)
+    return cast(str, pwd_context.hash(password))
 
 
 def verify_password(plain_password: str, hashed_password: str) -> bool:
@@ -31,4 +32,4 @@ def verify_password(plain_password: str, hashed_password: str) -> bool:
     Returns:
         True si la contraseña es correcta, False en caso contrario
     """
-    return pwd_context.verify(plain_password, hashed_password)
+    return cast(bool, pwd_context.verify(plain_password, hashed_password))
