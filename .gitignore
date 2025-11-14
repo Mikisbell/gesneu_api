@@ -7,6 +7,9 @@ ENV/
 # Archivos de entorno
 .env
 !.env.example
+!.env.local
+!.env.development
+!prisma/.env
 
 # Python
 __pycache__/
@@ -48,15 +51,23 @@ data/
 
 # Archivos de configuración local
 *.local
+!.env.local
 
 # Archivos de base de datos
 *.db
 *.sql
+!prisma/schema.prisma
+!prisma/migrations/*.sql
 *.sqlite3
 
 # Directorios de dependencias
 node_modules/
 bower_components/
+
+# Next.js
+.next/
+out/
+build/
 
 # Archivos de sistema operativo
 Thumbs.db

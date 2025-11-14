@@ -1,0 +1,95 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ============================================
+// ENUMS
+// ============================================
+
+enum TipoProveedor {
+  FABRICANTE
+  DISTRIBUIDOR
+  SERVICIO_REPARACION
+  SERVICIO_REENCAUCHE
+  OTRO
+
+  @@map("tipo_proveedor_enum")
+}
+
+// ============================================
+// CATÁLOGOS
+// ============================================
+
+model Proveedor {
+  id                String    @id @default(uuid()) @db.Uuid
+  tipo              TipoProveedor
+  nombre            String    @db.VarChar(200)
+  ruc               String?   @unique @db.VarChar(20)
+  contacto_principal String?  @db.VarChar(200)
+  telefono          String?   @db.VarChar(20)
+  email             String?   @db.VarChar(100)
+  direccion         String?   @db.Text
+  activo            Boolean   @default(true)
+  creado_en         DateTime  @default(now()) @db.Timestamptz(6)
+  creado_por        String?   @db.Uuid
+  actualizado_en    DateTime? @db.Timestamptz(6)
+  actualizado_por   String?   @db.Uuid
+
+  @@map("proveedores")
+}
+
+model Almacen {
+  id              String    @id @default(uuid()) @db.Uuid
+  nombre          String    @db.VarChar(150)
+  tipo            String?   @db.VarChar(50)
+  ubicacion       String?   @db.Text
+  responsable     String?   @db.VarChar(200)
+  activo          Boolean   @default(true)
+  creado_en       DateTime  @default(now()) @db.Timestamptz(6)
+  creado_por      String?   @db.Uuid
+  actualizado_en  DateTime? @db.Timestamptz(6)
+  actualizado_por String?   @db.Uuid
+
+  @@map("almacenes")
+}
+
+model MotivoDesecho {
+  id                  String    @id @default(uuid()) @db.Uuid
+  nombre              String    @unique @db.VarChar(100)
+  descripcion         String?   @db.Text
+  requiere_evidencia  Boolean   @default(false)
+  activo              Boolean   @default(true)
+  creado_en           DateTime  @default(now()) @db.Timestamptz(6)
+  creado_por          String?   @db.Uuid
+  actualizado_en      DateTime? @db.Timestamptz(6)
+  actualizado_por     String?   @db.Uuid
+
+  @@map("motivos_desecho")
+}
+
+// ============================================
+// USUARIOS Y AUTENTICACIÓN (básico)
+// ============================================
+
+model Usuario {
+  id              String    @id @default(uuid()) @db.Uuid
+  username        String    @unique @db.VarChar(50)
+  nombre_completo String    @db.VarChar(200)
+  email           String    @unique @db.VarChar(100)
+  password_hash   String    @db.Text
+  activo          Boolean   @default(true)
+  creado_en       DateTime  @default(now()) @db.Timestamptz(6)
+  creado_por      String?   @db.Uuid
+  actualizado_en  DateTime? @db.Timestamptz(6)
+  actualizado_por String?   @db.Uuid
+
+  @@map("usuarios")
+}

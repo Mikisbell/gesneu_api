@@ -231,157 +231,68 @@ Una API REST moderna construida con FastAPI para la gestión integral de neumát
 **OPERADOR**:
 - Vista de Consulta: Búsqueda e historial de neumáticos
 - Vista de Inspección: Formulario con upload de imagen
-- Vista de Montaje/Desmontaje: Flujo guiado
-
-**GESTOR**:
-- Dashboard Principal: KPIs con predicciones IA
-- Vista de Inventario: Tabla con predicciones y colores condicionales
-- Vista de Detalle de Vehículo: Información y neumáticos instalados
-- Vistas de Catálogos: CRUDs completos
-
-**ADMIN**:
-- Vista de Gestión de Usuarios: CRUD con roles
-
----
-
-## 🛠️ Stack Tecnológico
-
-### Backend
-- **API**: FastAPI 0.111.0
-
-### 🗄️ **IMPORTANTE: Esquema de Base de Datos**
-
-⚠️ **REGLA FUNDAMENTAL**: La API debe **SIEMPRE** adecuarse al esquema de base de datos existente.
-
-- **Esquema Completo**: Ver `ESQUEMA_COMPLETO_BD.md`
-- **Principio Database-First**: Los modelos SQLModel se adaptan a PostgreSQL
-- **Sin Cambios de Esquema**: Solo migraciones para nuevas funcionalidades
-- **Compatibilidad Total**: Todos los campos, tipos y restricciones deben respetarse
-
-```sql
--- Ejemplo: tipos_vehiculo (tabla existente)
-CREATE TABLE tipos_vehiculo (
-    id uuid DEFAULT gen_random_uuid() NOT NULL,
-    nombre varchar(100) NOT NULL,
-    ejes_standard smallint DEFAULT 2 NOT NULL,
-    activo boolean DEFAULT true NOT NULL,
-    -- ... otros campos según ESQUEMA_COMPLETO_BD.md
-);
+```
+Host: db.mdefuvnibcwvnwubksun.supabase.co
+Port: 5432
+Database: postgres
+User: postgres
+Password: M1k1sB3llR1v3ra
 ```
 
-**📋 Antes de cualquier cambio de modelo:**
-1. Consultar `ESQUEMA_COMPLETO_BD.md`
-2. Verificar compatibilidad con PostgreSQL existente
-3. Solo agregar campos nuevos via migraciones Alembic
-4. Mantener tipos de datos y restricciones exactas
+### **Tablas Implementadas (37 total)**
+- **Catálogos** ✅: proveedores, almacenes, motivos_desecho
+- **Autenticación** ✅: usuarios (básico)
+- **Vehículos** 🔄: tipos_vehiculo, configuraciones_eje (pendiente)
+- **Neumáticos** �: neumaticos, modelos_neumatico (pendiente)
+- **Inventario** 🔄: inventario_neumaticos (pendiente)
 
-#### ✅ Verificación automática de alineación (Database-First)
-Para asegurar que el código siempre esté alineado con `ESQUEMA_COMPLETO_BD.md`:
-- Pre-commit ejecuta una verificación automática y bloquea el commit si hay desalineación.
-- En CI, el pipeline falla si los modelos no coinciden con el esquema.
+## 🚀 Endpoints Implementados
 
-Comandos útiles:
-
-```bash
-# Ejecutar verificación manual de alineación
-poetry run verify-alignment
-
-# Si no tienes instalado el hook aún
-poetry run pre-commit install
+### **✅ Health Check**
+```
+GET /api/health
+```
+**Respuesta**:
+```json
+{
+  "status": "ok",
+  "message": "GesNeu API - Next.js + Supabase",
+  "timestamp": "2025-11-14T05:00:00.000Z",
+  "version": "1.0.0",
+  "database": {
+    "connected": true,
+    "message": "PostgreSQL conectado exitosamente"
+  }
+}
 ```
 
-Criterio de aprobación: 100% de tablas alineadas y sin tablas extra/faltantes respecto al esquema.
+### **✅ Catálogos - Proveedores**
+```
+GET    /api/v1/catalogos/proveedores      # Lista paginada
+POST   /api/v1/catalogos/proveedores      # Crear nuevo
+GET    /api/v1/catalogos/proveedores/[id] # Obtener por ID
+PUT    /api/v1/catalogos/proveedores/[id] # Actualizar
+DELETE /api/v1/catalogos/proveedores/[id] # Desactivar
+```
 
-### Frontend (MVP Operador - COMPLETADO)
-- **Framework**: Next.js 14 + React 18
-- **Lenguaje**: TypeScript
-- **UI**: Tailwind CSS + Heroicons
-- **Formularios**: React Hook Form + Zod
-- **Validación**: Esquemas Zod integrados
-- **Diseño**: Responsive y optimizado para operadores
+### **✅ Catálogos - Almacenes**
+```
+GET    /api/v1/catalogos/almacenes      # Lista paginada
+POST   /api/v1/catalogos/almacenes      # Crear nuevo
+GET    /api/v1/catalogos/almacenes/[id] # Obtener por ID
+PUT    /api/v1/catalogos/almacenes/[id] # Actualizar
+DELETE /api/v1/catalogos/almacenes/[id] # Desactivar
+```
 
-#### 🎯 Vistas Implementadas (5 vistas completas)
-1. **Dashboard Principal** (`/`) - Interfaz principal con estadísticas y accesos rápidos
-2. **Inspección** (`/inspeccion`) - Formulario medición profundidad + integración IA
-3. **Montaje** (`/montaje`) - Operaciones montaje/desmontaje + predicciones automáticas
-4. **Eventos** (`/eventos`) - Registro rápido eventos + activación IA en críticos
-5. **Estado de Flota** (`/estado`) - Dashboard completo con predicciones IA y filtros
+## �️ Configuración de Desarrollo
 
-### DevOps
-- **Containerización**: Docker + Docker Compose
-- **CI/CD**: GitHub Actions
-- **Testing**: Pytest + AsyncIO
-- **Monitoreo**: Prometheus + Grafana
-
-## 📊 Estado de Implementación
-
-### ✅ Backend API - COMPLETADO (100%)
-1. **Autenticación** - Sistema RBAC con JWT
-2. **Catálogos** - Gestión de datos maestros
-3. **Vehículos** - Gestión de flota vehicular
-4. **Neumáticos** - Gestión del inventario de neumáticos
-5. **Inventario** - Control de stock y movimientos
-6. **Eventos** - Registro de eventos de neumáticos
-7. **Garantías** - Gestión de garantías
-8. **Alertas** - Sistema de notificaciones
-9. **Bitácoras** - Registro de operaciones
-10. **Sistema** - Configuración general
-
-### ✅ Machine Learning - COMPLETADO (100%)
-- **Endpoints ML** - `/ml/predict`, `/ml/recalculate-all`, `/ml/training-data`
-- **Modelos Entrenados** - XGBoost y Random Forest para predicción vida útil
-- **Integración Automática** - Activación IA desde eventos críticos
-- **Feature Engineering** - Módulo completo para ingeniería de características
-- **Predicciones en BD** - Campos predictivos almacenados en PostgreSQL
-
-### ✅ Frontend MVP Operador - COMPLETADO (100%)
-- **Dashboard Principal** - Estadísticas y navegación
-- **Vista Inspección** - Medición profundidad + activación IA automática
-- **Vista Montaje** - Operaciones + predicciones automáticas
-- **Vista Eventos** - Registro rápido + activación IA en críticos
-- **Vista Estado** - Dashboard predictivo completo con filtros
-
-### 🔄 En Desarrollo
-- **Sprint 4: Módulo de Imágenes** - Carga y asociación de imágenes a eventos
-- **Sprint 5: Pruebas y Estabilización** - API 100% lista para producción
-
-### 📚 Documentación de Esquema
-- **Base de Datos**: `ESQUEMA_COMPLETO_BD.md` - Esquema completo PostgreSQL
-- **Modelos**: Todos los SQLModel deben alinearse con este esquema
-- **Migraciones**: Solo para campos nuevos, nunca modificar existentes
-
-## 🚀 Inicio Rápido
-
-### Prerrequisitos
-- Python 3.10+
-- PostgreSQL 15+
-- Poetry (recomendado)
-- Node.js 18+ (para frontend)
-
-### Instalación Backend
-
+### **Instalación**
 ```bash
-# Clonar el repositorio
+# Clonar repositorio
 git clone https://github.com/Mikisbell/gesneu_api.git
 cd gesneu_api
 
-# Instalar dependencias Python
-poetry install
-
-# Configurar variables de entorno
-cp .env.example .env
-# Editar .env con tus configuraciones
-
-# Ejecutar migraciones
-poetry run alembic upgrade head
-
-# Iniciar el servidor backend
-uvicorn ges_neu_api.main:app --host 127.0.0.1 --port 8000
-```
-
-### Instalación Frontend
-
-```bash
+# Instalar dependencias
 # En otra terminal, navegar al directorio frontend
 cd frontend
 
