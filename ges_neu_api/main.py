@@ -62,7 +62,7 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     setup_structured_logging()
     
     # Esperar robustamente a que la base de datos esté lista (reintentos con backoff)
-    await wait_for_db()
+    # await wait_for_db()  # Temporalmente deshabilitado para debug
 
     # Configurar monitoreo (sin métricas, que ya se configuran antes)
     setup_monitoring(app, service_name=settings.project_name)
