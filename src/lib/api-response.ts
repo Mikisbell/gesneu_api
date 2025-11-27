@@ -75,4 +75,14 @@ export class ApiResponseHelper {
       { status: 401 }
     )
   }
+
+  static handleError(error: unknown): NextResponse<ApiResponse> {
+    console.error('API Error:', error)
+
+    if (error instanceof Error) {
+      return this.error(error.message, 500)
+    }
+
+    return this.error('Error desconocido', 500)
+  }
 }

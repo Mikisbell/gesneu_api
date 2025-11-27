@@ -89,6 +89,57 @@ echo "  - POST Proveedor: ✓"
 echo "  - GET Proveedor por ID: ✓"
 echo "  - POST Almacén: ✓"
 
+# Test 7: Crear Vehículo
+echo "7️⃣ Test POST Vehículo"
+VEHICULO_DATA='{
+  "placa": "XYZ-999",
+  "marca": "Volvo",
+  "modelo": "FH16",
+  "anio": 2023,
+  "kilometraje_actual": 50000,
+  "tipo_vehiculo_id": "tipo-camion-id-placeholder"
+}'
+# Nota: Este test fallará si no existe el tipo_vehiculo_id, pero validamos que el endpoint responda
+VEHICULO_RESPONSE=$(curl -s -X POST "$BASE_URL/api/v1/vehiculos" \
+  -H "Content-Type: application/json" \
+  -d "$VEHICULO_DATA")
+echo "$VEHICULO_RESPONSE" | jq '.'
+echo ""
+echo "================================"
+echo ""
+
+# Test 8: Listar Vehículos
+echo "8️⃣ Test GET Vehículos"
+curl -s "$BASE_URL/api/v1/vehiculos?placa=ABC" | jq '.'
+echo ""
+echo "================================"
+echo ""
+
+# Test 9: Crear Neumático
+echo "9️⃣ Test POST Neumático"
+NEUMATICO_DATA='{
+  "numero_serie": "NS-1001",
+  "modelo_id": "modelo-id-placeholder",
+  "dot": "1223",
+  "profundidad_inicial_mm": 20,
+  "activo": true
+}'
+# Nota: Este test requiere un modelo_id válido en la base de datos
+NEUMATICO_RESPONSE=$(curl -s -X POST "$BASE_URL/api/v1/neumaticos" \
+  -H "Content-Type: application/json" \
+  -d "$NEUMATICO_DATA")
+echo "$NEUMATICO_RESPONSE" | jq '.'
+echo ""
+echo "================================"
+echo ""
+
+# Test 10: Listar Neumáticos
+echo "🔟 Test GET Neumáticos"
+curl -s "$BASE_URL/api/v1/neumaticos?numero_serie=NS" | jq '.'
+echo ""
+echo "================================"
+echo ""
+
 echo ""
 echo "⏳ Finalizando tests..."
 sleep 1
