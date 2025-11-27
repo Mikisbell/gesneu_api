@@ -76,7 +76,7 @@ export class OperacionesNeumaticosService {
             const neumaticoActualizado = await tx.neumatico.update({
                 where: { id: neumatico.id },
                 data: {
-                    estado_actual: EstadoNeumatico.INSTALADO,
+                    estado_actual: EstadoNeumatico.INSTALADO as any,
                     ubicacion_vehiculo_id: vehiculo.id,
                     ubicacion_posicion_id: posicion.id,
                     ubicacion_almacen_id: null, // Sale del almacén
@@ -174,7 +174,7 @@ export class OperacionesNeumaticosService {
             const neumaticoActualizado = await tx.neumatico.update({
                 where: { id: neumatico.id },
                 data: {
-                    estado_actual: nuevoEstado,
+                    estado_actual: nuevoEstado as any,
                     ubicacion_vehiculo_id: null,
                     ubicacion_posicion_id: null,
                     ubicacion_almacen_id: data.almacen_destino_id || null,
