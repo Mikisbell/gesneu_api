@@ -7,10 +7,10 @@ const service = new VehiculoService()
 
 export async function GET(
     request: NextRequest,
-    { params }: { params: { id: string } }
+    { params }: { params: Promise<{ id: string }> }
 ) {
     try {
-        const vehiculo = await service.getById(params.id)
+        const vehiculo = await service.getById((await params).id)
         if (!vehiculo) {
             return ApiResponseHelper.notFound('Vehículo no encontrado')
         }
@@ -22,11 +22,11 @@ export async function GET(
 
 export async function PUT(
     request: NextRequest,
-    { params }: { params: { id: string } }
+    { params }: { params: Promise<{ id: string }> }
 ) {
     try {
         const body = await request.json() as UpdateVehiculoDTO
-        const vehiculo = await service.update(params.id, body)
+        const vehiculo = await service.update((await params).id, body)
         return ApiResponseHelper.success(vehiculo, 'Vehículo actualizado exitosamente')
     } catch (error) {
         return ApiResponseHelper.handleError(error)
@@ -35,10 +35,10 @@ export async function PUT(
 
 export async function DELETE(
     request: NextRequest,
-    { params }: { params: { id: string } }
+    { params }: { params: Promise<{ id: string }> }
 ) {
     try {
-        const vehiculo = await service.delete(params.id)
+        const vehiculo = await service.delete((await params).id)
         return ApiResponseHelper.success(vehiculo, 'Vehículo eliminado exitosamente')
     } catch (error) {
         return ApiResponseHelper.handleError(error)

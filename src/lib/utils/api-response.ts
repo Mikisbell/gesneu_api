@@ -1,7 +1,7 @@
 // src/lib/utils/api-response.ts
 import { NextResponse } from 'next/server'
 import { ZodError } from 'zod'
-import { PrismaClientKnownRequestError } from '@prisma/client/runtime/library'
+import { Prisma } from '@prisma/client'
 import { HTTP_STATUS, ERROR_MESSAGES } from './constants'
 import type { ApiResponse, ApiError, PaginatedResponse, PaginationMeta } from '@/lib/types/api'
 
@@ -83,7 +83,7 @@ export class ApiResponseHelper {
       return this.validationError(error)
     }
 
-    if (error instanceof PrismaClientKnownRequestError) {
+    if (error instanceof Prisma.PrismaClientKnownRequestError) {
       switch (error.code) {
         case 'P2002':
           return this.conflict('El recurso ya existe')

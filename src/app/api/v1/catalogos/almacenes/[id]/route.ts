@@ -5,11 +5,11 @@ import { ApiResponseHelper } from '@/lib/api-response'
 // GET /api/v1/catalogos/almacenes/[id] - Obtener almacén por ID
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const almacen = await prisma.almacen.findUnique({
-      where: { id: params.id }
+      where: { id: (await params).id }
     })
 
     if (!almacen) {
@@ -28,14 +28,14 @@ export async function GET(
 // PUT /api/v1/catalogos/almacenes/[id] - Actualizar almacén
 export async function PUT(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const body = await request.json()
 
     // Verificar que existe
     const existe = await prisma.almacen.findUnique({
-      where: { id: params.id }
+      where: { id: (await params).id }
     })
 
     if (!existe) {
@@ -43,7 +43,7 @@ export async function PUT(
     }
 
     const almacen = await prisma.almacen.update({
-      where: { id: params.id },
+      where: { id: (await params).id },
       data: {
         nombre: body.nombre,
         ubicacion: body.ubicacion,
@@ -64,11 +64,11 @@ export async function PUT(
 // DELETE /api/v1/catalogos/almacenes/[id] - Eliminar almacén (soft delete)
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const almacen = await prisma.almacen.update({
-      where: { id: params.id },
+      where: { id: (await params).id },
       data: {
         activo: false,
         actualizado_en: new Date()

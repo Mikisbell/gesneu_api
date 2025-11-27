@@ -5,11 +5,11 @@ import { ApiResponseHelper } from '@/lib/api-response'
 // GET /api/v1/catalogos/proveedores/[id] - Obtener proveedor por ID
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const proveedor = await prisma.proveedor.findUnique({
-      where: { id: params.id }
+      where: { id: (await params).id }
     })
 
     if (!proveedor) {
@@ -28,14 +28,14 @@ export async function GET(
 // PUT /api/v1/catalogos/proveedores/[id] - Actualizar proveedor
 export async function PUT(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const body = await request.json()
 
     // Verificar que existe
     const existe = await prisma.proveedor.findUnique({
-      where: { id: params.id }
+      where: { id: (await params).id }
     })
 
     if (!existe) {
@@ -43,7 +43,7 @@ export async function PUT(
     }
 
     const proveedor = await prisma.proveedor.update({
-      where: { id: params.id },
+      where: { id: (await params).id },
       data: {
         tipo: body.tipo,
         nombre: body.nombre,
@@ -69,11 +69,11 @@ export async function PUT(
 // DELETE /api/v1/catalogos/proveedores/[id] - Eliminar proveedor (soft delete)
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const proveedor = await prisma.proveedor.update({
-      where: { id: params.id },
+      where: { id: (await params).id },
       data: {
         activo: false,
         actualizado_en: new Date()
