@@ -140,8 +140,8 @@ export class OperacionesNeumaticosService {
             }
 
             // 2. Determinar estado destino según el motivo
-            let nuevoEstado: EstadoNeumaticoEnum;
-            let tipoEvento: TipoEventoNeumaticoEnum;
+            let nuevoEstado: string;
+            let tipoEvento: string;
 
             switch (data.destino) {
                 case 'STOCK':
