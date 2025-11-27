@@ -89,7 +89,7 @@ export class OperacionesNeumaticosService {
             // 3. Registrar Evento
             await tx.eventoNeumatico.create({
                 data: {
-                    tipo_evento: TipoEvento.INSTALACION,
+                    tipo_evento: TipoEvento.INSTALACION as any,
                     neumatico_id: neumatico.id,
                     vehiculo_id: vehiculo.id,
                     posicion_montaje_id: posicion.id,
@@ -274,7 +274,7 @@ export class OperacionesNeumaticosService {
                 // 5. Registrar evento de rotación para cada neumático
                 await tx.eventoNeumatico.create({
                     data: {
-                        tipo_evento: TipoEvento.ROTACION,
+                        tipo_evento: TipoEvento.ROTACION as any,
                         neumatico_id: movimiento.neumatico_id,
                         vehiculo_id: vehiculo.id,
                         posicion_montaje_id: movimiento.posicion_destino_id,
