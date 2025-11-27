@@ -55,9 +55,9 @@ export const authOptions: NextAuthConfig = {
         const permisos: string[] = [];
         const roles: string[] = [];
 
-        usuario.roles.forEach(ur => {
+        usuario.roles.forEach((ur: any) => {
           roles.push(ur.rol.nombre);
-          ur.rol.permisos.forEach(rp => {
+          ur.rol.permisos.forEach((rp: any) => {
             if (!permisos.includes(rp.permiso.nombre)) {
               permisos.push(rp.permiso.nombre);
             }
