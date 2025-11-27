@@ -3,7 +3,7 @@
 # Script para probar los endpoints de la API GesNeu
 # Uso: bash test-api.sh
 
-BASE_URL="http://localhost:3000"
+BASE_URL="http://localhost:3005"
 
 echo "🧪 Probando API GesNeu..."
 echo "================================"
@@ -65,9 +65,8 @@ fi
 echo "6️⃣ Test POST Almacén"
 ALMACEN_DATA='{
   "nombre": "Test Almacén API",
-  "tipo": "SECUNDARIO",
+  "codigo": "ALM-TEST",
   "ubicacion": "Lima, Perú",
-  "responsable": "María Test",
   "activo": true
 }'
 ALMACEN_RESPONSE=$(curl -s -X POST "$BASE_URL/api/v1/catalogos/almacenes" \
@@ -89,3 +88,7 @@ echo "  - GET Almacenes: ✓"
 echo "  - POST Proveedor: ✓"
 echo "  - GET Proveedor por ID: ✓"
 echo "  - POST Almacén: ✓"
+
+echo ""
+echo "⏳ Finalizando tests..."
+sleep 1

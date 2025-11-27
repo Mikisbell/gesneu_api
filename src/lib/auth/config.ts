@@ -1,27 +1,26 @@
-// src/lib/auth/config.ts
-import { NextAuthOptions } from 'next-auth'
-import CredentialsProvider from 'next-auth/providers/credentials'
-import { PrismaAdapter } from '@next-auth/prisma-adapter'
-import { prisma } from '@/lib/prisma'
-import { compare } from 'bcryptjs'
-import type { AuthUser } from '@/lib/types/api'
+import type { NextAuthConfig } from 'next-auth';
+import Credentials from 'next-auth/providers/credentials';
+import * as bcrypt from 'bcryptjs';
+import { prisma } from '@/lib/prisma';
 
-export const authOptions: NextAuthOptions = {
-  adapter: PrismaAdapter(prisma),
+export const authOptions: NextAuthConfig = {
   providers: [
-    CredentialsProvider({
+    Credentials({
       name: 'credentials',
       credentials: {
-        username: { label: 'Username', type: 'text' },
-        password: { label: 'Password', type: 'password' }
+        username: { label: 'Usuario', type: 'text' },
+        password: { label: 'Contraseña', type: 'password' }
       },
       async authorize(credentials) {
         if (!credentials?.username || !credentials?.password) {
-          return null
+          throw new Error('Credenciales inválidas');
         }
 
-        const user = await prisma.usuario.findUnique({
-          where: { username: credentials.username },
+        const username = credentials.username as string;
+        const password = credentials.password as string;
+
+        const usuario = await prisma.usuario.findUnique({
+          where: { username },
           include: {
             roles: {
               include: {
@@ -37,129 +36,72 @@ export const authOptions: NextAuthOptions = {
               }
             }
           }
-        })
+        });
 
-        if (!user || !user.activo) {
-          return null
+        if (!usuario || !usuario.activo) {
+          throw new Error('Usuario no encontrado o inactivo');
         }
 
-        // Verificar si la cuenta está bloqueada
-        if (user.bloqueado_hasta && user.bloqueado_hasta > new Date()) {
-          throw new Error('Cuenta temporalmente bloqueada')
+        const passwordMatch = await bcrypt.compare(
+          password,
+          usuario.password_hash
+        );
+
+        if (!passwordMatch) {
+          throw new Error('Contraseña incorrecta');
         }
 
-        const isPasswordValid = await compare(credentials.password, user.password_hash)
-        
-        if (!isPasswordValid) {
-          // Incrementar intentos fallidos
-          await prisma.usuario.update({
-            where: { id: user.id },
-            data: {
-              intentos_login: user.intentos_login + 1,
-              bloqueado_hasta: user.intentos_login >= 4 
-                ? new Date(Date.now() + 15 * 60 * 1000) // 15 minutos
-                : undefined
+        // Recopilar todos los permisos del usuario
+        const permisos: string[] = [];
+        const roles: string[] = [];
+
+        usuario.roles.forEach(ur => {
+          roles.push(ur.rol.nombre);
+          ur.rol.permisos.forEach(rp => {
+            if (!permisos.includes(rp.permiso.nombre)) {
+              permisos.push(rp.permiso.nombre);
             }
-          })
-          return null
-        }
+          });
+        });
 
-        // Reset intentos fallidos y actualizar último login
-        await prisma.usuario.update({
-          where: { id: user.id },
-          data: {
-            intentos_login: 0,
-            bloqueado_hasta: null,
-            ultimo_login: new Date()
-          }
-        })
-
-        // Registrar login exitoso en auditoría
-        await prisma.auditoriaLog.create({
-          data: {
-            esquema_tabla: 'public',
-            nombre_tabla: 'usuarios',
-            operacion: 'LOGIN',
-            usuario_aplicacion_id: user.id,
-            usuario_aplicacion_username: user.username,
-            contexto_aplicacion: {
-              evento: 'login_exitoso',
-              timestamp: new Date().toISOString(),
-              ip: 'unknown' // Se puede obtener del request en el middleware
-            }
-          }
-        })
-
-        const authUser: AuthUser = {
-          id: user.id,
-          username: user.username,
-          email: user.email,
-          nombre_completo: user.nombre_completo,
-          roles: user.roles.map((ur: any) => ({
-            id: ur.rol.id,
-            nombre: ur.rol.nombre,
-            permisos: ur.rol.permisos.map((rp: any) => rp.permiso.codigo)
-          })),
-          permissions: user.roles.flatMap((ur: any) =>
-            ur.rol.permisos.map((rp: any) => rp.permiso.codigo)
-          )
-        }
-
-        return authUser
+        return {
+          id: usuario.id,
+          name: usuario.nombre_completo,
+          email: usuario.email,
+          username: usuario.username,
+          roles,
+          permissions: permisos
+        };
       }
     })
   ],
+  pages: {
+    signIn: '/login',
+    error: '/login'
+  },
   session: {
     strategy: 'jwt',
-    maxAge: 8 * 60 * 60, // 8 horas
-  },
-  jwt: {
-    maxAge: 8 * 60 * 60, // 8 horas
+    maxAge: 30 * 24 * 60 * 60 // 30 días
   },
   callbacks: {
     async jwt({ token, user }) {
       if (user) {
-        const authUser = user as AuthUser
-        ;(token as any).sub = authUser.id
-        ;(token as any).username = authUser.username
-        ;(token as any).roles = authUser.roles
-        ;(token as any).permissions = authUser.permissions
+        token.id = user.id;
+        token.username = (user as any).username;
+        token.roles = (user as any).roles;
+        token.permissions = (user as any).permissions;
       }
-      return token
+      return token;
     },
     async session({ session, token }) {
-      if (token && session.user) {
-        const sUser = session.user as any
-        sUser.id = (token as any).sub
-        sUser.username = (token as any).username
-        sUser.roles = (token as any).roles
-        sUser.permissions = (token as any).permissions
+      if (session.user) {
+        session.user.id = token.id as string;
+        (session.user as any).username = token.username;
+        (session.user as any).roles = token.roles;
+        (session.user as any).permissions = token.permissions;
       }
-      return session
+      return session;
     }
   },
-  pages: {
-    signIn: '/auth/login',
-    error: '/auth/error'
-  },
-  events: {
-    async signOut({ token }) {
-      // Registrar logout
-      if (token?.sub) {
-        await prisma.auditoriaLog.create({
-          data: {
-            esquema_tabla: 'public',
-            nombre_tabla: 'usuarios',
-            operacion: 'LOGOUT',
-            usuario_aplicacion_id: token.sub as string,
-            usuario_aplicacion_username: token.username as string,
-            contexto_aplicacion: {
-              evento: 'logout',
-              timestamp: new Date().toISOString()
-            }
-          }
-        })
-      }
-    }
-  }
-}
+  secret: process.env.NEXTAUTH_SECRET || 'development-secret-change-in-production'
+};

@@ -10,6 +10,14 @@ export class ApiResponseHelper {
     })
   }
 
+  static created<T>(data: T, message?: string): NextResponse<ApiResponse<T>> {
+    return NextResponse.json({
+      success: true,
+      data,
+      message
+    }, { status: 201 })
+  }
+
   static error(error: string, status: number = 500): NextResponse<ApiResponse> {
     return NextResponse.json(
       {

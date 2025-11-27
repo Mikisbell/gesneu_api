@@ -25,7 +25,7 @@ export class ApiResponseHelper {
   }
 
   static paginated<T>(
-    data: T[], 
+    data: T[],
     pagination: PaginationMeta
   ): NextResponse<PaginatedResponse<T>> {
     return NextResponse.json({
@@ -37,7 +37,7 @@ export class ApiResponseHelper {
   }
 
   static error(
-    message: string, 
+    message: string,
     status: number = HTTP_STATUS.INTERNAL_SERVER_ERROR,
     code?: string,
     details?: any
@@ -72,17 +72,17 @@ export class ApiResponseHelper {
       ERROR_MESSAGES.VALIDATION_ERROR,
       HTTP_STATUS.BAD_REQUEST,
       'VALIDATION_ERROR',
-      error.errors
+      error.issues
     )
   }
 
   static handleError(error: unknown): NextResponse<ApiError> {
     console.error('API Error:', error)
-    
+
     if (error instanceof ZodError) {
       return this.validationError(error)
     }
-    
+
     if (error instanceof PrismaClientKnownRequestError) {
       switch (error.code) {
         case 'P2002':
@@ -107,7 +107,7 @@ export class ApiResponseHelper {
     total: number
   ): PaginationMeta {
     const totalPages = Math.ceil(total / limit)
-    
+
     return {
       page,
       limit,

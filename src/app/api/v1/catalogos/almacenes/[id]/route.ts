@@ -46,9 +46,7 @@ export async function PUT(
       where: { id: params.id },
       data: {
         nombre: body.nombre,
-        tipo: body.tipo,
         ubicacion: body.ubicacion,
-        responsable: body.responsable,
         activo: body.activo,
         actualizado_en: new Date()
       }

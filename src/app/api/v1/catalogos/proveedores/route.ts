@@ -1,77 +1,79 @@
-import { NextRequest } from 'next/server'
+import { NextResponse, NextRequest } from 'next/server'
 import { prisma } from '@/lib/prisma'
-import { ApiResponseHelper } from '@/lib/utils/api-response'
-import { z } from 'zod'
-import { PAGINATION } from '@/lib/utils/constants'
+import { ApiResponseHelper } from '@/lib/api-response'
 
-// GET /api/v1/catalogos/proveedores - Listar todos los proveedores
 export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url)
-    const page = parseInt(searchParams.get('page') || PAGINATION.DEFAULT_PAGE.toString())
-    const limit = Math.min(parseInt(searchParams.get('limit') || PAGINATION.DEFAULT_LIMIT.toString()), PAGINATION.MAX_LIMIT)
-    const activo = searchParams.get('activo')
+    const page = parseInt(searchParams.get('page') || '1')
+    const pageSize = parseInt(searchParams.get('pageSize') || '10')
+    const skip = (page - 1) * pageSize
 
-    const skip = (page - 1) * limit
+    const [proveedores, total] = await Promise.all([
+      prisma.proveedor.findMany({
+        where: { activo: true },
+        orderBy: { nombre: 'asc' },
+        skip,
+        take: pageSize
+      }),
+      prisma.proveedor.count({ where: { activo: true } })
+    ])
 
-    // Construir filtros
-    const where: any = {}
-    if (activo !== null && activo !== undefined) {
-      where.activo = activo === 'true'
-    }
-
-    // Obtener total de registros
-    const total = await prisma.proveedor.count({ where })
-
-    // Obtener proveedores paginados
-    const proveedores = await prisma.proveedor.findMany({
-      where,
-      skip,
-      take: limit,
-      orderBy: {
-        nombre: 'asc'
+    return NextResponse.json({
+      data: proveedores,
+      meta: {
+        total,
+        page,
+        pageSize,
+        totalPages: Math.ceil(total / pageSize)
       }
     })
-
-    const pagination = ApiResponseHelper.createPagination(page, limit, total)
-    return ApiResponseHelper.paginated(proveedores, pagination)
   } catch (error) {
-    console.error('Error al obtener proveedores:', error)
-    return ApiResponseHelper.error(
-      error instanceof Error ? error.message : 'Error al obtener proveedores'
+    console.error('Error fetching proveedores:', error)
+    return NextResponse.json(
+      { error: 'Error interno del servidor' },
+      { status: 500 }
     )
   }
 }
 
-// POST /api/v1/catalogos/proveedores - Crear nuevo proveedor
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json()
 
-    // Validación con Zod
-    const ProveedorCreateSchema = z.object({
-      tipo: z.enum(['FABRICANTE', 'DISTRIBUIDOR', 'SERVICIO_REPARACION', 'SERVICIO_REENCAUCHE', 'OTRO']),
-      nombre: z.string().min(1).max(200),
-      ruc: z.string().max(20).optional(),
-      contacto_principal: z.string().max(200).optional(),
-      telefono: z.string().max(20).optional(),
-      email: z.string().email().max(100).optional(),
-      direccion: z.string().optional(),
-      activo: z.boolean().optional()
-    })
+    // Validar campos requeridos
+    if (!body.nombre || !body.tipo) {
+      return ApiResponseHelper.badRequest('Nombre y tipo son requeridos')
+    }
 
-    const validatedData = ProveedorCreateSchema.parse(body)
+    // Verificar RUC único si existe
+    if (body.ruc) {
+      const existe = await prisma.proveedor.findUnique({
+        where: { ruc: body.ruc }
+      })
+      if (existe) {
+        return ApiResponseHelper.badRequest('El RUC ya está registrado')
+      }
+    }
 
     const proveedor = await prisma.proveedor.create({
       data: {
-        ...validatedData,
-        activo: validatedData.activo ?? true,
-        creado_en: new Date()
+        tipo: body.tipo,
+        nombre: body.nombre,
+        ruc: body.ruc,
+        contacto_principal: body.contacto_principal,
+        telefono: body.telefono,
+        email: body.email,
+        direccion: body.direccion,
+        activo: body.activo ?? true
       }
     })
 
     return ApiResponseHelper.created(proveedor, 'Proveedor creado exitosamente')
   } catch (error) {
-    return ApiResponseHelper.handleError(error)
+    console.error('Error creating proveedor:', error)
+    return ApiResponseHelper.error(
+      error instanceof Error ? error.message : 'Error al crear proveedor'
+    )
   }
 }
