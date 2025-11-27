@@ -1,7 +1,4 @@
-import { Neumatico, EstadoNeumaticoEnum, Almacen, Vehiculo, PosicionNeumatico } from '@prisma/client';
-
-// Re-exportamos el enum para uso en el dominio
-export { EstadoNeumaticoEnum };
+import { Neumatico, Almacen, Vehiculo, PosicionNeumatico } from '@prisma/client';
 
 // Tipo base de Neumático (refleja el modelo de BD pero puede extenderse)
 export interface INeumatico extends Neumatico {
@@ -23,7 +20,7 @@ export interface CreateNeumaticoDTO {
     numero_serie: string;
     modelo_id: string;
     dot: string;
-    estado_actual?: EstadoNeumaticoEnum;
+    estado_actual?: string;
     profundidad_inicial_mm: number;
     profundidad_actual_mm?: number;
     presion_actual_psi?: number;
@@ -34,7 +31,7 @@ export interface CreateNeumaticoDTO {
 
 // DTO para actualización
 export interface UpdateNeumaticoDTO {
-    estado_actual?: EstadoNeumaticoEnum;
+    estado_actual?: string;
     profundidad_actual_mm?: number;
     presion_actual_psi?: number;
     kilometraje_acumulado?: number;
@@ -51,7 +48,7 @@ export interface UpdateNeumaticoDTO {
 export interface NeumaticoFilters {
     numero_serie?: string;
     modelo_id?: string;
-    estado_actual?: EstadoNeumaticoEnum;
+    estado_actual?: string;
     ubicacion_almacen_id?: string;
     ubicacion_vehiculo_id?: string;
     dot?: string;

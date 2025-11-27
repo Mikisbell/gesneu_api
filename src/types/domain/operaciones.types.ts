@@ -1,4 +1,5 @@
-import { TipoEventoNeumaticoEnum } from '@prisma/client';
+// Type definitions for tire operations
+
 
 export interface MontajeNeumaticoDTO {
     neumatico_id: string;

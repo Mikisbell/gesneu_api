@@ -42,7 +42,7 @@ export class NeumaticoRepository extends BaseRepository<Neumatico, CreateNeumati
             where.modelo_id = filters.modelo_id;
         }
         if (filters.estado_actual) {
-            where.estado_actual = filters.estado_actual;
+            where.estado_actual = filters.estado_actual as any;
         }
         if (filters.ubicacion_almacen_id) {
             where.ubicacion_almacen_id = filters.ubicacion_almacen_id;

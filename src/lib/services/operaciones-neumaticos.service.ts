@@ -1,6 +1,23 @@
 import { prisma } from '@/lib/prisma';
 import { MontajeNeumaticoDTO, DesmontajeNeumaticoDTO, RotacionNeumaticoDTO } from '@/types/domain/operaciones.types';
-import { EstadoNeumaticoEnum, TipoEventoNeumaticoEnum } from '@prisma/client';
+
+// Using string literals for enum values (Prisma 7 compatible)
+const EstadoNeumatico = {
+    INSTALADO: 'INSTALADO' as const,
+    EN_STOCK: 'EN_STOCK' as const,
+    EN_REPARACION: 'EN_REPARACION' as const,
+    EN_REENCAUCHE: 'EN_REENCAUCHE' as const,
+    DESECHADO: 'DESECHADO' as const,
+};
+
+const TipoEvento = {
+    INSTALACION: 'INSTALACION' as const,
+    DESMONTAJE: 'DESMONTAJE' as const,
+    ROTACION: 'ROTACION' as const,
+    REENCAUCHE_ENTRADA: 'REENCAUCHE_ENTRADA' as const,
+    DESECHO: 'DESECHO' as const,
+};
+
 
 export class OperacionesNeumaticosService {
 
@@ -16,10 +33,10 @@ export class OperacionesNeumaticosService {
             });
 
             if (!neumatico) throw new Error('Neumático no encontrado');
-            if (neumatico.estado_actual === EstadoNeumaticoEnum.INSTALADO) {
+            if (neumatico.estado_actual === EstadoNeumatico.INSTALADO) {
                 throw new Error('El neumático ya está montado en otro vehículo');
             }
-            if (neumatico.estado_actual === EstadoNeumaticoEnum.DESECHADO) {
+            if (neumatico.estado_actual === EstadoNeumatico.DESECHADO) {
                 throw new Error('No se puede montar un neumático desechado');
             }
 
@@ -59,7 +76,7 @@ export class OperacionesNeumaticosService {
             const neumaticoActualizado = await tx.neumatico.update({
                 where: { id: neumatico.id },
                 data: {
-                    estado_actual: EstadoNeumaticoEnum.INSTALADO,
+                    estado_actual: EstadoNeumatico.INSTALADO,
                     ubicacion_vehiculo_id: vehiculo.id,
                     ubicacion_posicion_id: posicion.id,
                     ubicacion_almacen_id: null, // Sale del almacén
@@ -72,7 +89,7 @@ export class OperacionesNeumaticosService {
             // 3. Registrar Evento
             await tx.eventoNeumatico.create({
                 data: {
-                    tipo_evento: TipoEventoNeumaticoEnum.INSTALACION,
+                    tipo_evento: TipoEvento.INSTALACION,
                     neumatico_id: neumatico.id,
                     vehiculo_id: vehiculo.id,
                     posicion_montaje_id: posicion.id,
@@ -89,7 +106,7 @@ export class OperacionesNeumaticosService {
                 data: {
                     neumatico_id: neumatico.id,
                     estado_anterior: neumatico.estado_actual,
-                    estado_nuevo: EstadoNeumaticoEnum.INSTALADO,
+                    estado_nuevo: EstadoNeumatico.INSTALADO,
                     fecha_cambio: new Date(),
                     motivo: `Montaje en vehículo ${vehiculo.placa}`
                 }
@@ -115,7 +132,7 @@ export class OperacionesNeumaticosService {
             });
 
             if (!neumatico) throw new Error('Neumático no encontrado');
-            if (neumatico.estado_actual !== EstadoNeumaticoEnum.INSTALADO) {
+            if (neumatico.estado_actual !== EstadoNeumatico.INSTALADO) {
                 throw new Error('El neumático no está instalado en ningún vehículo');
             }
             if (!neumatico.ubicacion_vehiculo_id) {
@@ -128,23 +145,23 @@ export class OperacionesNeumaticosService {
 
             switch (data.destino) {
                 case 'STOCK':
-                    nuevoEstado = EstadoNeumaticoEnum.EN_STOCK;
-                    tipoEvento = TipoEventoNeumaticoEnum.DESMONTAJE;
+                    nuevoEstado = EstadoNeumatico.EN_STOCK;
+                    tipoEvento = TipoEvento.DESMONTAJE;
                     if (!data.almacen_destino_id) {
                         throw new Error('Debe especificar un almacén destino para devolver a stock');
                     }
                     break;
                 case 'REPARACION':
-                    nuevoEstado = EstadoNeumaticoEnum.EN_REPARACION;
-                    tipoEvento = TipoEventoNeumaticoEnum.DESMONTAJE;
+                    nuevoEstado = EstadoNeumatico.EN_REPARACION;
+                    tipoEvento = TipoEvento.DESMONTAJE;
                     break;
                 case 'REENCAUCHE':
-                    nuevoEstado = EstadoNeumaticoEnum.EN_REENCAUCHE;
-                    tipoEvento = TipoEventoNeumaticoEnum.REENCAUCHE_ENTRADA;
+                    nuevoEstado = EstadoNeumatico.EN_REENCAUCHE;
+                    tipoEvento = TipoEvento.REENCAUCHE_ENTRADA;
                     break;
                 case 'DESECHO':
-                    nuevoEstado = EstadoNeumaticoEnum.DESECHADO;
-                    tipoEvento = TipoEventoNeumaticoEnum.DESECHO;
+                    nuevoEstado = EstadoNeumatico.DESECHADO;
+                    tipoEvento = TipoEvento.DESECHO;
                     if (!data.motivo_id) {
                         throw new Error('Debe especificar un motivo para el desecho');
                     }
@@ -219,7 +236,7 @@ export class OperacionesNeumaticosService {
                 where: {
                     id: { in: neumaticosIds },
                     ubicacion_vehiculo_id: vehiculo.id,
-                    estado_actual: EstadoNeumaticoEnum.INSTALADO
+                    estado_actual: EstadoNeumatico.INSTALADO
                 }
             });
 
@@ -257,7 +274,7 @@ export class OperacionesNeumaticosService {
                 // 5. Registrar evento de rotación para cada neumático
                 await tx.eventoNeumatico.create({
                     data: {
-                        tipo_evento: TipoEventoNeumaticoEnum.ROTACION,
+                        tipo_evento: TipoEvento.ROTACION,
                         neumatico_id: movimiento.neumatico_id,
                         vehiculo_id: vehiculo.id,
                         posicion_montaje_id: movimiento.posicion_destino_id,
