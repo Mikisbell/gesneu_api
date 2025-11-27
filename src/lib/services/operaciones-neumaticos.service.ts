@@ -105,7 +105,7 @@ export class OperacionesNeumaticosService {
             await tx.historialEstadoNeumatico.create({
                 data: {
                     neumatico_id: neumatico.id,
-                    estado_anterior: neumatico.estado_actual,
+                    estado_anterior: neumatico.estado_actual as any,
                     estado_nuevo: EstadoNeumatico.INSTALADO,
                     fecha_cambio: new Date(),
                     motivo: `Montaje en vehículo ${vehiculo.placa}`
@@ -206,8 +206,8 @@ export class OperacionesNeumaticosService {
             await tx.historialEstadoNeumatico.create({
                 data: {
                     neumatico_id: neumatico.id,
-                    estado_anterior: neumatico.estado_actual,
-                    estado_nuevo: nuevoEstado,
+                    estado_anterior: neumatico.estado_actual as any,
+                    estado_nuevo: nuevoEstado as any,
                     fecha_cambio: new Date(),
                     motivo: `Desmontaje de vehículo ${neumatico.ubicacion_vehiculo?.placa} - Destino: ${data.destino}`
                 }
