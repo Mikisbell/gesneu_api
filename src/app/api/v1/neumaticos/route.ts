@@ -12,7 +12,7 @@ export async function GET(request: NextRequest) {
         const filters = {
             numero_serie: searchParams.get('numero_serie') || undefined,
             modelo_id: searchParams.get('modelo_id') || undefined,
-            estado_actual: searchParams.get('estado_actual') as Prisma.$Enums.EstadoNeumaticoEnum || undefined,
+            estado_actual: searchParams.get('estado_actual') as any || undefined,
             ubicacion_almacen_id: searchParams.get('ubicacion_almacen_id') || undefined,
             ubicacion_vehiculo_id: searchParams.get('ubicacion_vehiculo_id') || undefined,
             dot: searchParams.get('dot') || undefined,
