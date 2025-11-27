@@ -2,7 +2,6 @@ import { NextRequest } from 'next/server'
 import { NeumaticoService } from '@/lib/services/neumatico.service'
 import { ApiResponseHelper } from '@/lib/api-response'
 import { CreateNeumaticoDTO } from '@/types/domain/neumatico.types'
-import { Prisma } from '@prisma/client'
 
 const service = new NeumaticoService()
 
