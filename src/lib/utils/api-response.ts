@@ -79,6 +79,16 @@ export class ApiResponseHelper {
   static handleError(error: unknown): NextResponse<ApiError> {
     console.error('API Error:', error)
 
+    // Handle custom auth errors
+    if (error instanceof Error) {
+      if (error.message === 'UNAUTHORIZED') {
+        return this.unauthorized();
+      }
+      if (error.message === 'FORBIDDEN') {
+        return this.forbidden();
+      }
+    }
+
     if (error instanceof ZodError) {
       return this.validationError(error)
     }

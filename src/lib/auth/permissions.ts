@@ -5,7 +5,7 @@ export const PERMISSIONS = {
   CATALOGOS_PROVEEDORES_CREATE: 'catalogos:proveedores:create',
   CATALOGOS_PROVEEDORES_UPDATE: 'catalogos:proveedores:update',
   CATALOGOS_PROVEEDORES_DELETE: 'catalogos:proveedores:delete',
-  
+
   CATALOGOS_ALMACENES_READ: 'catalogos:almacenes:read',
   CATALOGOS_ALMACENES_CREATE: 'catalogos:almacenes:create',
   CATALOGOS_ALMACENES_UPDATE: 'catalogos:almacenes:update',
@@ -28,13 +28,14 @@ export const PERMISSIONS = {
   NEUMATICOS_CREATE: 'neumaticos:create',
   NEUMATICOS_UPDATE: 'neumaticos:update',
   NEUMATICOS_DELETE: 'neumaticos:delete',
-  
+
   // EVENTOS DE NEUMÁTICOS (Granular por tipo)
   NEUMATICOS_EVENTO_INSTALACION: 'neumaticos:evento:instalacion',
   NEUMATICOS_EVENTO_DESMONTAJE: 'neumaticos:evento:desmontaje',
   NEUMATICOS_EVENTO_ROTACION: 'neumaticos:evento:rotacion',
   NEUMATICOS_EVENTO_INSPECCION: 'neumaticos:evento:inspeccion',
-  NEUMATICOS_EVENTO_REPARACION: 'neumaticos:evento:reparacion',
+  NEUMATICOS_EVENTO_REPARACION_ENTRADA: 'neumaticos:evento:reparacion_entrada',
+  NEUMATICOS_EVENTO_REPARACION_SALIDA: 'neumaticos:evento:reparacion_salida',
   NEUMATICOS_EVENTO_REENCAUCHE: 'neumaticos:evento:reencauche',
   NEUMATICOS_EVENTO_DESECHO: 'neumaticos:evento:desecho',
   NEUMATICOS_EVENTO_AJUSTE: 'neumaticos:evento:ajuste',
@@ -100,7 +101,8 @@ export const SYSTEM_ROLES = {
       PERMISSIONS.NEUMATICOS_EVENTO_DESMONTAJE,
       PERMISSIONS.NEUMATICOS_EVENTO_ROTACION,
       PERMISSIONS.NEUMATICOS_EVENTO_INSPECCION,
-      PERMISSIONS.NEUMATICOS_EVENTO_REPARACION,
+      PERMISSIONS.NEUMATICOS_EVENTO_REPARACION_ENTRADA,
+      PERMISSIONS.NEUMATICOS_EVENTO_REPARACION_SALIDA,
       PERMISSIONS.NEUMATICOS_EVENTO_REENCAUCHE,
       PERMISSIONS.NEUMATICOS_EVENTO_DESECHO,
 

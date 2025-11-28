@@ -488,9 +488,7 @@ model AuditoriaLog {
   @@map("auditoria_log")
 }
 
-model alembic_version {
-  version_num String @id @db.VarChar(32)
-}
+
 
 /// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
 model auditoria_roles_usuarios {
@@ -686,23 +684,24 @@ enum EstadoNeumaticoEnum {
   DESECHADO
   EN_TRANSITO
 
-  @@map("estado_neumatico_enum")
+  @@map("estado_neumatico")
 }
 
 enum TipoEventoNeumaticoEnum {
+  COMPRA
   INSTALACION
   DESMONTAJE
-  ROTACION
   INSPECCION
-  REPARACION
+  ROTACION
+  REPARACION_ENTRADA
+  REPARACION_SALIDA
   REENCAUCHE_ENTRADA
   REENCAUCHE_SALIDA
   DESECHO
-  MOVIMIENTO_ALMACEN
   AJUSTE_INVENTARIO
-  CAMBIO_ESTADO
+  TRANSFERENCIA_UBICACION
 
-  @@map("tipoeventoneumaticoenum")
+  @@map("tipo_evento_neumatico_enum")
 }
 
 enum TipoProveedorEnum {

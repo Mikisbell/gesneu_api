@@ -11,11 +11,18 @@ const EstadoNeumatico = {
 };
 
 const TipoEvento = {
+    COMPRA: 'COMPRA' as const,
     INSTALACION: 'INSTALACION' as const,
     DESMONTAJE: 'DESMONTAJE' as const,
     ROTACION: 'ROTACION' as const,
+    INSPECCION: 'INSPECCION' as const,
+    REPARACION_ENTRADA: 'REPARACION_ENTRADA' as const,
+    REPARACION_SALIDA: 'REPARACION_SALIDA' as const,
     REENCAUCHE_ENTRADA: 'REENCAUCHE_ENTRADA' as const,
+    REENCAUCHE_SALIDA: 'REENCAUCHE_SALIDA' as const,
     DESECHO: 'DESECHO' as const,
+    AJUSTE_INVENTARIO: 'AJUSTE_INVENTARIO' as const,
+    TRANSFERENCIA_UBICACION: 'TRANSFERENCIA_UBICACION' as const,
 };
 
 
@@ -153,7 +160,7 @@ export class OperacionesNeumaticosService {
                     break;
                 case 'REPARACION':
                     nuevoEstado = EstadoNeumatico.EN_REPARACION;
-                    tipoEvento = TipoEvento.DESMONTAJE;
+                    tipoEvento = TipoEvento.REPARACION_ENTRADA;
                     break;
                 case 'REENCAUCHE':
                     nuevoEstado = EstadoNeumatico.EN_REENCAUCHE;

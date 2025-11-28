@@ -71,3 +71,4 @@ build/
 
 # Archivos de sistema operativo
 Thumbs.db
+.vercel

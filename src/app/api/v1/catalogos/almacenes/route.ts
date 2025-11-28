@@ -1,9 +1,44 @@
-import { NextResponse, NextRequest } from 'next/server'
+import { NextRequest } from 'next/server'
 import { prisma } from '@/lib/prisma'
-import { ApiResponseHelper } from '@/lib/api-response'
+import { ApiResponseHelper } from '@/lib/utils/api-response'
+import { requireAuth, requirePermission } from '@/lib/auth/authorization'
+import { PERMISSIONS } from '@/lib/auth/permissions'
 
-export async function GET() {
+/**
+ * @swagger
+ * /api/v1/catalogos/almacenes:
+ *   get:
+ *     summary: Listar almacenes
+ *     description: Obtiene una lista de todos los almacenes activos.
+ *     tags: [Catálogos]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Lista de almacenes recuperada exitosamente
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 data:
+ *                   type: array
+ *                   items:
+ *                     $ref: '#/components/schemas/Almacen'
+ *       401:
+ *         description: No autenticado
+ *       403:
+ *         description: Permisos insuficientes (Requiere CATALOGOS_ALMACENES_READ)
+ */
+export async function GET(request: NextRequest) {
   try {
+    // 1. Authentication
+    const session = await requireAuth();
+
+    // 2. Authorization
+    requirePermission(session, PERMISSIONS.CATALOGOS_ALMACENES_READ);
+
+    // 3. Business logic
     const almacenes = await prisma.almacen.findMany({
       where: {
         activo: true
@@ -13,23 +48,62 @@ export async function GET() {
       }
     })
 
-    return NextResponse.json(almacenes)
+    return ApiResponseHelper.success(almacenes)
   } catch (error) {
-    console.error('Error fetching almacenes:', error)
-    return NextResponse.json(
-      { error: 'Error interno del servidor' },
-      { status: 500 }
-    )
+    return ApiResponseHelper.handleError(error)
   }
 }
 
+/**
+ * @swagger
+ * /api/v1/catalogos/almacenes:
+ *   post:
+ *     summary: Crear almacén
+ *     description: Crea un nuevo almacén en el sistema.
+ *     tags: [Catálogos]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             $ref: '#/components/schemas/CreateAlmacenDTO'
+ *     responses:
+ *       201:
+ *         description: Almacén creado exitosamente
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 data:
+ *                   $ref: '#/components/schemas/Almacen'
+ *                 message:
+ *                   type: string
+ *       400:
+ *         description: Datos inválidos
+ *       409:
+ *         description: Código de almacén duplicado
+ *       401:
+ *         description: No autenticado
+ *       403:
+ *         description: Permisos insuficientes (Requiere CATALOGOS_ALMACENES_CREATE)
+ */
 export async function POST(request: NextRequest) {
   try {
+    // 1. Authentication
+    const session = await requireAuth();
+
+    // 2. Authorization
+    requirePermission(session, PERMISSIONS.CATALOGOS_ALMACENES_CREATE);
+
+    // 3. Business logic
     const body = await request.json()
 
     // Validar campos requeridos
     if (!body.nombre || !body.codigo) {
-      return ApiResponseHelper.badRequest('Nombre y código son requeridos')
+      return ApiResponseHelper.error('Nombre y código son requeridos', 400)
     }
 
     // Verificar código único
@@ -38,7 +112,7 @@ export async function POST(request: NextRequest) {
     })
 
     if (existe) {
-      return ApiResponseHelper.badRequest('El código de almacén ya existe')
+      return ApiResponseHelper.error('El código de almacén ya existe', 409)
     }
 
     const almacen = await prisma.almacen.create({
@@ -53,9 +127,6 @@ export async function POST(request: NextRequest) {
 
     return ApiResponseHelper.created(almacen, 'Almacén creado exitosamente')
   } catch (error) {
-    console.error('Error creating almacen:', error)
-    return ApiResponseHelper.error(
-      error instanceof Error ? error.message : 'Error al crear almacén'
-    )
+    return ApiResponseHelper.handleError(error)
   }
 }
