@@ -31,6 +31,7 @@ model Usuario {
   rutas_rutas_actualizado_porTousuarios                                                     rutas[]                           @relation("rutas_actualizado_porTousuarios")
   rutas_rutas_creado_porTousuarios                                                          rutas[]                           @relation("rutas_creado_porTousuarios")
   tareas_programadas                                                                        tareas_programadas[]
+  audit_logs                                                                                AuditLog[]
   roles                                                                                     UsuarioRol[]
 
   @@map("usuarios")
@@ -769,4 +770,17 @@ enum TipoParametroEnum {
   TEMPERATURA_MAXIMA
 
   @@map("tipo_parametro_enum")
+}
+
+model AuditLog {
+  id          String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  user_id     String   @db.Uuid
+  action      String   @db.VarChar(50)
+  resource    String   @db.VarChar(100)
+  details     Json?
+  ip_address  String?  @db.Inet
+  created_at  DateTime @default(now()) @db.Timestamptz(6)
+  usuario     Usuario  @relation(fields: [user_id], references: [id])
+
+  @@map("audit_logs")
 }
