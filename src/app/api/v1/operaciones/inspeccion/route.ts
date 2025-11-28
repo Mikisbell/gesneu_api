@@ -18,7 +18,7 @@ export async function POST(request: NextRequest) {
         // 3. Validar existencia del neumático
         const neumatico = await prisma.neumatico.findUnique({
             where: { id: validatedData.neumatico_id },
-            include: { vehiculo: true }
+            include: { ubicacion_vehiculo: true }
         });
 
         if (!neumatico) {
