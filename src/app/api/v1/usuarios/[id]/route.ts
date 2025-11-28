@@ -121,7 +121,7 @@ export async function GET(
         });
 
         if (!usuario) {
-            return ApiResponseHelper.notFound('Usuario no encontrado');
+            return ApiResponseHelper.notFound();
         }
 
         const { password_hash, ...sanitizedUser } = usuario;
@@ -154,7 +154,7 @@ export async function PUT(
         });
 
         if (!existingUser) {
-            return ApiResponseHelper.notFound('Usuario no encontrado');
+            return ApiResponseHelper.notFound();
         }
 
         let passwordHash = undefined;
@@ -229,7 +229,7 @@ export async function DELETE(
         });
 
         if (!existingUser) {
-            return ApiResponseHelper.notFound('Usuario no encontrado');
+            return ApiResponseHelper.notFound();
         }
 
         // Soft delete

@@ -131,13 +131,13 @@ export async function GET(req: NextRequest) {
         // Remove password_hash from response
         const sanitizedUsuarios = usuarios.map(({ password_hash, ...user }) => user);
 
-        return ApiResponseHelper.success(sanitizedUsuarios, {
-            meta: {
-                total,
-                page,
-                limit,
-                totalPages: Math.ceil(total / limit),
-            },
+        return ApiResponseHelper.paginated(sanitizedUsuarios, {
+            total,
+            page,
+            limit,
+            totalPages: Math.ceil(total / limit),
+            hasNext: page < Math.ceil(total / limit),
+            hasPrev: page > 1,
         });
     } catch (error) {
         return ApiResponseHelper.handleError(error);
