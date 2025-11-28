@@ -39,7 +39,7 @@ export async function POST(request: NextRequest) {
                     fecha_medicion: new Date(),
                     medido_por: session.user.id,
                     notas: validatedData.observaciones,
-                    posicion_medicion: neumatico.ubicacion_posicion ? 'CENTRO' : null, // Simplificado
+                    posicion_medicion: neumatico.ubicacion_posicion_id ? 'CENTRO' : null, // Simplificado
                 }
             });
 
