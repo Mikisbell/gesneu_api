@@ -10,7 +10,10 @@ import {
     Truck,
     Settings,
     LogOut,
-    Disc
+    Disc,
+    Wrench,
+    Warehouse,
+    UserCog
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { signOut } from 'next-auth/react'
@@ -32,19 +35,22 @@ const sidebarItems = [
         icon: Truck,
     },
     {
-        title: 'Inventario',
-        href: '/dashboard/inventario',
-        icon: Package,
+        title: 'Almacenes',
+        href: '/dashboard/almacenes',
+        icon: Warehouse,
     },
     {
-        title: 'Usuarios',
-        href: '/dashboard/usuarios',
-        icon: Users,
+        title: 'Proveedores',
+        href: '/dashboard/proveedores',
+        icon: UserCog,
     },
+]
+
+const operacionesItems = [
     {
-        title: 'Configuración',
-        href: '/dashboard/configuracion',
-        icon: Settings,
+        title: 'Montaje',
+        href: '/dashboard/operaciones/montaje',
+        icon: Wrench,
     },
 ]
 
@@ -57,27 +63,64 @@ export function Sidebar() {
                 <h1 className="text-2xl font-bold text-primary">GesNeu</h1>
             </div>
 
-            <div className="flex-1 px-4 space-y-2">
-                {sidebarItems.map((item) => {
-                    const Icon = item.icon
-                    const isActive = pathname === item.href
+            <div className="flex-1 px-4 space-y-4 overflow-y-auto">
+                {/* Catálogos Section */}
+                <div>
+                    <div className="px-3 py-2 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                        Catálogos
+                    </div>
+                    <div className="space-y-1">
+                        {sidebarItems.map((item) => {
+                            const Icon = item.icon
+                            const isActive = pathname === item.href
 
-                    return (
-                        <Link
-                            key={item.href}
-                            href={item.href}
-                            className={cn(
-                                "flex items-center gap-3 px-3 py-2 rounded-md text-sm font-medium transition-colors",
-                                isActive
-                                    ? "bg-primary text-primary-foreground"
-                                    : "text-muted-foreground hover:bg-muted hover:text-foreground"
-                            )}
-                        >
-                            <Icon className="h-4 w-4" />
-                            {item.title}
-                        </Link>
-                    )
-                })}
+                            return (
+                                <Link
+                                    key={item.href}
+                                    href={item.href}
+                                    className={cn(
+                                        "flex items-center gap-3 px-3 py-2 rounded-md text-sm font-medium transition-colors",
+                                        isActive
+                                            ? "bg-primary text-primary-foreground"
+                                            : "text-muted-foreground hover:bg-muted hover:text-foreground"
+                                    )}
+                                >
+                                    <Icon className="h-4 w-4" />
+                                    {item.title}
+                                </Link>
+                            )
+                        })}
+                    </div>
+                </div>
+
+                {/* Operaciones Section */}
+                <div>
+                    <div className="px-3 py-2 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                        Operaciones
+                    </div>
+                    <div className="space-y-1">
+                        {operacionesItems.map((item) => {
+                            const Icon = item.icon
+                            const isActive = pathname === item.href
+
+                            return (
+                                <Link
+                                    key={item.href}
+                                    href={item.href}
+                                    className={cn(
+                                        "flex items-center gap-3 px-3 py-2 rounded-md text-sm font-medium transition-colors",
+                                        isActive
+                                            ? "bg-primary text-primary-foreground"
+                                            : "text-muted-foreground hover:bg-muted hover:text-foreground"
+                                    )}
+                                >
+                                    <Icon className="h-4 w-4" />
+                                    {item.title}
+                                </Link>
+                            )
+                        })}
+                    </div>
+                </div>
             </div>
 
             <div className="p-4 border-t">
