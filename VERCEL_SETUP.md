@@ -1,160 +1,55 @@
 # Guía de Despliegue en Vercel - GesNeu API
 
-**Última actualización:** 2025-11-28 09:36 AM (UTC-5)  
-**Versión:** 1.0  
-**Tiempo estimado:** 1-2 horas
+**Última actualización:** 2025-11-28 09:44 AM (UTC-5)  
+**Versión:** 1.1  
+**Tiempo estimado:** 30 minutos  
+**Método:** GitHub → Vercel (Auto-deploy)
+
+---
+
+## 🎯 Flujo de Trabajo Recomendado
+
+```mermaid
+graph LR
+    A[Git Push] --> B[GitHub]
+    B --> C[Vercel Auto-Deploy]
+    C --> D[Build & Test]
+    D --> E[Production Live]
+    
+    style A fill:#e1f5ff
+    style B fill:#24292e
+    style C fill:#000
+    style D fill:#fff4e1
+    style E fill:#e1ffe1
+```
+
+**Ventajas:**
+
+- ✅ **Auto-deploy** en cada push a `main`
+- ✅ **Preview deploys** automáticos en PRs
+- ✅ **Rollback** con un click
+- ✅ **No requiere CLI** local
 
 ---
 
 ## Prerequisitos
 
-Antes de comenzar, asegúrate de tener:
-
-- ✅ Cuenta en [Vercel](https://vercel.com)
-- ✅ Repositorio en GitHub con acceso
+- ✅ Cuenta en [Vercel](https://vercel.com) (gratis)
+- ✅ Repositorio `Mikisbell/gesneu_api` en GitHub
 - ✅ Base de datos Supabase configurada
-- ✅ Cuenta en [Sentry](https://sentry.io) (opcional)
 - ✅ Tests pasando localmente (85/85)
 
 ---
 
-## Paso 1: Preparación del Proyecto
+## Paso 1: Preparación
 
-### 1.1 Verificar build local
+### 1.1 Verificar Build Local ✅
 
 ```bash
 npm run build
 ```
 
 **Resultado esperado:** Build exitoso sin errores.
-
-### 1.2 Crear `.env.example`
-
-Crea un archivo con las variables necesarias (sin valores sensibles):
-
-```bash
-# Database
-DATABASE_URL=
-DIRECT_URL=
-
-# Auth
-NEXTAUTH_URL=
-NEXTAUTH_SECRET=
-JWT_SECRET_KEY=
-
-# Supabase
-NEXT_PUBLIC_SUPABASE_URL=
-NEXT_PUBLIC_SUPABASE_ANON_KEY=
-SUPABASE_SERVICE_ROLE_KEY=
-
-# Monitoring (opcional)
-SENTRY_DSN=
-```
-
-### 1.3 Verificar `next.config.js`
-
-Asegúrate de que esté optimizado para producción:
-
-```javascript
-/** @type {import('next').NextConfig} */
-const nextConfig = {
-  // Desactivar telemetría si prefieres
-  // telemetry: { enabled: false },
-  
-  // Headers de seguridad
-  async headers() {
-    return [
-      {
-        source: '/api/:path*',
-        headers: [
-          { key: 'X-Content-Type-Options', value: 'nosniff' },
-          { key: 'X-Frame-Options', value: 'DENY' },
-          { key: 'X-XSS-Protection', value: '1; mode=block' },
-        ],
-      },
-    ];
-  },
-};
-
-export default nextConfig;
-```
-
----
-
-## Paso 2: Deploy en Vercel
-
-### Opción A: Deploy via Dashboard (Recomendado)
-
-1. **Ir a [Vercel Dashboard](https://vercel.com/new)**
-
-2. **Import Git Repository**
-   - Conecta tu cuenta de GitHub si no está conectada
-   - Selecciona el repositorio `Mikisbell/gesneu_api`
-   - Click en "Import"
-
-3. **Configure Project**
-   - **Project Name:** `gesneu-api` (o el nombre que prefieras)
-   - **Framework Preset:** Next.js (auto-detectado)
-   - **Root Directory:** `./`
-   - **Build Command:** `npm run build` (default)
-   - **Output Directory:** `.next` (default)
-   - **Install Command:** `npm install` (default)
-
-4. **Environment Variables** (¡IMPORTANTE!)
-
-   Click en "Environment Variables" y agrega:
-
-   ```
-   DATABASE_URL=postgres://postgres.hwefuosgihhgzhjqajnx:M1k1sB3ll.$@aws-0-us-west-2.pooler.supabase.com:6543/postgres?pgbouncer=true
-   
-   DIRECT_URL=postgresql://postgres:M1k1sB3ll.$@db.hwefuosgihhgzhjqajnx.supabase.co:5432/postgres
-   
-   NEXTAUTH_URL=https://tu-proyecto.vercel.app
-   
-   NEXTAUTH_SECRET=<GENERAR NUEVO - ver abajo>
-   
-   JWT_SECRET_KEY=<GENERAR NUEVO - ver abajo>
-   
-   NEXT_PUBLIC_SUPABASE_URL=https://hwefuosgihhgzhjqajnx.supabase.co
-   
-   NEXT_PUBLIC_SUPABASE_ANON_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
-   
-   SUPABASE_SERVICE_ROLE_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
-   
-   SENTRY_DSN=https://xxx@xxx.ingest.sentry.io/xxx (opcional)
-   ```
-
-   **Generar secrets:**
-
-   ```bash
-   # En tu terminal local
-   openssl rand -base64 32
-   ```
-
-5. **Deploy**
-   - Click en "Deploy"
-   - Espera 2-3 minutos
-
----
-
-### Opción B: Deploy via CLI
-
-```bash
-# Instalar Vercel CLI
-npm i -g vercel
-
-# Login
-vercel login
-
-# Deploy
-vercel
-
-# Seguir prompts interactivos
-```
-
----
-
-## Paso 3: Configuración Post-Deploy
 
 ### 3.1 Actualizar NEXTAUTH_URL
 
