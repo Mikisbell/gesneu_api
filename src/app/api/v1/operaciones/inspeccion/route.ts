@@ -80,13 +80,17 @@ export async function POST(req: NextRequest) {
                 },
             });
 
-            // Update tire measurements
+            // Update tire measurements (average profundidad)
+            const profundidad_promedio = (
+                (profundidad_izquierda_mm || 0) +
+                (profundidad_centro_mm || 0) +
+                (profundidad_derecha_mm || 0)
+            ) / 3;
+
             await tx.neumatico.update({
                 where: { id: neumatico_id },
                 data: {
-                    profundidad_actual_izquierda: profundidad_izquierda_mm,
-                    profundidad_actual_centro: profundidad_centro_mm,
-                    profundidad_actual_derecha: profundidad_derecha_mm,
+                    profundidad_actual_mm: profundidad_promedio,
                     presion_actual_psi: presion_psi,
                     actualizado_en: new Date(),
                 },
