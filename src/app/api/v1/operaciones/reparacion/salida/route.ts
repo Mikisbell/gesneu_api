@@ -35,7 +35,7 @@ import { ReparacionSalidaSchema } from '@/lib/validators/operaciones';
 export async function POST(req: NextRequest) {
     try {
         const session = await requireAuth();
-        requirePermission(session, PERMISSIONS.OPERACIONES_CREATE);
+        requirePermission(session, PERMISSIONS.NEUMATICOS_EVENTO_REPARACION_SALIDA);
 
         const body = await req.json();
         const validation = ReparacionSalidaSchema.safeParse(body);

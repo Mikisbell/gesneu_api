@@ -35,7 +35,7 @@ import { DesechoNeumaticoSchema } from '@/lib/validators/operaciones';
 export async function POST(req: NextRequest) {
     try {
         const session = await requireAuth();
-        requirePermission(session, PERMISSIONS.OPERACIONES_CREATE);
+        requirePermission(session, PERMISSIONS.NEUMATICOS_EVENTO_DESECHO);
 
         const body = await req.json();
         const validation = DesechoNeumaticoSchema.safeParse(body);
