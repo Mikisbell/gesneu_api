@@ -33,7 +33,7 @@ export default function InspeccionPage() {
     // Search query
     const { data: searchResults, isLoading: isSearching } = useQuery({
         queryKey: ['neumaticos', 'search', searchTerm],
-        queryFn: () => apiClient<{ data: any[] }>(`/api/v1/neumaticos?q=${searchTerm}`),
+        queryFn: () => apiClient<any[]>(`/api/v1/neumaticos?q=${searchTerm}`),
         enabled: searchTerm.length > 2,
     });
 
@@ -122,7 +122,7 @@ export default function InspeccionPage() {
                         )}
 
                         <div className="space-y-2 max-h-[300px] overflow-y-auto">
-                            {searchResults?.data?.map((neumatico: any) => (
+                            {searchResults?.map((neumatico: any) => (
                                 <div
                                     key={neumatico.id}
                                     className={`p-3 border rounded-lg cursor-pointer transition-colors ${selectedNeumatico?.id === neumatico.id

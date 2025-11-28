@@ -49,13 +49,13 @@ export default function MontajePage() {
     // Fetch available vehicles
     const { data: vehiculos, isLoading: loadingVehiculos } = useQuery({
         queryKey: ['vehiculos'],
-        queryFn: () => apiClient<{ data: any[] }>('/api/v1/vehiculos'),
+        queryFn: () => apiClient<any[]>('/api/v1/vehiculos'),
     });
 
     // Fetch available tires (EN_STOCK)
     const { data: neumaticos, isLoading: loadingNeumaticos } = useQuery({
         queryKey: ['neumaticos', 'EN_STOCK'],
-        queryFn: () => apiClient<{ data: any[] }>('/api/v1/neumaticos?estado=EN_STOCK'),
+        queryFn: () => apiClient<any[]>('/api/v1/neumaticos?estado=EN_STOCK'),
     });
 
     // Montaje mutation
@@ -89,8 +89,8 @@ export default function MontajePage() {
         montajeMutation.mutate(data);
     };
 
-    const selectedVehiculo = vehiculos?.data?.find((v: any) => v.id === form.watch('vehiculo_id'));
-    const selectedNeumatico = neumaticos?.data?.find((n: any) => n.id === form.watch('neumatico_id'));
+    const selectedVehiculo = vehiculos?.find((v: any) => v.id === form.watch('vehiculo_id'));
+    const selectedNeumatico = neumaticos?.find((n: any) => n.id === form.watch('neumatico_id'));
 
     return (
         <div className="container mx-auto py-8 max-w-4xl">
@@ -149,7 +149,7 @@ export default function MontajePage() {
                                         className="w-full p-2 border rounded-md"
                                     >
                                         <option value="">Selecciona un vehículo</option>
-                                        {vehiculos?.data?.map((vehiculo: any) => (
+                                        {vehiculos?.map((vehiculo: any) => (
                                             <option key={vehiculo.id} value={vehiculo.id}>
                                                 {vehiculo.placa} - {vehiculo.marca} {vehiculo.modelo}
                                             </option>
@@ -174,7 +174,7 @@ export default function MontajePage() {
                                         className="w-full p-2 border rounded-md"
                                     >
                                         <option value="">Selecciona un neumático</option>
-                                        {neumaticos?.data?.map((neumatico: any) => (
+                                        {neumaticos?.map((neumatico: any) => (
                                             <option key={neumatico.id} value={neumatico.id}>
                                                 {neumatico.numero_serie} - {neumatico.modelo?.nombre} ({neumatico.modelo?.medida})
                                             </option>
