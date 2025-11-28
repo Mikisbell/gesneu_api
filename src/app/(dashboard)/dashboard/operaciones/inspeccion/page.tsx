@@ -122,12 +122,12 @@ export default function InspeccionPage() {
                         )}
 
                         <div className="space-y-2 max-h-[300px] overflow-y-auto">
-                            {searchResults?.map((neumatico: any) => (
+                            {searchResults?.data?.map((neumatico: any) => (
                                 <div
                                     key={neumatico.id}
                                     className={`p-3 border rounded-lg cursor-pointer transition-colors ${selectedNeumatico?.id === neumatico.id
-                                            ? 'bg-primary/10 border-primary'
-                                            : 'hover:bg-muted'
+                                        ? 'bg-primary/10 border-primary'
+                                        : 'hover:bg-muted'
                                         }`}
                                     onClick={() => {
                                         setSelectedNeumatico(neumatico);
