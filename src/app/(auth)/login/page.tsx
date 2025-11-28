@@ -58,12 +58,33 @@ function LoginForm() {
                 callbackUrl,
             })
 
+            console.log('🔐 SignIn result:', result);
+
             if (result?.error) {
-                console.error('Login error:', result.error)
+                console.error('❌ Login error:', result.error)
+
+                // Detailed error message for debugging
+                let errorTitle = "Error de inicio de sesión";
+                let errorDescription = result.error;
+
+                if (result.error.includes('Credenciales')) {
+                    errorDescription = "Email o contraseña incorrectos. Verifica tus credenciales.";
+                } else if (result.error.includes('Usuario no encontrado')) {
+                    errorDescription = "No existe una cuenta con este email.";
+                } else if (result.error.includes('inactivo')) {
+                    errorDescription = "Tu cuenta está inactiva. Contacta al administrador.";
+                } else if (result.error.includes('Contraseña incorrecta')) {
+                    errorDescription = "Contraseña incorrecta. Intenta nuevamente.";
+                } else if (result.error === 'CredentialsSignin') {
+                    errorTitle = "Error de Autenticación";
+                    errorDescription = `Verifica tus credenciales. Si el problema persiste en Vercel, revisa las variables de entorno (NEXTAUTH_URL, NEXTAUTH_SECRET, DATABASE_URL).`;
+                }
+
                 toast({
                     variant: "destructive",
-                    title: "Error de inicio de sesión",
-                    description: "Credenciales inválidas. Por favor verifique su email y contraseña.",
+                    title: errorTitle,
+                    description: errorDescription,
+                    duration: 8000,
                 })
             } else if (result?.ok) {
                 toast({
@@ -73,19 +94,20 @@ function LoginForm() {
                 router.push(callbackUrl)
                 router.refresh()
             } else {
-                // Fallback for unexpected states
                 toast({
                     variant: "destructive",
-                    title: "Error desconocido",
-                    description: "No se pudo conectar con el servidor.",
+                    title: "Error de Configuración",
+                    description: "No se pudo conectar con el servidor de autenticación. Si estás en Vercel, verifica: NEXTAUTH_URL debe ser https://gesneu.vercel.app",
+                    duration: 10000,
                 })
             }
         } catch (error) {
-            console.error('Login exception:', error)
+            console.error('💥 Login exception:', error)
             toast({
                 variant: "destructive",
-                title: "Error del sistema",
-                description: "Ocurrió un error inesperado. Intente nuevamente.",
+                title: "Error del Sistema",
+                description: `Error: ${error instanceof Error ? error.message : 'Desconocido'}. Verifica la conexión a la base de datos (DATABASE_URL en Vercel).`,
+                duration: 10000,
             })
         } finally {
             setIsLoading(false)
