@@ -50,6 +50,12 @@ export const PERMISSIONS = {
   REPORTES_RENDIMIENTO: 'reportes:rendimiento',
   REPORTES_AUDITORIA: 'reportes:auditoria',
 
+  // USUARIOS (shorthand for convenience)
+  USUARIOS_READ: 'sistema:usuarios:read',
+  USUARIOS_CREATE: 'sistema:usuarios:create',
+  USUARIOS_UPDATE: 'sistema:usuarios:update',
+  USUARIOS_DELETE: 'sistema:usuarios:delete',
+
   // SISTEMA
   SISTEMA_USUARIOS_READ: 'sistema:usuarios:read',
   SISTEMA_USUARIOS_CREATE: 'sistema:usuarios:create',
