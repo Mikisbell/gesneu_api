@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server'
 import type { NextRequest } from 'next/server'
 import { getToken } from 'next-auth/jwt'
 
-export async function middleware(request: NextRequest) {
+export default async function proxy(request: NextRequest) {
     const token = await getToken({
         req: request,
         secret: process.env.NEXTAUTH_SECRET,
@@ -14,7 +14,6 @@ export async function middleware(request: NextRequest) {
 
     const isAuthPage = request.nextUrl.pathname.startsWith('/login')
     const isDashboardPage = request.nextUrl.pathname.startsWith('/dashboard')
-    const isApiPage = request.nextUrl.pathname.startsWith('/api')
 
     // Redirect authenticated users away from login page
     if (isAuthPage && token) {
@@ -35,6 +34,5 @@ export const config = {
     matcher: [
         '/dashboard/:path*',
         '/login',
-        // Add other protected routes here if needed
     ],
 }
