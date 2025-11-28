@@ -4,7 +4,7 @@ import { ApiResponseHelper } from '@/lib/utils/api-response';
 import { RotacionNeumaticoDTO } from '@/types/domain/operaciones.types';
 import { RotacionNeumaticoSchema } from '@/lib/validators/operaciones';
 import { requireAuth, requirePermission } from '@/lib/auth/authorization';
-import { PERMISSIONS } from '@/lib/auth/authorization';
+import { PERMISSIONS } from '@/lib/auth/permissions';
 
 const service = new OperacionesNeumaticosService();
 
