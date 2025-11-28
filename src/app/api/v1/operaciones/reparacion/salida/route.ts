@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { ApiResponseHelper } from '@/lib/utils/api-response';
-import { requirePermission } from '@/lib/auth/permissions';
+import { requirePermission } from '@/lib/auth/authorization';
 import { ReparacionSalidaSchema } from '@/lib/validators/operaciones';
 
 /**
