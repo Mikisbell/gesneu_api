@@ -22,8 +22,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter }
 import { useToast } from '@/hooks/use-toast'
 
 const formSchema = z.object({
-    email: z.string().email({
-        message: "Por favor ingrese un email válido.",
+    identifier: z.string().min(1, {
+        message: "Por favor ingrese su email o usuario.",
     }),
     password: z.string().min(1, {
         message: "La contraseña es requerida.",
@@ -42,7 +42,7 @@ function LoginForm() {
     const form = useForm<z.infer<typeof formSchema>>({
         resolver: zodResolver(formSchema),
         defaultValues: {
-            email: "",
+            identifier: "",
             password: "",
         },
     })
@@ -52,13 +52,11 @@ function LoginForm() {
 
         try {
             const result = await signIn('credentials', {
-                email: values.email,
+                identifier: values.identifier,
                 password: values.password,
                 redirect: false,
                 callbackUrl,
             })
-
-            console.log('🔐 SignIn result:', result);
 
             if (result?.error) {
                 console.error('❌ Login error:', result.error)
@@ -132,13 +130,13 @@ function LoginForm() {
                     <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
                         <FormField
                             control={form.control}
-                            name="email"
+                            name="identifier"
                             render={({ field }) => (
                                 <FormItem>
-                                    <FormLabel>Correo Electrónico</FormLabel>
+                                    <FormLabel>Email o Usuario</FormLabel>
                                     <FormControl>
                                         <Input
-                                            placeholder="nombre@empresa.com"
+                                            placeholder="admin@gesneu.com"
                                             className="h-11"
                                             {...field}
                                         />

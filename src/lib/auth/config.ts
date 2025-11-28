@@ -8,24 +8,25 @@ export const authOptions: NextAuthConfig = {
     Credentials({
       name: 'credentials',
       credentials: {
-        email: { label: 'Email', type: 'email' },
+        identifier: { label: 'Email o Usuario', type: 'text' },
         password: { label: 'Contraseña', type: 'password' }
       },
       async authorize(credentials) {
-        console.log('🔐 [AUTH] Starting authorization...');
-        console.log('🔐 [AUTH] Received credentials:', { email: credentials?.email, hasPassword: !!credentials?.password });
-
-        if (!credentials?.email || !credentials?.password) {
-          console.error('❌ [AUTH] Missing credentials');
+        if (!credentials?.identifier || !credentials?.password) {
           throw new Error('Credenciales inválidas');
         }
 
-        const email = credentials.email as string;
+        const identifier = credentials.identifier as string;
         const password = credentials.password as string;
 
-        console.log('🔍 [AUTH] Looking up user:', email);
-        const usuario = await prisma.usuario.findUnique({
-          where: { email },
+        // Try to find user by email or username
+        const usuario = await prisma.usuario.findFirst({
+          where: {
+            OR: [
+              { email: identifier },
+              { username: identifier }
+            ]
+          },
           include: {
             roles: {
               include: {
@@ -43,31 +44,20 @@ export const authOptions: NextAuthConfig = {
           }
         });
 
-        if (!usuario) {
-          console.error('❌ [AUTH] User not found:', email);
+        if (!usuario || !usuario.activo) {
           throw new Error('Usuario no encontrado o inactivo');
         }
-
-        if (!usuario.activo) {
-          console.error('❌ [AUTH] User inactive:', email);
-          throw new Error('Usuario no encontrado o inactivo');
-        }
-
-        console.log('✅ [AUTH] User found:', { username: usuario.username, email: usuario.email, activo: usuario.activo });
 
         const passwordMatch = await bcrypt.compare(
           password,
           usuario.password_hash
         );
 
-        console.log('🔑 [AUTH] Password match:', passwordMatch);
-
         if (!passwordMatch) {
-          console.error('❌ [AUTH] Password mismatch for:', email);
           throw new Error('Contraseña incorrecta');
         }
 
-        // Recopilar todos los permisos del usuario
+        // Collect all user permissions
         const permisos: string[] = [];
         const roles: string[] = [];
 
@@ -106,9 +96,6 @@ export const authOptions: NextAuthConfig = {
         token.username = (user as any).username;
         token.roles = (user as any).roles;
         token.permissions = (user as any).permissions;
-        console.log('DEBUG: JWT Callback (Login) - User Permissions:', token.permissions);
-      } else {
-        console.log('DEBUG: JWT Callback (Subsequent) - Token Permissions:', token.permissions);
       }
       return token;
     },
@@ -118,7 +105,6 @@ export const authOptions: NextAuthConfig = {
         (session.user as any).username = token.username;
         (session.user as any).roles = token.roles;
         (session.user as any).permissions = token.permissions;
-        console.log('DEBUG: Session Callback - User Permissions:', (session.user as any).permissions);
       }
       return session;
     }
