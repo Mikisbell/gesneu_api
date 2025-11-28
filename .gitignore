@@ -7,7 +7,6 @@ ENV/
 # Archivos de entorno
 .env
 !.env.example
-!.env.local
 !.env.development
 !prisma/.env
 
@@ -26,6 +25,7 @@ MANIFEST
 .pytest_cache/
 .coverage
 htmlcov/
+coverage/
 
 # IDEs y editores
 .idea/
@@ -51,7 +51,6 @@ data/
 
 # Archivos de configuración local
 *.local
-!.env.local
 
 # Archivos de base de datos
 *.db
