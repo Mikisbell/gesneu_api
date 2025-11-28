@@ -12,13 +12,18 @@ export const authOptions: NextAuthConfig = {
         password: { label: 'Contraseña', type: 'password' }
       },
       async authorize(credentials) {
+        console.log('🔐 [AUTH] Starting authorization...');
+        console.log('🔐 [AUTH] Received credentials:', { email: credentials?.email, hasPassword: !!credentials?.password });
+
         if (!credentials?.email || !credentials?.password) {
+          console.error('❌ [AUTH] Missing credentials');
           throw new Error('Credenciales inválidas');
         }
 
         const email = credentials.email as string;
         const password = credentials.password as string;
 
+        console.log('🔍 [AUTH] Looking up user:', email);
         const usuario = await prisma.usuario.findUnique({
           where: { email },
           include: {
@@ -38,16 +43,27 @@ export const authOptions: NextAuthConfig = {
           }
         });
 
-        if (!usuario || !usuario.activo) {
+        if (!usuario) {
+          console.error('❌ [AUTH] User not found:', email);
           throw new Error('Usuario no encontrado o inactivo');
         }
+
+        if (!usuario.activo) {
+          console.error('❌ [AUTH] User inactive:', email);
+          throw new Error('Usuario no encontrado o inactivo');
+        }
+
+        console.log('✅ [AUTH] User found:', { username: usuario.username, email: usuario.email, activo: usuario.activo });
 
         const passwordMatch = await bcrypt.compare(
           password,
           usuario.password_hash
         );
 
+        console.log('🔑 [AUTH] Password match:', passwordMatch);
+
         if (!passwordMatch) {
+          console.error('❌ [AUTH] Password mismatch for:', email);
           throw new Error('Contraseña incorrecta');
         }
 
