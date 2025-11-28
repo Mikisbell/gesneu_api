@@ -87,7 +87,7 @@ describe('Usuarios API Integration Tests', () => {
                 body: JSON.stringify({ nombre_completo: 'Updated' }),
             });
 
-            const response = await updateUser(req, { params: { id: 'some-uuid' } });
+            const response = await updateUser(req, { params: Promise.resolve({ id: 'some-uuid' }) });
             expect(response.status).toBe(401);
         });
     });
@@ -100,7 +100,7 @@ describe('Usuarios API Integration Tests', () => {
                 method: 'DELETE',
             });
 
-            const response = await deleteUser(req, { params: { id: 'some-uuid' } });
+            const response = await deleteUser(req, { params: Promise.resolve({ id: 'some-uuid' }) });
             expect(response.status).toBe(401);
         });
 
@@ -111,7 +111,7 @@ describe('Usuarios API Integration Tests', () => {
                 method: 'DELETE',
             });
 
-            const response = await deleteUser(req, { params: { id: 'some-uuid' } });
+            const response = await deleteUser(req, { params: Promise.resolve({ id: 'some-uuid' }) });
             expect(response.status).toBe(403);
         });
     });

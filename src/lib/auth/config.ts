@@ -58,8 +58,8 @@ export const authOptions: NextAuthConfig = {
         usuario.roles.forEach((ur: any) => {
           roles.push(ur.rol.nombre);
           ur.rol.permisos.forEach((rp: any) => {
-            if (!permisos.includes(rp.permiso.nombre)) {
-              permisos.push(rp.permiso.nombre);
+            if (!permisos.includes(rp.permiso.codigo)) {
+              permisos.push(rp.permiso.codigo);
             }
           });
         });
@@ -90,6 +90,9 @@ export const authOptions: NextAuthConfig = {
         token.username = (user as any).username;
         token.roles = (user as any).roles;
         token.permissions = (user as any).permissions;
+        console.log('DEBUG: JWT Callback (Login) - User Permissions:', token.permissions);
+      } else {
+        console.log('DEBUG: JWT Callback (Subsequent) - Token Permissions:', token.permissions);
       }
       return token;
     },
@@ -99,6 +102,7 @@ export const authOptions: NextAuthConfig = {
         (session.user as any).username = token.username;
         (session.user as any).roles = token.roles;
         (session.user as any).permissions = token.permissions;
+        console.log('DEBUG: Session Callback - User Permissions:', (session.user as any).permissions);
       }
       return session;
     }
