@@ -76,7 +76,7 @@ export async function POST(request: NextRequest) {
                         nivel_severidad: 'CRITICA',
                         estado_alerta: 'PENDIENTE',
                         neumatico_id: neumatico.id,
-                        vehiculo_id: neumatico.vehiculo_id,
+                        vehiculo_id: neumatico.ubicacion_vehiculo_id,
                         almacen_id: neumatico.ubicacion_almacen_id,
                     }
                 });
