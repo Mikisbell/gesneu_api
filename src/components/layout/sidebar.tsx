@@ -13,7 +13,8 @@ import {
     Disc,
     Wrench,
     Warehouse,
-    UserCog
+    UserCog,
+    ClipboardCheck
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { signOut } from 'next-auth/react'
