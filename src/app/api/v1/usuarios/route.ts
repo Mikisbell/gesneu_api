@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { ApiResponseHelper } from '@/lib/utils/api-response';
-import { requirePermission } from '@/lib/auth/authorization';
+import { requireAuth, requirePermission } from '@/lib/auth/authorization';
 import { PERMISSIONS } from '@/lib/auth/permissions';
 import { createUsuarioSchema } from '@/lib/validators/usuarios';
 import { hash } from 'bcryptjs';
@@ -93,8 +93,8 @@ import { hash } from 'bcryptjs';
  */
 export async function GET(req: NextRequest) {
     try {
-        const session = await requirePermission(req, 'USUARIOS_READ');
-        if (session instanceof NextResponse) return session;
+        const session = await requireAuth();
+        requirePermission(session, PERMISSIONS.USUARIOS_READ);
 
         const { searchParams } = new URL(req.url);
         const page = parseInt(searchParams.get('page') || '1');
@@ -146,8 +146,8 @@ export async function GET(req: NextRequest) {
 
 export async function POST(req: NextRequest) {
     try {
-        const session = await requirePermission(req, 'USUARIOS_CREATE');
-        if (session instanceof NextResponse) return session;
+        const session = await requireAuth();
+        requirePermission(session, PERMISSIONS.USUARIOS_CREATE);
 
         const body = await req.json();
         const validation = createUsuarioSchema.safeParse(body);

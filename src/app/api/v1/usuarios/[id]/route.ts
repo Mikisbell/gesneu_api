@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { ApiResponseHelper } from '@/lib/utils/api-response';
-import { requirePermission } from '@/lib/auth/authorization';
+import { requireAuth, requirePermission } from '@/lib/auth/authorization';
 import { PERMISSIONS } from '@/lib/auth/permissions';
 import { updateUsuarioSchema } from '@/lib/validators/usuarios';
 import { hash } from 'bcryptjs';
@@ -106,8 +106,8 @@ export async function GET(
     { params }: { params: { id: string } }
 ) {
     try {
-        const session = await requirePermission(req, 'USUARIOS_READ');
-        if (session instanceof NextResponse) return session;
+        const session = await requireAuth();
+        requirePermission(session, PERMISSIONS.USUARIOS_READ);
 
         const usuario = await prisma.usuario.findUnique({
             where: { id: params.id, activo: true },
@@ -137,8 +137,8 @@ export async function PUT(
     { params }: { params: { id: string } }
 ) {
     try {
-        const session = await requirePermission(req, 'USUARIOS_UPDATE');
-        if (session instanceof NextResponse) return session;
+        const session = await requireAuth();
+        requirePermission(session, PERMISSIONS.USUARIOS_UPDATE);
 
         const body = await req.json();
         const validation = updateUsuarioSchema.safeParse(body);
@@ -221,8 +221,8 @@ export async function DELETE(
     { params }: { params: { id: string } }
 ) {
     try {
-        const session = await requirePermission(req, 'USUARIOS_DELETE');
-        if (session instanceof NextResponse) return session;
+        const session = await requireAuth();
+        requirePermission(session, PERMISSIONS.USUARIOS_DELETE);
 
         const existingUser = await prisma.usuario.findUnique({
             where: { id: params.id, activo: true },
