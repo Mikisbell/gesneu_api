@@ -40,11 +40,9 @@ export default function VehiculosPage() {
                 <h1 className="text-3xl font-bold tracking-tight">Vehículos</h1>
 
                 <Dialog open={open} onOpenChange={setOpen}>
-                    <DialogTrigger asChild>
-                        <Button>
-                            <Plus className="mr-2 h-4 w-4" /> Nuevo Vehículo
-                        </Button>
-                    </DialogTrigger>
+                    <Button onClick={() => setOpen(true)}>
+                        <Plus className="mr-2 h-4 w-4" /> Nuevo Vehículo
+                    </Button>
                     <DialogContent className="sm:max-w-[600px]">
                         <DialogHeader>
                             <DialogTitle>Registrar Vehículo</DialogTitle>

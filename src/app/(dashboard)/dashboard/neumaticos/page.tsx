@@ -52,12 +52,13 @@ export default function NeumaticosPage() {
             <div className="flex items-center justify-between">
                 <h1 className="text-3xl font-bold tracking-tight">Neumáticos</h1>
 
-                <Dialog open={open} onOpenChange={(val) => !val && handleClose()}>
-                    <DialogTrigger asChild>
-                        <Button onClick={() => setEditingNeumatico(null)}>
-                            <Plus className="mr-2 h-4 w-4" /> Nuevo Neumático
-                        </Button>
-                    </DialogTrigger>
+                <Dialog open={open} onOpenChange={setOpen}>
+                    <Button onClick={() => {
+                        setEditingNeumatico(null)
+                        setOpen(true)
+                    }}>
+                        <Plus className="mr-2 h-4 w-4" /> Nuevo Neumático
+                    </Button>
                     <DialogContent className="sm:max-w-[600px]">
                         <DialogHeader>
                             <DialogTitle>{editingNeumatico ? 'Editar Neumático' : 'Registrar Neumático'}</DialogTitle>
