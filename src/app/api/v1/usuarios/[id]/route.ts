@@ -103,14 +103,16 @@ import { hash } from 'bcryptjs';
  */
 export async function GET(
     req: NextRequest,
-    { params }: { params: { id: string } }
+    context: { params: Promise<{ id: string }> }
 ) {
     try {
         const session = await requireAuth();
         requirePermission(session, PERMISSIONS.USUARIOS_READ);
 
+        const { id } = await context.params;
+
         const usuario = await prisma.usuario.findUnique({
-            where: { id: params.id, activo: true },
+            where: { id, activo: true },
             include: {
                 roles: {
                     include: {
@@ -134,11 +136,13 @@ export async function GET(
 
 export async function PUT(
     req: NextRequest,
-    { params }: { params: { id: string } }
+    context: { params: Promise<{ id: string }> }
 ) {
     try {
         const session = await requireAuth();
         requirePermission(session, PERMISSIONS.USUARIOS_UPDATE);
+
+        const { id } = await context.params;
 
         const body = await req.json();
         const validation = updateUsuarioSchema.safeParse(body);
@@ -150,7 +154,7 @@ export async function PUT(
         const { roles, password, ...userData } = validation.data;
 
         const existingUser = await prisma.usuario.findUnique({
-            where: { id: params.id, activo: true },
+            where: { id, activo: true },
         });
 
         if (!existingUser) {
@@ -166,7 +170,7 @@ export async function PUT(
         const updatedUser = await prisma.$transaction(async (tx) => {
             // Update basic info
             const user = await tx.usuario.update({
-                where: { id: params.id },
+                where: { id },
                 data: {
                     ...userData,
                     ...(passwordHash && { password_hash: passwordHash }),
@@ -179,13 +183,13 @@ export async function PUT(
             if (roles) {
                 // Remove existing roles
                 await tx.usuarioRol.deleteMany({
-                    where: { usuario_id: params.id },
+                    where: { usuario_id: id },
                 });
 
                 // Add new roles
                 await tx.usuarioRol.createMany({
                     data: roles.map((rolId) => ({
-                        usuario_id: params.id,
+                        usuario_id: id,
                         rol_id: rolId,
                         asignado_por: session.user.id,
                     })),
@@ -193,7 +197,7 @@ export async function PUT(
             }
 
             return tx.usuario.findUnique({
-                where: { id: params.id },
+                where: { id },
                 include: {
                     roles: {
                         include: {
@@ -218,14 +222,16 @@ export async function PUT(
 
 export async function DELETE(
     req: NextRequest,
-    { params }: { params: { id: string } }
+    context: { params: Promise<{ id: string }> }
 ) {
     try {
         const session = await requireAuth();
         requirePermission(session, PERMISSIONS.USUARIOS_DELETE);
 
+        const { id } = await context.params;
+
         const existingUser = await prisma.usuario.findUnique({
-            where: { id: params.id, activo: true },
+            where: { id, activo: true },
         });
 
         if (!existingUser) {
@@ -234,7 +240,7 @@ export async function DELETE(
 
         // Soft delete
         await prisma.usuario.update({
-            where: { id: params.id },
+            where: { id },
             data: {
                 activo: false,
                 actualizado_por: session.user.id,
