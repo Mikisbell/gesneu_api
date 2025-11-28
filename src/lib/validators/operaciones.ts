@@ -95,3 +95,84 @@ export const RotacionNeumaticoSchema = z.object({
 export type MontajeNeumaticoInput = z.infer<typeof MontajeNeumaticoSchema>;
 export type DesmontajeNeumaticoInput = z.infer<typeof DesmontajeNeumaticoSchema>;
 export type RotacionNeumaticoInput = z.infer<typeof RotacionNeumaticoSchema>;
+
+/**
+ * Schema de validación para operación de inspección
+ */
+export const InspeccionNeumaticoSchema = z.object({
+    neumatico_id: z.string().uuid('ID de neumático debe ser un UUID válido'),
+    profundidad_izquierda_mm: z.number().nonnegative().max(25).optional(),
+    profundidad_centro_mm: z.number().nonnegative().max(25).optional(),
+    profundidad_derecha_mm: z.number().nonnegative().max(25).optional(),
+    presion_psi: z.number().positive().max(150).optional(),
+    kilometraje_vehiculo: z.number().nonnegative().int().optional(),
+    observaciones: z.string().max(1000).optional(),
+    fecha_evento: z.coerce.date().optional()
+});
+
+/**
+ * Schema de validación para envío a reparación
+ */
+export const ReparacionEntradaSchema = z.object({
+    neumatico_id: z.string().uuid(),
+    proveedor_id: z.string().uuid('ID de proveedor/taller debe ser un UUID válido'),
+    kilometraje_vehiculo: z.number().nonnegative().int().optional(),
+    costo_estimado: z.number().nonnegative().optional(),
+    observaciones: z.string().max(1000).optional(),
+    fecha_evento: z.coerce.date().optional()
+});
+
+/**
+ * Schema de validación para retorno de reparación
+ */
+export const ReparacionSalidaSchema = z.object({
+    neumatico_id: z.string().uuid(),
+    almacen_destino_id: z.string().uuid('ID de almacén destino debe ser un UUID válido'),
+    costo_real: z.number().nonnegative().optional(),
+    profundidad_nueva_mm: z.number().nonnegative().max(25).optional(),
+    observaciones: z.string().max(1000).optional(),
+    fecha_evento: z.coerce.date().optional()
+});
+
+/**
+ * Schema de validación para envío a reencauche
+ */
+export const ReencaucheEntradaSchema = z.object({
+    neumatico_id: z.string().uuid(),
+    proveedor_id: z.string().uuid('ID de proveedor/reencauchadora debe ser un UUID válido'),
+    kilometraje_vehiculo: z.number().nonnegative().int().optional(),
+    costo_estimado: z.number().nonnegative().optional(),
+    observaciones: z.string().max(1000).optional(),
+    fecha_evento: z.coerce.date().optional()
+});
+
+/**
+ * Schema de validación para retorno de reencauche
+ */
+export const ReencaucheSalidaSchema = z.object({
+    neumatico_id: z.string().uuid(),
+    almacen_destino_id: z.string().uuid('ID de almacén destino debe ser un UUID válido'),
+    costo_real: z.number().nonnegative().optional(),
+    profundidad_nueva_mm: z.number().positive().max(25, 'Profundidad no puede exceder 25mm'),
+    observaciones: z.string().max(1000).optional(),
+    fecha_evento: z.coerce.date().optional()
+});
+
+/**
+ * Schema de validación para desecho de neumático
+ */
+export const DesechoNeumaticoSchema = z.object({
+    neumatico_id: z.string().uuid(),
+    motivo_id: z.string().uuid('ID de motivo de desecho debe ser un UUID válido'),
+    kilometraje_vehiculo: z.number().nonnegative().int().optional(),
+    observaciones: z.string().max(1000).optional(),
+    fecha_evento: z.coerce.date().optional()
+});
+
+// Export tipos adicionales
+export type InspeccionNeumaticoInput = z.infer<typeof InspeccionNeumaticoSchema>;
+export type ReparacionEntradaInput = z.infer<typeof ReparacionEntradaSchema>;
+export type ReparacionSalidaInput = z.infer<typeof ReparacionSalidaSchema>;
+export type ReencaucheEntradaInput = z.infer<typeof ReencaucheEntradaSchema>;
+export type ReencaucheSalidaInput = z.infer<typeof ReencaucheSalidaSchema>;
+export type DesechoNeumaticoInput = z.infer<typeof DesechoNeumaticoSchema>;

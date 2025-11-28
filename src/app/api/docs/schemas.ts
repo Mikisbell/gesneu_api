@@ -439,3 +439,235 @@
  *           type: boolean
  */
 export { }
+
+/**
+ * @swagger
+ * components:
+ *   schemas:
+ *     Usuario:
+ *       type: object
+ *       properties:
+ *         id:
+ *           type: string
+ *           format: uuid
+ *         username:
+ *           type: string
+ *         nombre_completo:
+ *           type: string
+ *         email:
+ *           type: string
+ *           format: email
+ *         ultimo_login:
+ *           type: string
+ *           format: date-time
+ *           nullable: true
+ *         activo:
+ *           type: boolean
+ *         creado_en:
+ *           type: string
+ *           format: date-time
+ *         roles:
+ *           type: array
+ *           items:
+ *             type: object
+ *             properties:
+ *               rol:
+ *                 type: object
+ *                 properties:
+ *                   id:
+ *                     type: string
+ *                     format: uuid
+ *                   nombre:
+ *                     type: string
+ *
+ *     CreateUsuarioDTO:
+ *       type: object
+ *       required:
+ *         - username
+ *         - nombre_completo
+ *         - email
+ *         - password
+ *         - roles
+ *       properties:
+ *         username:
+ *           type: string
+ *           minLength: 3
+ *           maxLength: 50
+ *         nombre_completo:
+ *           type: string
+ *           minLength: 3
+ *           maxLength: 200
+ *         email:
+ *           type: string
+ *           format: email
+ *           maxLength: 100
+ *         password:
+ *           type: string
+ *           minLength: 6
+ *         roles:
+ *           type: array
+ *           items:
+ *             type: string
+ *             format: uuid
+ *           minItems: 1
+ *
+ *     UpdateUsuarioDTO:
+ *       type: object
+ *       properties:
+ *         nombre_completo:
+ *           type: string
+ *           minLength: 3
+ *           maxLength: 200
+ *         email:
+ *           type: string
+ *           format: email
+ *           maxLength: 100
+ *         password:
+ *           type: string
+ *           minLength: 6
+ *         roles:
+ *           type: array
+ *           items:
+ *             type: string
+ *             format: uuid
+ *         activo:
+ *           type: boolean
+ */
+
+/**
+ * @swagger
+ * components:
+ *   schemas:
+ *     InspeccionNeumaticoDTO:
+ *       type: object
+ *       required:
+ *         - neumatico_id
+ *       properties:
+ *         neumatico_id:
+ *           type: string
+ *           format: uuid
+ *         profundidad_izquierda_mm:
+ *           type: number
+ *         profundidad_centro_mm:
+ *           type: number
+ *         profundidad_derecha_mm:
+ *           type: number
+ *         presion_psi:
+ *           type: number
+ *         kilometraje_vehiculo:
+ *           type: integer
+ *         observaciones:
+ *           type: string
+ *         fecha_evento:
+ *           type: string
+ *           format: date-time
+ *
+ *     ReparacionEntradaDTO:
+ *       type: object
+ *       required:
+ *         - neumatico_id
+ *         - proveedor_id
+ *       properties:
+ *         neumatico_id:
+ *           type: string
+ *           format: uuid
+ *         proveedor_id:
+ *           type: string
+ *           format: uuid
+ *         kilometraje_vehiculo:
+ *           type: integer
+ *         costo_estimado:
+ *           type: number
+ *         observaciones:
+ *           type: string
+ *         fecha_evento:
+ *           type: string
+ *           format: date-time
+ *
+ *     ReparacionSalidaDTO:
+ *       type: object
+ *       required:
+ *         - neumatico_id
+ *         - almacen_destino_id
+ *       properties:
+ *         neumatico_id:
+ *           type: string
+ *           format: uuid
+ *         almacen_destino_id:
+ *           type: string
+ *           format: uuid
+ *         costo_real:
+ *           type: number
+ *         profundidad_nueva_mm:
+ *           type: number
+ *         observaciones:
+ *           type: string
+ *         fecha_evento:
+ *           type: string
+ *           format: date-time
+ *
+ *     ReencaucheEntradaDTO:
+ *       type: object
+ *       required:
+ *         - neumatico_id
+ *         - proveedor_id
+ *       properties:
+ *         neumatico_id:
+ *           type: string
+ *           format: uuid
+ *         proveedor_id:
+ *           type: string
+ *           format: uuid
+ *         kilometraje_vehiculo:
+ *           type: integer
+ *         costo_estimado:
+ *           type: number
+ *         observaciones:
+ *           type: string
+ *         fecha_evento:
+ *           type: string
+ *           format: date-time
+ *
+ *     ReencaucheSalidaDTO:
+ *       type: object
+ *       required:
+ *         - neumatico_id
+ *         - almacen_destino_id
+ *         - profundidad_nueva_mm
+ *       properties:
+ *         neumatico_id:
+ *           type: string
+ *           format: uuid
+ *         almacen_destino_id:
+ *           type: string
+ *           format: uuid
+ *         costo_real:
+ *           type: number
+ *         profundidad_nueva_mm:
+ *           type: number
+ *         observaciones:
+ *           type: string
+ *         fecha_evento:
+ *           type: string
+ *           format: date-time
+ *
+ *     DesechoNeumaticoDTO:
+ *       type: object
+ *       required:
+ *         - neumatico_id
+ *         - motivo_id
+ *       properties:
+ *         neumatico_id:
+ *           type: string
+ *           format: uuid
+ *         motivo_id:
+ *           type: string
+ *           format: uuid
+ *         kilometraje_vehiculo:
+ *           type: integer
+ *         observaciones:
+ *           type: string
+ *         fecha_evento:
+ *           type: string
+ *           format: date-time
+ */
