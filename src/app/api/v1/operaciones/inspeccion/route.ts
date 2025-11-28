@@ -54,10 +54,10 @@ export async function POST(request: NextRequest) {
             });
 
             // Registrar kilometraje si aplica
-            if (validatedData.kilometraje_vehiculo && neumatico.vehiculo_id) {
+            if (validatedData.kilometraje_vehiculo && neumatico.ubicacion_vehiculo_id) {
                 await tx.registroOdometro.create({
                     data: {
-                        vehiculo_id: neumatico.vehiculo_id,
+                        vehiculo_id: neumatico.ubicacion_vehiculo_id,
                         kilometraje: validatedData.kilometraje_vehiculo,
                         fecha_registro: new Date(),
                         registrado_por: session.user.id,
