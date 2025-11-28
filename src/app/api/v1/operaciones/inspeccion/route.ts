@@ -22,7 +22,7 @@ export async function POST(request: NextRequest) {
         });
 
         if (!neumatico) {
-            return ApiResponseHelper.notFound('Neumático no encontrado');
+            return ApiResponseHelper.notFound();
         }
 
         if (!neumatico.activo) {
