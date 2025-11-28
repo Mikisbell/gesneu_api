@@ -1,6 +1,5 @@
 import { NextRequest } from 'next/server';
 import { prisma } from '@/lib/prisma';
-import { cleanDatabase } from '../helpers/database-helpers';
 import { mockSessions } from '../helpers/auth-helpers';
 import { GET as getUsersGET, POST as createUser } from '@/app/api/v1/usuarios/route';
 import { GET as getUserGET, PUT as updateUser, DELETE as deleteUser } from '@/app/api/v1/usuarios/[id]/route';
@@ -12,7 +11,10 @@ describe('Usuarios Integration Tests', () => {
     let gestorRoleId: string;
 
     beforeAll(async () => {
-        await cleanDatabase();
+        // Clean up before tests
+        await prisma.usuarioRol.deleteMany({});
+        await prisma.usuario.deleteMany({});
+        await prisma.rol.deleteMany({});
 
         // Create roles for testing
         const adminRole = await prisma.rol.create({
