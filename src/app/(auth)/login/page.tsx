@@ -19,7 +19,7 @@ import {
 } from '@/components/ui/form'
 import { Input } from '@/components/ui/input'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card'
-import { useToast } from '@/hooks/use-toast'
+import { useToast } from '@/components/ui/use-toast'
 
 const formSchema = z.object({
     identifier: z.string().min(1, {

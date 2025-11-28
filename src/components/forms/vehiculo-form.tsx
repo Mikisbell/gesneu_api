@@ -23,7 +23,7 @@ import {
     SelectTrigger,
     SelectValue,
 } from "@/components/ui/select"
-import { useToast } from "@/hooks/use-toast"
+import { useToast } from "@/components/ui/use-toast"
 import { vehiculosApi } from "@/lib/api/vehiculos"
 import { tiposVehiculoApi } from "@/lib/api/tipos-vehiculo"
 
