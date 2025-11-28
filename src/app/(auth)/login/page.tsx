@@ -82,7 +82,6 @@ function LoginForm() {
                     variant: "destructive",
                     title: errorTitle,
                     description: errorDescription,
-                    duration: 8000,
                 })
             } else if (result?.ok) {
                 toast({
@@ -96,7 +95,6 @@ function LoginForm() {
                     variant: "destructive",
                     title: "Error de Configuración",
                     description: "No se pudo conectar con el servidor de autenticación. Si estás en Vercel, verifica: NEXTAUTH_URL debe ser https://gesneu.vercel.app",
-                    duration: 10000,
                 })
             }
         } catch (error) {
@@ -105,7 +103,6 @@ function LoginForm() {
                 variant: "destructive",
                 title: "Error del Sistema",
                 description: `Error: ${error instanceof Error ? error.message : 'Desconocido'}. Verifica la conexión a la base de datos (DATABASE_URL en Vercel).`,
-                duration: 10000,
             })
         } finally {
             setIsLoading(false)
