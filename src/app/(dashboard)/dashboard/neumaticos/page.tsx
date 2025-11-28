@@ -4,7 +4,7 @@ import { useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { neumaticosApi } from '@/lib/api/neumaticos'
 import { DataTable } from '@/components/ui/data-table'
-import { columns } from './columns'
+import { getColumns } from './columns'
 import { Button } from '@/components/ui/button'
 import { Plus, Loader2 } from 'lucide-react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
@@ -20,11 +20,24 @@ import { NeumaticoForm } from '@/components/forms/neumatico-form'
 
 export default function NeumaticosPage() {
     const [open, setOpen] = useState(false)
+    const [editingNeumatico, setEditingNeumatico] = useState<any>(null)
 
     const { data: neumaticos, isLoading, isError } = useQuery({
         queryKey: ['neumaticos'],
         queryFn: neumaticosApi.getAll,
     })
+
+    const handleEdit = (neumatico: any) => {
+        setEditingNeumatico(neumatico)
+        setOpen(true)
+    }
+
+    const handleClose = () => {
+        setOpen(false)
+        setEditingNeumatico(null)
+    }
+
+    const columns = getColumns({ onEdit: handleEdit })
 
     if (isError) {
         return (
@@ -39,20 +52,25 @@ export default function NeumaticosPage() {
             <div className="flex items-center justify-between">
                 <h1 className="text-3xl font-bold tracking-tight">Neumáticos</h1>
 
-                <Dialog open={open} onOpenChange={setOpen}>
+                <Dialog open={open} onOpenChange={(val) => !val && handleClose()}>
                     <DialogTrigger asChild>
-                        <Button>
+                        <Button onClick={() => setEditingNeumatico(null)}>
                             <Plus className="mr-2 h-4 w-4" /> Nuevo Neumático
                         </Button>
                     </DialogTrigger>
                     <DialogContent className="sm:max-w-[600px]">
                         <DialogHeader>
-                            <DialogTitle>Registrar Neumático</DialogTitle>
+                            <DialogTitle>{editingNeumatico ? 'Editar Neumático' : 'Registrar Neumático'}</DialogTitle>
                             <DialogDescription>
-                                Ingrese los datos del nuevo neumático para el inventario.
+                                {editingNeumatico
+                                    ? 'Modifique los datos del neumático seleccionado.'
+                                    : 'Ingrese los datos del nuevo neumático para el inventario.'}
                             </DialogDescription>
                         </DialogHeader>
-                        <NeumaticoForm onSuccess={() => setOpen(false)} />
+                        <NeumaticoForm
+                            initialData={editingNeumatico}
+                            onSuccess={handleClose}
+                        />
                     </DialogContent>
                 </Dialog>
             </div>

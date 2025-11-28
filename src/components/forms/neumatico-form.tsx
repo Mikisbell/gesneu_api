@@ -40,10 +40,11 @@ const formSchema = z.object({
 type FormValues = z.infer<typeof formSchema>
 
 interface NeumaticoFormProps {
+    initialData?: any
     onSuccess?: () => void
 }
 
-export function NeumaticoForm({ onSuccess }: NeumaticoFormProps) {
+export function NeumaticoForm({ initialData, onSuccess }: NeumaticoFormProps) {
     const { toast } = useToast()
     const queryClient = useQueryClient()
 
@@ -60,31 +61,38 @@ export function NeumaticoForm({ onSuccess }: NeumaticoFormProps) {
     const form = useForm<FormValues>({
         resolver: zodResolver(formSchema),
         defaultValues: {
-            numero_serie: "",
-            modelo_id: "",
-            dot: "",
-            profundidad_inicial_mm: "",
-            costo_compra: "",
-            ubicacion_almacen_id: "",
+            numero_serie: initialData?.numero_serie || "",
+            modelo_id: initialData?.modelo_id || "",
+            dot: initialData?.dot || "",
+            profundidad_inicial_mm: initialData?.profundidad_inicial_mm?.toString() || "",
+            costo_compra: initialData?.costo_compra?.toString() || "",
+            ubicacion_almacen_id: initialData?.ubicacion_almacen_id || "",
         },
     })
 
     const mutation = useMutation({
-        mutationFn: neumaticosApi.create,
+        mutationFn: (data: any) => {
+            if (initialData) {
+                return neumaticosApi.update(initialData.id, data)
+            }
+            return neumaticosApi.create(data)
+        },
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ["neumaticos"] })
             toast({
-                title: "Neumático creado",
-                description: "El neumático se ha registrado exitosamente.",
+                title: initialData ? "Neumático actualizado" : "Neumático creado",
+                description: initialData
+                    ? "Los datos se han actualizado correctamente."
+                    : "El neumático se ha registrado exitosamente.",
             })
-            form.reset()
+            if (!initialData) form.reset()
             onSuccess?.()
         },
         onError: (error: Error) => {
             toast({
                 variant: "destructive",
                 title: "Error",
-                description: error.message || "No se pudo crear el neumático.",
+                description: error.message || "No se pudo guardar el neumático.",
             })
         },
     })
@@ -213,7 +221,7 @@ export function NeumaticoForm({ onSuccess }: NeumaticoFormProps) {
                 <div className="flex justify-end pt-4">
                     <Button type="submit" disabled={mutation.isPending}>
                         {mutation.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                        Guardar Neumático
+                        {initialData ? 'Actualizar' : 'Guardar'} Neumático
                     </Button>
                 </div>
             </form>

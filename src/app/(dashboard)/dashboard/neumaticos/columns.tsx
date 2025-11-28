@@ -14,7 +14,11 @@ import {
 } from "@/components/ui/dropdown-menu"
 import { Badge } from "@/components/ui/badge"
 
-export const columns: ColumnDef<NeumaticoWithRelations>[] = [
+interface GetColumnsProps {
+    onEdit: (neumatico: NeumaticoWithRelations) => void
+}
+
+export const getColumns = ({ onEdit }: GetColumnsProps): ColumnDef<NeumaticoWithRelations>[] => [
     {
         accessorKey: "numero_serie",
         header: "Serie",
@@ -78,7 +82,7 @@ export const columns: ColumnDef<NeumaticoWithRelations>[] = [
                         <DropdownMenuItem>
                             <Eye className="mr-2 h-4 w-4" /> Ver Historial
                         </DropdownMenuItem>
-                        <DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => onEdit(neumatico)}>
                             <Pencil className="mr-2 h-4 w-4" /> Editar
                         </DropdownMenuItem>
                         <DropdownMenuItem className="text-red-600">
