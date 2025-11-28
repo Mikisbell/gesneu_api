@@ -52,6 +52,11 @@ const operacionesItems = [
         href: '/dashboard/operaciones/montaje',
         icon: Wrench,
     },
+    {
+        title: 'Inspección',
+        href: '/dashboard/operaciones/inspeccion',
+        icon: ClipboardCheck,
+    },
 ]
 
 export function Sidebar() {
