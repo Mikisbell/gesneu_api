@@ -61,7 +61,7 @@ export async function POST(req: NextRequest) {
         });
 
         if (!neumatico) {
-            return ApiResponseHelper.notFound('Neumático no encontrado');
+            return ApiResponseHelper.notFound();
         }
 
         await prisma.$transaction(async (tx) => {
