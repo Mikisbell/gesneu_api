@@ -15,6 +15,7 @@ export async function apiClient<T>(endpoint: string, options: FetchOptions = {})
 
     const response = await fetch(url, {
         ...init,
+        credentials: 'include', // Ensure cookies are sent for auth
         headers: {
             'Content-Type': 'application/json',
             ...init.headers,
@@ -26,5 +27,6 @@ export async function apiClient<T>(endpoint: string, options: FetchOptions = {})
         throw new Error(errorData.message || `API Error: ${response.statusText}`);
     }
 
-    return response.json();
+    const json = await response.json();
+    return json.data;
 }
