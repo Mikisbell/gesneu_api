@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { ApiResponseHelper } from '@/lib/utils/api-response';
-import { requirePermission } from '@/lib/auth/authorization';
+import { requireAuth, requirePermission } from '@/lib/auth/authorization';
+import { PERMISSIONS } from '@/lib/auth/permissions';
 import { InspeccionNeumaticoSchema } from '@/lib/validators/operaciones';
 
 /**
@@ -33,8 +34,8 @@ import { InspeccionNeumaticoSchema } from '@/lib/validators/operaciones';
  */
 export async function POST(req: NextRequest) {
     try {
-        const session = await requirePermission(req, 'OPERACIONES_CREATE');
-        if (session instanceof NextResponse) return session;
+        const session = await requireAuth();
+        requirePermission(session, PERMISSIONS.OPERACIONES_CREATE);
 
         const body = await req.json();
         const validation = InspeccionNeumaticoSchema.safeParse(body);
