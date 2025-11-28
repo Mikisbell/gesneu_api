@@ -1,25 +1,19 @@
-import { withAuth } from "next-auth/middleware"
-import { NextResponse } from "next/server"
+// Middleware commented out - Auth is handled per-endpoint with requireAuth()
+// If needed in the future, upgrade to NextAuth v5 middleware pattern
 
-export default withAuth(
-    function middleware(req) {
-        // Log request for Vercel/System logs
-        console.log(`[${req.method}] ${req.nextUrl.pathname} - User: ${req.nextauth.token?.email || 'Guest'}`)
-        return NextResponse.next()
-    },
-    {
-        callbacks: {
-            authorized: ({ token }) => !!token,
-        },
-    }
-)
+// import { NextResponse } from "next/server"
+// import type { NextRequest } from "next/server"
 
-export const config = {
-    matcher: [
-        "/dashboard/:path*",
-        "/api/v1/neumaticos/:path*",
-        "/api/v1/operaciones/:path*",
-        "/api/v1/vehiculos/:path*",
-        "/api/v1/catalogos/:path*",
-    ]
-}
+// export function middleware(request: NextRequest) {
+//     // Custom middleware logic if needed
+//     return NextResponse.next()
+// }
+
+// export const config = {
+//     matcher: [
+//         "/dashboard/:path*",
+//         "/api/v1/:path*",
+//     ]
+// }
+
+export { }; // Make this file a module
