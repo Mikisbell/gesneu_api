@@ -53,4 +53,5 @@ export interface NeumaticoFilters {
     ubicacion_vehiculo_id?: string;
     dot?: string;
     activo?: boolean;
+    search?: string;
 }

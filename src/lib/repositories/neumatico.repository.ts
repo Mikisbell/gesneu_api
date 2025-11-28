@@ -35,6 +35,12 @@ export class NeumaticoRepository extends BaseRepository<Neumatico, CreateNeumati
     async findAllWithRelations(filters: NeumaticoFilters = {}): Promise<INeumatico[]> {
         const where: Prisma.NeumaticoWhereInput = {};
 
+        if (filters.search) {
+            where.OR = [
+                { numero_serie: { contains: filters.search, mode: 'insensitive' } },
+                { ubicacion_vehiculo: { placa: { contains: filters.search, mode: 'insensitive' } } }
+            ];
+        }
         if (filters.numero_serie) {
             where.numero_serie = { contains: filters.numero_serie, mode: 'insensitive' };
         }

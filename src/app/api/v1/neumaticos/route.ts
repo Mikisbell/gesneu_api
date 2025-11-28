@@ -85,7 +85,8 @@ export async function GET(request: NextRequest) {
             ubicacion_almacen_id: searchParams.get('ubicacion_almacen_id') || undefined,
             ubicacion_vehiculo_id: searchParams.get('ubicacion_vehiculo_id') || undefined,
             dot: searchParams.get('dot') || undefined,
-            activo: searchParams.has('activo') ? searchParams.get('activo') === 'true' : undefined
+            activo: searchParams.has('activo') ? searchParams.get('activo') === 'true' : undefined,
+            search: searchParams.get('q') || undefined
         }
 
         const neumaticos = await service.getAll(filters)
