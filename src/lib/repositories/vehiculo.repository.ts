@@ -62,4 +62,38 @@ export class VehiculoRepository extends BaseRepository<Vehiculo, CreateVehiculoD
             throw error;
         }
     }
+
+    /**
+     * Obtiene un vehículo con toda su configuración de ejes y neumáticos
+     */
+    async findByIdWithFullConfig(id: string): Promise<IVehiculo | null> {
+        try {
+            return await this.model.findUnique({
+                where: { id },
+                include: {
+                    tipo_vehiculo: {
+                        include: {
+                            configuraciones: {
+                                include: {
+                                    posiciones: true
+                                },
+                                orderBy: {
+                                    numero_eje: 'asc'
+                                }
+                            }
+                        }
+                    },
+                    neumaticos_instalados: {
+                        include: {
+                            ubicacion_posicion: true,
+                            modelo: true
+                        }
+                    }
+                }
+            });
+        } catch (error) {
+            this.handleError(error);
+            throw error;
+        }
+    }
 }

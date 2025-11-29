@@ -16,6 +16,10 @@ export class VehiculoService {
         return await this.repository.findById(id);
     }
 
+    async getByIdWithFullConfig(id: string): Promise<IVehiculo | null> {
+        return await this.repository.findByIdWithFullConfig(id);
+    }
+
     async getByPlaca(placa: string): Promise<IVehiculo | null> {
         return await this.repository.findByPlaca(placa);
     }
