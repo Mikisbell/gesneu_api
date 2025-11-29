@@ -1,4 +1,4 @@
-```typescript
+
 import { NextResponse } from 'next/server';
 import { requireAuth } from '@/lib/auth/authorization';
 import { NeumaticoService } from '@/lib/services/neumatico.service';
