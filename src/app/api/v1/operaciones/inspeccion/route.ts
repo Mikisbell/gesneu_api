@@ -25,78 +25,23 @@ export async function POST(request: NextRequest) {
             return ApiResponseHelper.notFound();
         }
 
-        if (!neumatico.activo) {
-            return ApiResponseHelper.error('El neumático no está activo', 400);
-        }
-
-        // 4. Ejecutar inspección en transacción
-        const resultado = await prisma.$transaction(async (tx) => {
-            // Registrar medición
-            const medicion = await tx.medicionProfundidad.create({
-                data: {
-                    neumatico_id: neumatico.id,
-                    profundidad_mm: validatedData.profundidad_mm,
-                    fecha_medicion: new Date(),
-                    medido_por: session.user.id,
-                    notas: validatedData.observaciones,
-                    posicion_medicion: neumatico.ubicacion_posicion_id ? 'CENTRO' : null, // Simplificado
-                }
-            });
-
-            // Actualizar neumático
-            const neumaticoActualizado = await tx.neumatico.update({
-                where: { id: neumatico.id },
-                data: {
-                    profundidad_actual_mm: validatedData.profundidad_mm,
-                    presion_actual_psi: validatedData.presion_psi,
-                    // Si se provee kilometraje y está montado, actualizar acumulado (simplificado)
-                }
-            });
-
-            // Registrar kilometraje si aplica
-            if (validatedData.kilometraje_vehiculo && neumatico.ubicacion_vehiculo_id) {
-                await tx.registroOdometro.create({
-                    data: {
-                        vehiculo_id: neumatico.ubicacion_vehiculo_id,
-                        kilometraje: validatedData.kilometraje_vehiculo,
-                        fecha_registro: new Date(),
-                        registrado_por: session.user.id,
-                        notas: `Inspección de neumático ${neumatico.numero_serie}`
-                    }
-                });
+        // 4. Registrar inspección como evento
+        const evento = await prisma.eventoNeumatico.create({
+            data: {
+                tipo_evento: 'INSPECCION',
+                neumatico_id: neumatico.id,
+                fecha_evento: new Date(),
+                contador_vehiculo: validatedData.contador_vehiculo,
+                presion_psi: validatedData.presion_psi,
+                profundidad_remanente: validatedData.profundidad_mm,
+                notas: validatedData.observaciones,
+                creado_por: session.user.id,
+                vehiculo_id: neumatico.ubicacion_vehiculo_id
             }
-
-            // Generar alerta si profundidad es crítica (< 3mm)
-            let alerta = null;
-            if (validatedData.profundidad_mm < 3) {
-                alerta = await tx.alerta.create({
-                    data: {
-                        tipo_alerta: 'PROFUNDIDAD_CRITICA',
-                        mensaje: `Neumático ${neumatico.numero_serie} con profundidad crítica: ${validatedData.profundidad_mm}mm`,
-                        nivel_severidad: 'CRITICA',
-                        estado_alerta: 'PENDIENTE',
-                        neumatico_id: neumatico.id,
-                        vehiculo_id: neumatico.ubicacion_vehiculo_id,
-                        almacen_id: neumatico.ubicacion_almacen_id,
-                    }
-                });
-            }
-
-            return {
-                medicion,
-                neumatico: neumaticoActualizado,
-                alerta
-            };
         });
 
         return ApiResponseHelper.success({
-            medicion: resultado.medicion,
-            neumatico: resultado.neumatico,
-            alerta: resultado.alerta ? {
-                generada: true,
-                tipo: resultado.alerta.nivel_severidad,
-                mensaje: resultado.alerta.mensaje
-            } : { generada: false }
+            evento
         }, 'Inspección registrada exitosamente');
 
     } catch (error) {
