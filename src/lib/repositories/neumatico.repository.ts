@@ -59,9 +59,6 @@ export class NeumaticoRepository extends BaseRepository<Neumatico, CreateNeumati
         if (filters.dot) {
             where.dot = filters.dot;
         }
-        if (filters.activo !== undefined) {
-            where.activo = filters.activo;
-        }
 
         try {
             return await this.model.findMany({
