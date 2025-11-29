@@ -103,7 +103,6 @@ export async function GET(req: NextRequest) {
         const skip = (page - 1) * limit;
 
         const where = {
-            activo: true,
             OR: search ? [
                 { username: { contains: search, mode: 'insensitive' as const } },
                 { nombre_completo: { contains: search, mode: 'insensitive' as const } },
@@ -116,13 +115,6 @@ export async function GET(req: NextRequest) {
                 where,
                 skip,
                 take: limit,
-                include: {
-                    roles: {
-                        include: {
-                            rol: true,
-                        },
-                    },
-                },
                 orderBy: { creado_en: 'desc' },
             }),
             prisma.usuario.count({ where }),
@@ -156,7 +148,7 @@ export async function POST(req: NextRequest) {
             return ApiResponseHelper.validationError(validation.error);
         }
 
-        const { roles, password, ...userData } = validation.data;
+        const { password, ...userData } = validation.data;
 
         // Check if username or email exists
         const existingUser = await prisma.usuario.findFirst({
@@ -181,21 +173,8 @@ export async function POST(req: NextRequest) {
             data: {
                 ...userData,
                 password_hash: passwordHash,
-                creado_por: session.user.id,
-                roles: {
-                    create: roles.map((rolId) => ({
-                        rol_id: rolId,
-                        asignado_por: session.user.id,
-                    })),
-                },
-            },
-            include: {
-                roles: {
-                    include: {
-                        rol: true,
-                    },
-                },
-            },
+                creado_por: session.user.id
+            }
         });
 
         const { password_hash, ...sanitizedUser } = newUser;
