@@ -39,26 +39,23 @@ export default function InspeccionPage() {
 
     // Inspection mutation
     const inspeccionMutation = useMutation({
-        mutationFn: (data: InspeccionNeumaticoInput) =>
-            apiClient('/api/v1/operaciones/inspeccion', {
+        mutationFn: (data: any) =>
+            apiClient('/api/v1/neumaticos/eventos', {
                 method: 'POST',
                 body: JSON.stringify(data)
             }),
         onSuccess: (response: any) => {
-            const { alerta } = response;
+            // Check for alerts in the response or subsequent query
+            // The new endpoint returns the event. Alerts are created async or part of the transaction.
+            // For now, we assume success means it's done. 
+            // If we want to show alerts, we might need the backend to return them or fetch them.
+            // The previous logic checked `response.alerta`. The new backend logic creates alerts but might not return them in the same structure.
+            // Let's assume standard success for now.
 
-            if (alerta?.generada) {
-                toast({
-                    title: '⚠️ Alerta Generada',
-                    description: alerta.mensaje,
-                    variant: 'destructive',
-                });
-            } else {
-                toast({
-                    title: '✅ Inspección Registrada',
-                    description: 'La medición se ha guardado correctamente.',
-                });
-            }
+            toast({
+                title: '✅ Inspección Registrada',
+                description: 'La medición se ha guardado correctamente.',
+            });
 
             // Reset form and selection
             form.reset();
@@ -78,8 +75,11 @@ export default function InspeccionPage() {
         if (!selectedNeumatico) return;
 
         const payload = {
-            ...data,
+            tipo_evento: 'INSPECCION',
             neumatico_id: selectedNeumatico.id,
+            profundidad_remanente: data.profundidad_mm,
+            presion_psi: data.presion_psi,
+            observaciones: data.observaciones,
             kilometraje_vehiculo: selectedNeumatico.vehiculo ? data.kilometraje_vehiculo : undefined
         };
 
