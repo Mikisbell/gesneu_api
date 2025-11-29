@@ -39,10 +39,11 @@ const formSchema = z.object({
 type FormValues = z.infer<typeof formSchema>
 
 interface VehiculoFormProps {
+    initialData?: any
     onSuccess?: () => void
 }
 
-export function VehiculoForm({ onSuccess }: VehiculoFormProps) {
+export function VehiculoForm({ initialData, onSuccess }: VehiculoFormProps) {
     const { toast } = useToast()
     const queryClient = useQueryClient()
 
@@ -54,31 +55,38 @@ export function VehiculoForm({ onSuccess }: VehiculoFormProps) {
     const form = useForm<FormValues>({
         resolver: zodResolver(formSchema),
         defaultValues: {
-            placa: "",
-            tipo_vehiculo_id: "",
-            marca: "",
-            modelo: "",
-            anio: "",
-            kilometraje_actual: "",
+            placa: initialData?.placa || "",
+            tipo_vehiculo_id: initialData?.tipo_vehiculo_id || "",
+            marca: initialData?.marca || "",
+            modelo: initialData?.modelo || "",
+            anio: initialData?.anio?.toString() || "",
+            kilometraje_actual: initialData?.kilometraje_actual?.toString() || "",
         },
     })
 
     const mutation = useMutation({
-        mutationFn: vehiculosApi.create,
+        mutationFn: (data: any) => {
+            if (initialData) {
+                return vehiculosApi.update(initialData.id, data)
+            }
+            return vehiculosApi.create(data)
+        },
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ["vehiculos"] })
             toast({
-                title: "Vehículo creado",
-                description: "El vehículo se ha registrado exitosamente.",
+                title: initialData ? "Vehículo actualizado" : "Vehículo creado",
+                description: initialData
+                    ? "Los datos se han actualizado correctamente."
+                    : "El vehículo se ha registrado exitosamente.",
             })
-            form.reset()
+            if (!initialData) form.reset()
             onSuccess?.()
         },
         onError: (error: Error) => {
             toast({
                 variant: "destructive",
                 title: "Error",
-                description: error.message || "No se pudo crear el vehículo.",
+                description: error.message || "No se pudo guardar el vehículo.",
             })
         },
     })
@@ -196,7 +204,7 @@ export function VehiculoForm({ onSuccess }: VehiculoFormProps) {
                 <div className="flex justify-end pt-4">
                     <Button type="submit" disabled={mutation.isPending}>
                         {mutation.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                        Guardar Vehículo
+                        {initialData ? 'Actualizar' : 'Guardar'} Vehículo
                     </Button>
                 </div>
             </form>
