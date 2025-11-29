@@ -4,7 +4,7 @@ import { useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { vehiculosApi } from '@/lib/api/vehiculos'
 import { DataTable } from '@/components/ui/data-table'
-import { columns } from './columns'
+import { getColumns } from './columns'
 import { Button } from '@/components/ui/button'
 import { Plus, Loader2 } from 'lucide-react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
@@ -20,11 +20,24 @@ import { VehiculoForm } from '@/components/forms/vehiculo-form'
 
 export default function VehiculosPage() {
     const [open, setOpen] = useState(false)
+    const [editingVehiculo, setEditingVehiculo] = useState<any>(null)
 
     const { data: vehiculos, isLoading, isError } = useQuery({
         queryKey: ['vehiculos'],
         queryFn: vehiculosApi.getAll,
     })
+
+    const handleEdit = (vehiculo: any) => {
+        setEditingVehiculo(vehiculo)
+        setOpen(true)
+    }
+
+    const handleClose = () => {
+        setOpen(false)
+        setEditingVehiculo(null)
+    }
+
+    const columns = getColumns({ onEdit: handleEdit })
 
     if (isError) {
         return (
@@ -40,17 +53,25 @@ export default function VehiculosPage() {
                 <h1 className="text-3xl font-bold tracking-tight">Vehículos</h1>
 
                 <Dialog open={open} onOpenChange={setOpen}>
-                    <Button onClick={() => setOpen(true)}>
+                    <Button onClick={() => {
+                        setEditingVehiculo(null)
+                        setOpen(true)
+                    }}>
                         <Plus className="mr-2 h-4 w-4" /> Nuevo Vehículo
                     </Button>
                     <DialogContent className="sm:max-w-[600px]">
                         <DialogHeader>
-                            <DialogTitle>Registrar Vehículo</DialogTitle>
+                            <DialogTitle>{editingVehiculo ? 'Editar Vehículo' : 'Registrar Vehículo'}</DialogTitle>
                             <DialogDescription>
-                                Ingrese los datos del nuevo vehículo para la flota.
+                                {editingVehiculo
+                                    ? 'Modifique los datos del vehículo seleccionado.'
+                                    : 'Ingrese los datos del nuevo vehículo para la flota.'}
                             </DialogDescription>
                         </DialogHeader>
-                        <VehiculoForm onSuccess={() => setOpen(false)} />
+                        <VehiculoForm
+                            initialData={editingVehiculo}
+                            onSuccess={handleClose}
+                        />
                     </DialogContent>
                 </Dialog>
             </div>

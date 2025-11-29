@@ -13,7 +13,11 @@ import {
     DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 
-export const columns: ColumnDef<VehiculoWithRelations>[] = [
+interface GetColumnsProps {
+    onEdit: (vehiculo: VehiculoWithRelations) => void
+}
+
+export const getColumns = ({ onEdit }: GetColumnsProps): ColumnDef<VehiculoWithRelations>[] => [
     {
         accessorKey: "placa",
         header: "Placa",
@@ -68,7 +72,7 @@ export const columns: ColumnDef<VehiculoWithRelations>[] = [
                             Copiar ID
                         </DropdownMenuItem>
                         <DropdownMenuSeparator />
-                        <DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => onEdit(vehiculo)}>
                             <Pencil className="mr-2 h-4 w-4" /> Editar
                         </DropdownMenuItem>
                         <DropdownMenuItem className="text-red-600">
