@@ -47,7 +47,7 @@ export async function POST(req: NextRequest) {
         const {
             neumatico_id,
             proveedor_id,
-            kilometraje_vehiculo,
+            contador_vehiculo,
             costo_estimado,
             observaciones,
             fecha_evento
@@ -67,7 +67,7 @@ export async function POST(req: NextRequest) {
                     tipo_evento: 'REENCAUCHE_ENTRADA',
                     neumatico_id,
                     fecha_evento: fecha_evento || new Date(),
-                    kilometraje_vehiculo,
+                    contador_vehiculo,
                     proveedor_id,
                     costo_evento: costo_estimado,
                     notas: observaciones,
