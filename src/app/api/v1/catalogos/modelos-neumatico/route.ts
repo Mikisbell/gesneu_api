@@ -40,9 +40,6 @@ export async function GET(request: NextRequest) {
 
         // 3. Business logic
         const modelos = await prisma.modeloNeumatico.findMany({
-            where: {
-                activo: true
-            },
             include: {
                 fabricante: true
             },

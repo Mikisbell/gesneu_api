@@ -40,9 +40,6 @@ export async function GET(request: NextRequest) {
 
         // 3. Business logic
         const tipos = await prisma.tipoVehiculo.findMany({
-            where: {
-                activo: true
-            },
             orderBy: {
                 nombre: 'asc'
             }

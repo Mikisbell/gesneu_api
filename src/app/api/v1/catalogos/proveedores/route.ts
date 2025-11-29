@@ -74,12 +74,11 @@ export async function GET(request: NextRequest) {
 
     const [proveedores, total] = await Promise.all([
       prisma.proveedor.findMany({
-        where: { activo: true },
         orderBy: { nombre: 'asc' },
         skip,
         take: pageSize
       }),
-      prisma.proveedor.count({ where: { activo: true } })
+      prisma.proveedor.count()
     ])
 
     return ApiResponseHelper.paginated(proveedores, {
@@ -161,12 +160,7 @@ export async function POST(request: NextRequest) {
       data: {
         tipo: body.tipo,
         nombre: body.nombre,
-        ruc: body.ruc,
-        contacto_principal: body.contacto_principal,
-        telefono: body.telefono,
-        email: body.email,
-        direccion: body.direccion,
-        activo: body.activo ?? true
+        ruc: body.ruc
       }
     })
 
