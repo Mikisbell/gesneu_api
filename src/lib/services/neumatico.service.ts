@@ -2,7 +2,10 @@ import { NeumaticoRepository } from '@/lib/repositories/neumatico.repository';
 import { CreateNeumaticoDTO, UpdateNeumaticoDTO, INeumatico, NeumaticoFilters } from '@/types/domain/neumatico.types';
 import { prisma } from '@/lib/prisma';
 import { EventoNeumaticoCreate } from '@/lib/validators/evento-neumatico';
-import { TipoEventoNeumaticoEnum, EstadoNeumaticoEnum } from '@prisma/client';
+import { TipoEventoNeumaticoEnum, EstadoNeumaticoEnum, Prisma } from '@prisma/client';
+
+// Type for Prisma transaction client
+type TxClient = Prisma.TransactionClient;
 
 export class NeumaticoService {
     private repository: NeumaticoRepository;
@@ -97,7 +100,7 @@ export class NeumaticoService {
      * Helper method to validate and fetch a tire with proper error handling.
      * Reduces code duplication across event handlers.
      */
-    private async _validateAndGetNeumatico(tx: any, id: string, includes: any = {}) {
+    private async _validateAndGetNeumatico(tx: TxClient, id: string, includes: any = {}) {
         const neumatico = await tx.neumatico.findUnique({
             where: { id },
             include: includes
@@ -114,7 +117,7 @@ export class NeumaticoService {
         return neumatico;
     }
 
-    private async _handleInstalacion(evento: EventoNeumaticoCreate, userId: string, tx: any) {
+    private async _handleInstalacion(evento: EventoNeumaticoCreate, userId: string, tx: TxClient) {
         const { neumatico_id, vehiculo_id, posicion_montaje_id, kilometraje_vehiculo, profundidad_remanente, presion_psi, observaciones } = evento;
         const now = new Date(evento.fecha_evento || new Date());
 
@@ -242,7 +245,7 @@ export class NeumaticoService {
         return nuevoEvento;
     }
 
-    private async _handleDesmontaje(evento: EventoNeumaticoCreate, userId: string, tx: any) {
+    private async _handleDesmontaje(evento: EventoNeumaticoCreate, userId: string, tx: TxClient) {
         const { neumatico_id, kilometraje_vehiculo, profundidad_remanente, presion_psi, observaciones, estado_neumatico_resultante, almacen_destino_id, motivo_desecho_id } = evento;
         const now = new Date(evento.fecha_evento || new Date());
 
@@ -268,14 +271,23 @@ export class NeumaticoService {
                 orderBy: { fecha_evento: 'desc' }
             });
 
-            if (instalacionEvento && instalacionEvento.kilometraje_vehiculo) {
-                kmRecorrido = kilometraje_vehiculo - instalacionEvento.kilometraje_vehiculo;
-                if (kmRecorrido < 0) kmRecorrido = 0;
+            const lastInstalacion = eventos[0]; // Latest first
+            if (lastInstalacion?.kilometraje_vehiculo) {
+                let kmRecorrido = kilometraje_vehiculo - lastInstalacion.kilometraje_vehiculo;
+                // 🚨 CRITICAL FIX: Throw error instead of silently setting to 0
+                if (kmRecorrido < 0) {
+                    throw new Error(
+                        `Kilometraje inválido: El kilometraje actual (${kilometraje_vehiculo}) es menor que ` +
+                        `el de la última instalación (${lastInstalacion.kilometraje_vehiculo}). ` +
+                        `Verifique el odómetro del vehículo.`
+                    );
+                }
+                await tx.neumatico.update({
+                    where: { id: neumatico_id },
+                    data: { kilometraje_acumulado: { increment: kmRecorrido } }
+                });
             }
         }
-
-        // 3. Determine Destination State and Event Type
-        // If not provided, defaults to EN_STOCK
         let nuevoEstado = estado_neumatico_resultante || EstadoNeumaticoEnum.EN_STOCK;
         let tipoEvento = TipoEventoNeumaticoEnum.DESMONTAJE;
 
@@ -369,7 +381,7 @@ export class NeumaticoService {
         return nuevoEvento;
     }
 
-    private async _handleInspeccion(evento: EventoNeumaticoCreate, userId: string, tx: any) {
+    private async _handleInspeccion(evento: EventoNeumaticoCreate, userId: string, tx: TxClient) {
         const { neumatico_id, kilometraje_vehiculo, profundidad_remanente, presion_psi, observaciones } = evento;
         const now = new Date(evento.fecha_evento || new Date());
 
@@ -461,7 +473,7 @@ export class NeumaticoService {
         return nuevoEvento;
     }
 
-    private async _handleRotacion(evento: EventoNeumaticoCreate, userId: string, tx: any) {
+    private async _handleRotacion(evento: EventoNeumaticoCreate, userId: string, tx: TxClient) {
         const { neumatico_id, vehiculo_id, posicion_montaje_id, kilometraje_vehiculo, profundidad_remanente, presion_psi, observaciones } = evento;
         const now = new Date(evento.fecha_evento || new Date());
 
@@ -482,7 +494,19 @@ export class NeumaticoService {
 
         if (currentPosId === targetPosId) throw new Error('La posición de destino es la misma que la actual');
 
-        // 2. Validate Target Position
+        // 2. Validate Target Position and fetch position details for validation
+        const targetPosition = await tx.posicionNeumatico.findUnique({
+            where: { id: targetPosId },
+            include: { configuracion_eje: true }
+        });
+
+        if (!targetPosition) throw new Error('Posición de destino no encontrada');
+
+        // Validate Tire A can go to target position (reencauche check)
+        if (neumatico.es_reencauchado && !targetPosition.configuracion_eje.permite_reencauchados) {
+            throw new Error('El neumático reencauchado no puede instalarse en esta posición');
+        }
+
         // Check if there is a tire in the target position (Tire B)
         const neumaticoEnDestino = await tx.neumatico.findFirst({
             where: {
@@ -493,6 +517,25 @@ export class NeumaticoService {
                 ubicacion_vehiculo_id: neumatico.ubicacion_vehiculo_id
             }
         });
+
+        // 🚨 CRITICAL FIX: Bidirectional validation for swap
+        if (neumaticoEnDestino && currentPosId) {
+            // Fetch origin position details to validate Tire B compatibility
+            const originPosition = await tx.posicionNeumatico.findUnique({
+                where: { id: currentPosId },
+                include: { configuracion_eje: true }
+            });
+
+            if (!originPosition) throw new Error('Posición de origen no encontrada');
+
+            // Validate that Tire B can go to origin position (Tire A's old position)
+            if (neumaticoEnDestino.es_reencauchado && !originPosition.configuracion_eje.permite_reencauchados) {
+                throw new Error(
+                    `No se puede realizar el intercambio: El neumático ${neumaticoEnDestino.numero_serie} ` +
+                    `(reencauchado) no está permitido en la posición de origen.`
+                );
+            }
+        }
 
         // 3. Create Event for Tire A
         const eventoRotacion = await tx.eventoNeumatico.create({
@@ -522,7 +565,7 @@ export class NeumaticoService {
         });
 
         // 5. Handle Swap (if Tire B exists)
-        if (neumaticoEnDestino) {
+        if (neumaticoEnDestino && currentPosId) {
             // Create Event for Tire B (Swap)
             await tx.eventoNeumatico.create({
                 data: {
@@ -568,7 +611,7 @@ export class NeumaticoService {
         return eventoRotacion;
     }
 
-    private async _handleReparacionEntrada(evento: EventoNeumaticoCreate, userId: string, tx: any) {
+    private async _handleReparacionEntrada(evento: EventoNeumaticoCreate, userId: string, tx: TxClient) {
         const { neumatico_id, proveedor_id, observaciones } = evento;
         const now = new Date(evento.fecha_evento || new Date());
 
@@ -615,7 +658,7 @@ export class NeumaticoService {
         return nuevoEvento;
     }
 
-    private async _handleReparacionSalida(evento: EventoNeumaticoCreate, userId: string, tx: any) {
+    private async _handleReparacionSalida(evento: EventoNeumaticoCreate, userId: string, tx: TxClient) {
         const { neumatico_id, almacen_destino_id, costo_evento, observaciones, profundidad_remanente } = evento;
         const now = new Date(evento.fecha_evento || new Date());
 
@@ -664,7 +707,7 @@ export class NeumaticoService {
         return nuevoEvento;
     }
 
-    private async _handleReencaucheEntrada(evento: EventoNeumaticoCreate, userId: string, tx: any) {
+    private async _handleReencaucheEntrada(evento: EventoNeumaticoCreate, userId: string, tx: TxClient) {
         const { neumatico_id, proveedor_id, observaciones } = evento;
         const now = new Date(evento.fecha_evento || new Date());
 
@@ -715,7 +758,7 @@ export class NeumaticoService {
         return nuevoEvento;
     }
 
-    private async _handleReencaucheSalida(evento: EventoNeumaticoCreate, userId: string, tx: any) {
+    private async _handleReencaucheSalida(evento: EventoNeumaticoCreate, userId: string, tx: TxClient) {
         const { neumatico_id, almacen_destino_id, costo_evento, observaciones, profundidad_remanente } = evento;
         const now = new Date(evento.fecha_evento || new Date());
 
@@ -766,7 +809,7 @@ export class NeumaticoService {
         return nuevoEvento;
     }
 
-    private async _handleDesecho(evento: EventoNeumaticoCreate, userId: string, tx: any) {
+    private async _handleDesecho(evento: EventoNeumaticoCreate, userId: string, tx: TxClient) {
         const { neumatico_id, motivo_desecho_id, observaciones } = evento;
         const now = new Date(evento.fecha_evento || new Date());
 
