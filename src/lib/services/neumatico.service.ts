@@ -175,7 +175,7 @@ export class NeumaticoService {
         });
 
         // 5b. Create History Record
-        await tx.historialEstadoNeumaticoEnum.create({
+        await tx.historialEstadoNeumatico.create({
             data: {
                 neumatico_id: neumatico.id,
                 estado_anterior: neumatico.estado_actual,
@@ -304,7 +304,7 @@ export class NeumaticoService {
         });
 
         // 5b. Create History Record
-        await tx.historialEstadoNeumaticoEnum.create({
+        await tx.historialEstadoNeumatico.create({
             data: {
                 neumatico_id: neumatico.id,
                 estado_anterior: neumatico.estado_actual,
@@ -581,7 +581,7 @@ export class NeumaticoService {
             },
         });
 
-        await tx.historialEstadoNeumaticoEnum.create({
+        await tx.historialEstadoNeumatico.create({
             data: {
                 neumatico_id: neumatico.id,
                 estado_anterior: neumatico.estado_actual,
@@ -631,7 +631,7 @@ export class NeumaticoService {
             },
         });
 
-        await tx.historialEstadoNeumaticoEnum.create({
+        await tx.historialEstadoNeumatico.create({
             data: {
                 neumatico_id: neumatico.id,
                 estado_anterior: neumatico.estado_actual,
@@ -682,7 +682,7 @@ export class NeumaticoService {
             },
         });
 
-        await tx.historialEstadoNeumaticoEnum.create({
+        await tx.historialEstadoNeumatico.create({
             data: {
                 neumatico_id: neumatico.id,
                 estado_anterior: neumatico.estado_actual,
@@ -733,7 +733,7 @@ export class NeumaticoService {
             },
         });
 
-        await tx.historialEstadoNeumaticoEnum.create({
+        await tx.historialEstadoNeumatico.create({
             data: {
                 neumatico_id: neumatico.id,
                 estado_anterior: neumatico.estado_actual,
@@ -783,7 +783,7 @@ export class NeumaticoService {
             },
         });
 
-        await tx.historialEstadoNeumaticoEnum.create({
+        await tx.historialEstadoNeumatico.create({
             data: {
                 neumatico_id: neumatico.id,
                 estado_anterior: neumatico.estado_actual,
