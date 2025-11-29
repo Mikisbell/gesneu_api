@@ -1,6 +1,6 @@
+```typescript
 import { NextResponse } from 'next/server';
-import { getServerSession } from 'next-auth';
-import { authOptions } from '@/lib/auth/config';
+import { requireAuth } from '@/lib/auth/authorization';
 import { NeumaticoService } from '@/lib/services/neumatico.service';
 import { EventoNeumaticoCreateSchema } from '@/lib/validators/evento-neumatico';
 import { ApiResponseHelper } from '@/lib/utils/api-response';
@@ -9,10 +9,7 @@ const neumaticoService = new NeumaticoService();
 
 export async function POST(req: Request) {
     try {
-        const session = await getServerSession(authOptions);
-        if (!session) {
-            return ApiResponseHelper.unauthorized();
-        }
+        const session = await requireAuth();
 
         const body = await req.json();
 
