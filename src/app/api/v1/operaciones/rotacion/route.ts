@@ -1,19 +1,18 @@
 import { NextRequest } from 'next/server';
-import { OperacionesNeumaticosService } from '@/lib/services/operaciones-neumaticos.service';
+import { NeumaticoService } from '@/lib/services/neumatico.service';
 import { ApiResponseHelper } from '@/lib/utils/api-response';
-import { RotacionNeumaticoDTO } from '@/types/domain/operaciones.types';
-import { RotacionNeumaticoSchema } from '@/lib/validators/operaciones';
+import { EventoNeumaticoCreateSchema } from '@/lib/validators/evento-neumatico';
 import { requireAuth, requirePermission } from '@/lib/auth/authorization';
 import { PERMISSIONS } from '@/lib/auth/permissions';
 
-const service = new OperacionesNeumaticosService();
+const service = new NeumaticoService();
 
 /**
  * @swagger
  * /api/v1/operaciones/rotacion:
  *   post:
- *     summary: Rotar neumáticos
- *     description: Registra la rotación de neumáticos en un vehículo.
+ *     summary: Rotar neumático
+ *     description: Registra la rotación de un neumático en un vehículo.
  *     tags: [Operaciones]
  *     security:
  *       - bearerAuth: []
@@ -22,19 +21,17 @@ const service = new OperacionesNeumaticosService();
  *       content:
  *         application/json:
  *           schema:
- *             $ref: '#/components/schemas/RotacionNeumaticoDTO'
+ *             $ref: '#/components/schemas/EventoNeumaticoCreate'
  *     responses:
  *       200:
- *         description: Neumáticos rotados exitosamente
+ *         description: Neumático rotado exitosamente
  *         content:
  *           application/json:
  *             schema:
  *               type: object
  *               properties:
  *                 data:
- *                   type: array
- *                   items:
- *                     type: object
+ *                   type: object
  *                 message:
  *                   type: string
  *       400:
@@ -57,19 +54,18 @@ export async function POST(request: NextRequest) {
         // 3. Validación de datos
         const body = await request.json();
 
-        // Validación con Zod schema
-        const validatedData = RotacionNeumaticoSchema.parse(body);
-
-        const data: RotacionNeumaticoDTO = {
-            vehiculo_id: validatedData.vehiculo_id,
-            kilometraje_vehiculo: validatedData.kilometraje_vehiculo,
-            movimientos: validatedData.movimientos,
-            observaciones: validatedData.observaciones
+        // Ensure tipo_evento is set to ROTACION
+        const eventData = {
+            ...body,
+            tipo_evento: 'ROTACION'
         };
 
-        const resultado = await service.rotarNeumaticos(data);
+        // Validación con Zod schema
+        const validatedData = EventoNeumaticoCreateSchema.parse(eventData);
 
-        return ApiResponseHelper.success(resultado, `${resultado.length} neumáticos rotados exitosamente`);
+        const resultado = await service.registrarEvento(validatedData, session.user.id);
+
+        return ApiResponseHelper.success(resultado, 'Neumático rotado exitosamente');
     } catch (error) {
         return ApiResponseHelper.handleError(error);
     }

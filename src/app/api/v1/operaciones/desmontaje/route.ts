@@ -1,12 +1,11 @@
 import { NextRequest } from 'next/server';
-import { OperacionesNeumaticosService } from '@/lib/services/operaciones-neumaticos.service';
+import { NeumaticoService } from '@/lib/services/neumatico.service';
 import { ApiResponseHelper } from '@/lib/utils/api-response';
-import { DesmontajeNeumaticoDTO } from '@/types/domain/operaciones.types';
-import { DesmontajeNeumaticoSchema } from '@/lib/validators/operaciones';
+import { EventoNeumaticoCreateSchema } from '@/lib/validators/evento-neumatico';
 import { requireAuth, requirePermission } from '@/lib/auth/authorization';
 import { PERMISSIONS } from '@/lib/auth/permissions';
 
-const service = new OperacionesNeumaticosService();
+const service = new NeumaticoService();
 
 /**
  * @swagger
@@ -22,7 +21,7 @@ const service = new OperacionesNeumaticosService();
  *       content:
  *         application/json:
  *           schema:
- *             $ref: '#/components/schemas/DesmontajeNeumaticoDTO'
+ *             $ref: '#/components/schemas/EventoNeumaticoCreate'
  *     responses:
  *       200:
  *         description: Neumático desmontado exitosamente
@@ -55,22 +54,16 @@ export async function POST(request: NextRequest) {
         // 3. Validación de datos
         const body = await request.json();
 
-        // Validación con Zod schema
-        const validatedData = DesmontajeNeumaticoSchema.parse(body);
-
-        const data: DesmontajeNeumaticoDTO = {
-            neumatico_id: validatedData.neumatico_id,
-            destino: validatedData.destino,
-            kilometraje_vehiculo: validatedData.kilometraje_vehiculo,
-            almacen_destino_id: validatedData.almacen_destino_id,
-            motivo_id: validatedData.motivo_id,
-            profundidad_remanente_mm: validatedData.profundidad_remanente_mm,
-            presion_psi: validatedData.presion_psi,
-            observaciones: validatedData.observaciones,
-            fecha_evento: validatedData.fecha_evento
+        // Ensure tipo_evento is set to DESMONTAJE
+        const eventData = {
+            ...body,
+            tipo_evento: 'DESMONTAJE'
         };
 
-        const resultado = await service.desmontarNeumatico(data);
+        // Validación con Zod schema
+        const validatedData = EventoNeumaticoCreateSchema.parse(eventData);
+
+        const resultado = await service.registrarEvento(validatedData, session.user.id);
 
         return ApiResponseHelper.success(resultado, 'Neumático desmontado exitosamente');
     } catch (error) {
