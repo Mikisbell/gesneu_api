@@ -4,7 +4,8 @@ interface Vehiculo {
     id: string;
     placa: string;
     tipo_vehiculo_id: string;
-    kilometraje_actual: number;
+    tipo_medicion: 'KILOMETRAJE' | 'HOROMETRO';
+    contador_actual: number;
     // Add other fields as needed
 }
 

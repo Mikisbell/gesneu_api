@@ -35,11 +35,17 @@ export const getColumns = ({ onEdit }: GetColumnsProps): ColumnDef<VehiculoWithR
         header: "Modelo",
     },
     {
-        accessorKey: "kilometraje_actual",
-        header: "Kilometraje",
+        accessorKey: "contador_actual",
+        header: ({ column }) => "Contador",
         cell: ({ row }) => {
-            const km = row.getValue("kilometraje_actual") as number
-            return km ? `${km.toLocaleString()} km` : "-"
+            const vehiculo = row.original
+            const contador = vehiculo.contador_actual
+            const tipoMedicion = vehiculo.tipo_medicion
+
+            if (!contador) return "-"
+
+            const unidad = tipoMedicion === "HOROMETRO" ? "hrs" : "km"
+            return `${contador.toLocaleString()} ${unidad}`
         }
     },
     {

@@ -195,7 +195,11 @@ export default function MontajePage() {
                                 <div className="mt-4 text-sm space-y-2 text-muted-foreground">
                                     <div><span className="font-semibold">Marca:</span> {vehicleDetails.marca}</div>
                                     <div><span className="font-semibold">Modelo:</span> {vehicleDetails.modelo}</div>
-                                    <div><span className="font-semibold">Km:</span> {vehicleDetails.kilometraje_actual}</div>
+                                    <div>
+                                        <span className="font-semibold">
+                                            {vehicleDetails.tipo_medicion === 'HOROMETRO' ? 'Horómetro:' : 'Km:'}
+                                        </span> {vehicleDetails.contador_actual?.toLocaleString() || '-'} {vehicleDetails.tipo_medicion === 'HOROMETRO' ? 'hrs' : 'km'}
+                                    </div>
                                 </div>
                             )}
                         </CardContent>

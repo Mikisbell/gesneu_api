@@ -11,7 +11,8 @@ export interface CreateVehiculoDTO {
     marca?: string;
     modelo?: string;
     anio?: number;
-    kilometraje_actual?: number;
+    tipo_medicion?: 'KILOMETRAJE' | 'HOROMETRO';
+    contador_actual?: number;
     activo?: boolean;
 }
 
