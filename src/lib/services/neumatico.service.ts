@@ -66,6 +66,9 @@ export class NeumaticoService {
             let result;
 
             switch (tipo_evento) {
+                case TipoEventoNeumaticoEnum.COMPRA:
+                    result = await this._handleCompra(evento, userId, tx);
+                    break;
                 case TipoEventoNeumaticoEnum.INSTALACION:
                     result = await this._handleInstalacion(evento, userId, tx);
                     break;
@@ -121,6 +124,80 @@ export class NeumaticoService {
         }
 
         return neumatico;
+    }
+
+    /**
+     * Handle COMPRA event - Creates new tire and registers purchase event
+     * Per RF01: Tire creation must go through event system for full lifecycle tracking
+     */
+    private async _handleCompra(evento: EventoNeumaticoCreate, userId: string, tx: TxClient) {
+        const {
+            numero_serie,
+            modelo_id,
+            profundidad_inicial,
+            fecha_compra,
+            costo_compra,
+            almacen_destino_id,
+            proveedor_id,
+            observaciones
+        } = evento;
+        const now = new Date(evento.fecha_evento || new Date());
+
+        // 1. Validate required fields for purchase
+        if (!numero_serie || !modelo_id) {
+            throw BusinessError.badRequest('Faltan datos requeridos: numero_serie y modelo_id son obligatorios');
+        }
+
+        // 2. Check if tire already exists
+        const existing = await tx.neumatico.findUnique({
+            where: { numero_serie }
+        });
+        if (existing) {
+            throw BusinessError.conflict(`El neumático con serie ${numero_serie} ya existe`);
+        }
+
+        // 3. Create tire
+        const nuevoNeumatico = await tx.neumatico.create({
+            data: {
+                numero_serie,
+                modelo_id,
+                profundidad_inicial_mm: profundidad_inicial || 0,
+                profundidad_actual_mm: profundidad_inicial || 0,
+                estado_actual: EstadoNeumaticoEnum.EN_STOCK,
+                ubicacion_almacen_id: almacen_destino_id || null,
+                fecha_compra: fecha_compra ? new Date(fecha_compra) : now,
+                activo: true,
+                creado_en: now,
+            }
+        });
+
+        // 4. Create COMPRA event for full lifecycle tracking
+        const eventoCompra = await tx.eventoNeumatico.create({
+            data: {
+                tipo_evento: TipoEventoNeumaticoEnum.COMPRA,
+                neumatico_id: nuevoNeumatico.id,
+                fecha_evento: now,
+                almacen_destino_id,
+                proveedor_id,
+                costo_evento: costo_compra,
+                profundidad_remanente: profundidad_inicial,
+                notas: observaciones,
+                creado_por: userId,
+            }
+        });
+
+        // 5. Create initial history record
+        await tx.historialEstadoNeumatico.create({
+            data: {
+                neumatico_id: nuevoNeumatico.id,
+                estado_anterior: null, // First state
+                estado_nuevo: EstadoNeumaticoEnum.EN_STOCK,
+                fecha_cambio: now,
+                motivo: 'Compra inicial'
+            }
+        });
+
+        return { evento: eventoCompra, neumatico: nuevoNeumatico };
     }
 
     private async _handleInstalacion(evento: EventoNeumaticoCreate, userId: string, tx: TxClient) {
@@ -815,15 +892,17 @@ export class NeumaticoService {
             },
         });
 
-        // Update tire - use correct field name from schema and remove non-existent cost field
+        // Update tire - CRITICAL: Reset lifecycle for new tread life (RF requirements)
         await tx.neumatico.update({
             where: { id: neumatico_id },
             data: {
                 estado_actual: EstadoNeumaticoEnum.EN_STOCK,
                 ubicacion_almacen_id: almacen_destino_id,
                 profundidad_actual_mm: profundidad_remanente || undefined,
+                profundidad_inicial_mm: profundidad_remanente || undefined, // New "life" starts with this depth
+                kilometraje_acumulado: 0, // CRITICAL: Reset to measure retreaded tire life for CPK
                 es_reencauchado: true,
-                reencauches_realizados: { increment: 1 }, // Correct field name from schema
+                reencauches_realizados: { increment: 1 },
                 actualizado_en: now,
             },
         });
