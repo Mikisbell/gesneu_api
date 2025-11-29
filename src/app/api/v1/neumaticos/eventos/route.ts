@@ -1,48 +1,35 @@
-import { NextRequest } from 'next/server';
-import { ApiResponseHelper } from '@/lib/utils/api-response';
-import { requireAuth, requirePermission } from '@/lib/auth/authorization';
-import { PERMISSIONS, Permission } from '@/lib/auth/permissions';
-import { EventoNeumaticoCreateSchema } from '@/lib/validators/evento-neumatico';
+import { NextResponse } from 'next/server';
+import { getServerSession } from 'next-auth';
+import { authOptions } from '@/lib/auth/config';
 import { NeumaticoService } from '@/lib/services/neumatico.service';
+import { EventoNeumaticoCreateSchema } from '@/lib/validators/evento-neumatico';
+import { ApiResponseHelper } from '@/lib/utils/api-response';
 
 const neumaticoService = new NeumaticoService();
 
-// Map event types to permissions
-const EVENT_PERMISSIONS: Record<string, Permission> = {
-    'INSTALACION': PERMISSIONS.NEUMATICOS_EVENTO_INSTALACION,
-    'DESMONTAJE': PERMISSIONS.NEUMATICOS_EVENTO_DESMONTAJE,
-    'INSPECCION': PERMISSIONS.NEUMATICOS_EVENTO_INSPECCION,
-    'ROTACION': PERMISSIONS.NEUMATICOS_EVENTO_ROTACION,
-    // Add others as needed, defaulting to generic update or specific permission
-};
-
-/**
- * POST /api/v1/neumaticos/eventos
- * 
- * Centralized endpoint for registering tire events.
- */
-export async function POST(request: NextRequest) {
+export async function POST(req: Request) {
     try {
-        // 1. Authentication
-        const session = await requireAuth();
-
-        // 2. Parse Body to get Event Type
-        const body = await request.json();
-        const validatedData = EventoNeumaticoCreateSchema.parse(body);
-
-        // 3. Authorization based on Event Type
-        const requiredPermission = EVENT_PERMISSIONS[validatedData.tipo_evento];
-        if (requiredPermission) {
-            requirePermission(session, requiredPermission);
-        } else {
-            // Security: If event type is not in the map, deny access
-            throw new Error(`Permisos no configurados para el evento: ${validatedData.tipo_evento}`);
+        const session = await getServerSession(authOptions);
+        if (!session) {
+            return ApiResponseHelper.unauthorized();
         }
 
-        // 4. Execute Business Logic via Service
-        const result = await neumaticoService.registrarEvento(validatedData, session.user.id);
+        const body = await req.json();
 
-        return ApiResponseHelper.success(result, 'Evento registrado exitosamente');
+        // 1. Validación de Entrada con Zod
+        const validation = EventoNeumaticoCreateSchema.safeParse(body);
+
+        if (!validation.success) {
+            return ApiResponseHelper.validationError(validation.error as any);
+        }
+
+        // 2. Ejecución Lógica Transaccional
+        const resultado = await neumaticoService.registrarEvento(
+            validation.data,
+            session.user.id
+        );
+
+        return ApiResponseHelper.success(resultado, 'Evento registrado correctamente');
 
     } catch (error) {
         return ApiResponseHelper.handleError(error);

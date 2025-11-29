@@ -1,6 +1,6 @@
 import { z } from 'zod';
 
-// Enums based on schema.prisma
+// Enums basados en schema.prisma
 export const TipoEventoNeumaticoEnum = z.enum([
     'COMPRA',
     'INSTALACION',
@@ -31,35 +31,38 @@ export const EstadoNeumaticoEnum = z.enum([
     'EN_TRANSITO'
 ]);
 
-// Base schema for all events
+// Esquema Base para todos los eventos
 export const EventoNeumaticoCreateSchema = z.object({
     tipo_evento: TipoEventoNeumaticoEnum,
-    fecha_evento: z.string().datetime().optional().default(() => new Date().toISOString()), // ISO string
-    neumatico_id: z.string().uuid().optional(), // Optional for COMPRA
+    // Default a ahora si no se envía
+    fecha_evento: z.string().datetime().optional().default(() => new Date().toISOString()),
 
-    // Common fields
+    // El ID es opcional SOLO si es una COMPRA (porque se está creando)
+    neumatico_id: z.string().uuid().optional(),
+
+    // --- Campos Comunes de Operación ---
     kilometraje_vehiculo: z.number().nonnegative().optional(),
     profundidad_remanente: z.number().nonnegative().optional(),
     presion_psi: z.number().nonnegative().optional(),
     observaciones: z.string().optional(),
-    costo_evento: z.number().nonnegative().optional(),
+    costo_evento: z.number().nonnegative().optional(), // 🚨 Vital para reparaciones/reencauches
 
-    // Location/Relation fields
+    // --- Ubicaciones y Relaciones ---
     vehiculo_id: z.string().uuid().optional(),
     posicion_montaje_id: z.string().uuid().optional(),
     almacen_destino_id: z.string().uuid().optional(),
-    proveedor_id: z.string().uuid().optional(),
+    proveedor_id: z.string().uuid().optional(), // Para compra o taller externo
     motivo_desecho_id: z.string().uuid().optional(),
 
-    // Resulting state
+    // --- Estado Resultante (Opcional) ---
     estado_neumatico_resultante: EstadoNeumaticoEnum.optional(),
 
-    // Specific fields for COMPRA (creating a new tire)
+    // --- Campos Específicos para COMPRA (Nacimiento del Neumático) ---
     numero_serie: z.string().optional(),
     modelo_id: z.string().uuid().optional(),
-    marca_id: z.string().uuid().optional(), // Can be inferred
+    marca_id: z.string().uuid().optional(), // Puede ser inferido del modelo, pero útil
     medida: z.string().optional(),
-    dot: z.string().length(4).optional(),
+    dot: z.string().length(4).optional(), // Validación estricta de 4 caracteres
     profundidad_inicial: z.number().nonnegative().optional(),
     fecha_compra: z.string().datetime().optional(),
     costo_compra: z.number().nonnegative().optional(),
