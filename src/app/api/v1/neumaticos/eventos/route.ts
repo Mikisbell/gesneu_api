@@ -1,14 +1,14 @@
 import { NextRequest } from 'next/server';
 import { ApiResponseHelper } from '@/lib/utils/api-response';
 import { requireAuth, requirePermission } from '@/lib/auth/authorization';
-import { PERMISSIONS } from '@/lib/auth/permissions';
+import { PERMISSIONS, Permission } from '@/lib/auth/permissions';
 import { EventoNeumaticoCreateSchema } from '@/lib/validators/evento-neumatico';
 import { NeumaticoService } from '@/lib/services/neumatico.service';
 
 const neumaticoService = new NeumaticoService();
 
 // Map event types to permissions
-const EVENT_PERMISSIONS: Record<string, string> = {
+const EVENT_PERMISSIONS: Record<string, Permission> = {
     'INSTALACION': PERMISSIONS.NEUMATICOS_EVENTO_INSTALACION,
     'DESMONTAJE': PERMISSIONS.NEUMATICOS_EVENTO_DESMONTAJE,
     'INSPECCION': PERMISSIONS.NEUMATICOS_EVENTO_INSPECCION,
