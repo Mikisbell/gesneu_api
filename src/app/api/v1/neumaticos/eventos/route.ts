@@ -1,6 +1,5 @@
-
 import { NextResponse } from 'next/server';
-import { requireAuth } from '@/lib/auth/authorization';
+import { auth } from '@/lib/auth/auth';
 import { NeumaticoService } from '@/lib/services/neumatico.service';
 import { EventoNeumaticoCreateSchema } from '@/lib/validators/evento-neumatico';
 import { ApiResponseHelper } from '@/lib/utils/api-response';
@@ -9,7 +8,10 @@ const neumaticoService = new NeumaticoService();
 
 export async function POST(req: Request) {
     try {
-        const session = await requireAuth();
+        const session = await auth();
+        if (!session || !session.user || !session.user.id) {
+            return ApiResponseHelper.unauthorized();
+        }
 
         const body = await req.json();
 
@@ -32,4 +34,3 @@ export async function POST(req: Request) {
         return ApiResponseHelper.handleError(error);
     }
 }
- 

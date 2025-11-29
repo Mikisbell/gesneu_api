@@ -94,7 +94,7 @@ export class NeumaticoService {
 
     // ✅ LÓGICA DE COMPRA (NUEVA)
     private async _handleCompra(evento: EventoCompra, userId: string, tx: TxClient) {
-        const { numero_serie, modelo_id, dot, profundidad_inicial, costo_compra, fecha_evento, proveedor_id, almacen_destino_id, notas } = evento;
+        const { numero_serie, modelo_id, dot, profundidad_inicial, costo_compra, fecha_evento, proveedor_id, almacen_destino_id, observaciones } = evento;
         const now = new Date(fecha_evento || new Date());
 
         if (!numero_serie || !modelo_id || !dot || !profundidad_inicial || !almacen_destino_id) {
@@ -116,7 +116,6 @@ export class NeumaticoService {
                 ubicacion_almacen_id: almacen_destino_id,
                 fecha_compra: now,
                 costo_compra: costo_compra ? new Prisma.Decimal(costo_compra) : undefined,
-                creado_por: userId,
                 activo: true
             }
         });
@@ -131,7 +130,7 @@ export class NeumaticoService {
                 almacen_destino_id,
                 costo_evento: costo_compra ? new Prisma.Decimal(costo_compra) : undefined,
                 profundidad_remanente: profundidad_inicial,
-                notas: notas || 'Alta inicial por compra',
+                notas: observaciones || 'Alta inicial por compra',
                 creado_por: userId
             }
         });
@@ -199,6 +198,8 @@ export class NeumaticoService {
         const { neumatico_id, kilometraje_vehiculo, profundidad_remanente, presion_psi, observaciones, estado_neumatico_resultante, almacen_destino_id, motivo_desecho_id } = evento;
         const now = new Date(evento.fecha_evento || new Date());
 
+        if (!neumatico_id) throw BusinessError.badRequest('ID de neumático requerido');
+
         const neumatico = await this._validateAndGetNeumatico(tx, neumatico_id, { ubicacion_vehiculo: true });
         if (neumatico.estado_actual !== EstadoNeumaticoEnum.INSTALADO) throw BusinessError.badRequest('Neumático no instalado');
 
@@ -253,6 +254,8 @@ export class NeumaticoService {
         const { neumatico_id, profundidad_remanente, presion_psi, kilometraje_vehiculo, observaciones } = evento;
         const now = new Date(evento.fecha_evento || new Date());
 
+        if (!neumatico_id) throw BusinessError.badRequest('ID de neumático requerido');
+
         await this._validateAndGetNeumatico(tx, neumatico_id);
 
         const nuevoEvento = await tx.eventoNeumatico.create({
@@ -277,6 +280,7 @@ export class NeumaticoService {
         const { neumatico_id, posicion_montaje_id, kilometraje_vehiculo, observaciones } = evento;
         const now = new Date(evento.fecha_evento || new Date());
 
+        if (!neumatico_id) throw BusinessError.badRequest('ID de neumático requerido');
         if (!posicion_montaje_id) throw BusinessError.badRequest('Falta posición destino');
         const neumatico = await this._validateAndGetNeumatico(tx, neumatico_id, { modelo: true });
         if (neumatico.estado_actual !== EstadoNeumaticoEnum.INSTALADO) throw BusinessError.badRequest('Neumático no instalado');
@@ -319,6 +323,8 @@ export class NeumaticoService {
         const { neumatico_id, proveedor_id, observaciones } = evento;
         const now = new Date(evento.fecha_evento || new Date());
 
+        if (!neumatico_id) throw BusinessError.badRequest('ID de neumático requerido');
+
         const neumatico = await this._validateAndGetNeumatico(tx, neumatico_id);
         if (neumatico.estado_actual !== EstadoNeumaticoEnum.EN_STOCK) throw BusinessError.badRequest('Debe estar en STOCK');
 
@@ -333,6 +339,8 @@ export class NeumaticoService {
     private async _handleReparacionSalida(evento: EventoNeumaticoCreate, userId: string, tx: TxClient) {
         const { neumatico_id, almacen_destino_id, costo_evento, observaciones, profundidad_remanente } = evento;
         const now = new Date(evento.fecha_evento || new Date());
+
+        if (!neumatico_id) throw BusinessError.badRequest('ID de neumático requerido');
 
         const neumatico = await this._validateAndGetNeumatico(tx, neumatico_id);
         if (neumatico.estado_actual !== EstadoNeumaticoEnum.EN_REPARACION) throw BusinessError.badRequest('No está en reparación');
@@ -350,6 +358,8 @@ export class NeumaticoService {
     private async _handleReencaucheEntrada(evento: EventoNeumaticoCreate, userId: string, tx: TxClient) {
         const { neumatico_id, proveedor_id, observaciones } = evento;
         const now = new Date(evento.fecha_evento || new Date());
+
+        if (!neumatico_id) throw BusinessError.badRequest('ID de neumático requerido');
 
         const neumatico = await this._validateAndGetNeumatico(tx, neumatico_id, { modelo: true });
         if (neumatico.estado_actual !== EstadoNeumaticoEnum.EN_STOCK) throw BusinessError.badRequest('Debe estar en STOCK');
@@ -369,6 +379,8 @@ export class NeumaticoService {
     private async _handleReencaucheSalida(evento: EventoNeumaticoCreate, userId: string, tx: TxClient) {
         const { neumatico_id, almacen_destino_id, costo_evento, observaciones, profundidad_remanente } = evento;
         const now = new Date(evento.fecha_evento || new Date());
+
+        if (!neumatico_id) throw BusinessError.badRequest('ID de neumático requerido');
 
         const neumatico = await this._validateAndGetNeumatico(tx, neumatico_id);
         if (neumatico.estado_actual !== EstadoNeumaticoEnum.EN_REENCAUCHE) throw BusinessError.badRequest('No está en reencauche');
@@ -399,6 +411,8 @@ export class NeumaticoService {
     private async _handleDesecho(evento: EventoNeumaticoCreate, userId: string, tx: TxClient) {
         const { neumatico_id, motivo_desecho_id, observaciones } = evento;
         const now = new Date(evento.fecha_evento || new Date());
+
+        if (!neumatico_id) throw BusinessError.badRequest('ID de neumático requerido');
 
         const neumatico = await this._validateAndGetNeumatico(tx, neumatico_id);
         if (neumatico.estado_actual === EstadoNeumaticoEnum.INSTALADO) throw BusinessError.badRequest('Desmontar antes de desechar');
