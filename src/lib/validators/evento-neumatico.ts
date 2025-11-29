@@ -23,20 +23,11 @@ export const TipoEventoNeumaticoEnum = z.enum([
 ]);
 
 export const EstadoNeumaticoEnum = z.enum([
-    'NUEVO',
     'EN_STOCK',
     'INSTALADO',
-    'EN_USO',
-    'EN_ALMACEN',
-    'PARA_REPARACION',
     'EN_REPARACION',
-    'REPARADO',
-    'PARA_REENCAUCHE',
     'EN_REENCAUCHE',
-    'REENCAUCHADO',
-    'PARA_DESECHO',
     'DESECHADO',
-    'VENDIDO',
     'EN_TRANSITO'
 ]);
 
