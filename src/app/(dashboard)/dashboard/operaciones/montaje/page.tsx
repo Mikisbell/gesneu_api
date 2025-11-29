@@ -81,7 +81,19 @@ export default function MontajePage() {
 
 
     const montajeMutation = useMutation({
-        mutationFn: (data: MontajeForm) => apiClient('/api/v1/operaciones/montaje', { method: 'POST', body: JSON.stringify(data) }),
+        mutationFn: (data: MontajeForm) => {
+            const payload = {
+                tipo_evento: 'INSTALACION',
+                neumatico_id: data.neumatico_id,
+                vehiculo_id: data.vehiculo_id,
+                posicion_montaje_id: data.posicion_neumatico_id,
+                kilometraje_vehiculo: data.kilometraje_vehiculo,
+                profundidad_remanente: data.profundidad_mm,
+                presion_psi: data.presion_psi,
+                observaciones: data.observaciones,
+            };
+            return apiClient('/api/v1/neumaticos/eventos', { method: 'POST', body: JSON.stringify(payload) });
+        },
         onSuccess: () => {
             toast({
                 title: '✅ Montaje Exitoso',
