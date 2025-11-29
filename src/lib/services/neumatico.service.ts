@@ -728,8 +728,9 @@ export class NeumaticoService {
             throw new Error('No se pudo obtener información del modelo del neumático');
         }
 
-        if (neumatico.reencauches_realizados >= neumatico.modelo.reencauches_maximos) {
-            throw new Error(`El neumático ha alcanzado el límite de reencauches (${neumatico.modelo.reencauches_maximos})`);
+        const modelo = neumatico.modelo as { reencauches_maximos: number };
+        if (neumatico.reencauches_realizados >= modelo.reencauches_maximos) {
+            throw new Error(`El neumático ha alcanzado el límite de reencauches (${modelo.reencauches_maximos})`);
         }
 
 
