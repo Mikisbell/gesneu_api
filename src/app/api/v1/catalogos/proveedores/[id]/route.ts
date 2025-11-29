@@ -135,13 +135,7 @@ export async function PUT(
       data: {
         tipo: body.tipo,
         nombre: body.nombre,
-        ruc: body.ruc,
-        contacto_principal: body.contacto_principal,
-        telefono: body.telefono,
-        email: body.email,
-        direccion: body.direccion,
-        activo: body.activo,
-        actualizado_en: new Date()
+        ruc: body.ruc
       }
     })
 
@@ -199,12 +193,9 @@ export async function DELETE(
     requirePermission(session, PERMISSIONS.CATALOGOS_PROVEEDORES_DELETE);
 
     // 3. Business logic
-    const proveedor = await prisma.proveedor.update({
-      where: { id: (await params).id },
-      data: {
-        activo: false,
-        actualizado_en: new Date()
-      }
+    // Soft delete not supported in simplified schema
+    const proveedor = await prisma.proveedor.delete({
+      where: { id: (await params).id }
     })
 
     return ApiResponseHelper.success(proveedor, 'Proveedor desactivado exitosamente')
