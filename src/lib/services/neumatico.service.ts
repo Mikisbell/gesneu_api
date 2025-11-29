@@ -452,7 +452,9 @@ export class NeumaticoService {
             });
         }
 
-        // 6. Check Alerts (Simplified Logic for now)
+        // 6. Check Alerts (TODO: profundidad_minima_recomendada_mm not in ModeloNeumatico schema)
+        // Alert logic temporarily disabled - need to implement via ConfiguracionTipoVehiculo
+        /*
         if (profundidad_remanente && neumatico.modelo?.profundidad_minima_recomendada_mm) {
             if (profundidad_remanente <= Number(neumatico.modelo.profundidad_minima_recomendada_mm)) {
                 await tx.alerta.create({
@@ -468,6 +470,8 @@ export class NeumaticoService {
                 });
             }
         }
+        */
+
 
         return nuevoEvento;
     }
