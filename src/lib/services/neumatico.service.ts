@@ -724,9 +724,14 @@ export class NeumaticoService {
         }
 
         // Validate max retreads (RF16) - using correct field names from schema
+        if (!neumatico.modelo) {
+            throw new Error('No se pudo obtener información del modelo del neumático');
+        }
+
         if (neumatico.reencauches_realizados >= neumatico.modelo.reencauches_maximos) {
             throw new Error(`El neumático ha alcanzado el límite de reencauches (${neumatico.modelo.reencauches_maximos})`);
         }
+
 
         const nuevoEvento = await tx.eventoNeumatico.create({
             data: {
