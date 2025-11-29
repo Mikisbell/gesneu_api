@@ -4,7 +4,7 @@ import { useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { proveedoresApi } from '@/lib/api/proveedores'
 import { DataTable } from '@/components/ui/data-table'
-import { columns } from './columns'
+import { getColumns } from './columns'
 import { Button } from '@/components/ui/button'
 import { Plus, Loader2 } from 'lucide-react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
@@ -20,11 +20,24 @@ import { ProveedorForm } from '@/components/forms/proveedor-form'
 
 export default function ProveedoresPage() {
     const [open, setOpen] = useState(false)
+    const [editingProveedor, setEditingProveedor] = useState<any>(null)
 
     const { data: proveedores, isLoading, isError } = useQuery({
         queryKey: ['proveedores'],
         queryFn: proveedoresApi.getAll,
     })
+
+    const handleEdit = (proveedor: any) => {
+        setEditingProveedor(proveedor)
+        setOpen(true)
+    }
+
+    const handleClose = () => {
+        setOpen(false)
+        setEditingProveedor(null)
+    }
+
+    const columns = getColumns({ onEdit: handleEdit })
 
     if (isError) {
         return (
@@ -40,19 +53,25 @@ export default function ProveedoresPage() {
                 <h1 className="text-3xl font-bold tracking-tight">Proveedores</h1>
 
                 <Dialog open={open} onOpenChange={setOpen}>
-                    <DialogTrigger asChild>
-                        <Button>
-                            <Plus className="mr-2 h-4 w-4" /> Nuevo Proveedor
-                        </Button>
-                    </DialogTrigger>
+                    <Button onClick={() => {
+                        setEditingProveedor(null)
+                        setOpen(true)
+                    }}>
+                        <Plus className="mr-2 h-4 w-4" /> Nuevo Proveedor
+                    </Button>
                     <DialogContent className="sm:max-w-[600px]">
                         <DialogHeader>
-                            <DialogTitle>Registrar Proveedor</DialogTitle>
+                            <DialogTitle>{editingProveedor ? 'Editar Proveedor' : 'Registrar Proveedor'}</DialogTitle>
                             <DialogDescription>
-                                Ingrese los datos del nuevo proveedor para el catálogo.
+                                {editingProveedor
+                                    ? 'Modifique los datos del proveedor seleccionado.'
+                                    : 'Ingrese los datos del nuevo proveedor para el catálogo.'}
                             </DialogDescription>
                         </DialogHeader>
-                        <ProveedorForm onSuccess={() => setOpen(false)} />
+                        <ProveedorForm
+                            initialData={editingProveedor}
+                            onSuccess={handleClose}
+                        />
                     </DialogContent>
                 </Dialog>
             </div>

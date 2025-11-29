@@ -13,7 +13,11 @@ import {
     DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 
-export const columns: ColumnDef<Proveedor>[] = [
+interface GetColumnsProps {
+    onEdit: (proveedor: Proveedor) => void
+}
+
+export const getColumns = ({ onEdit }: GetColumnsProps): ColumnDef<Proveedor>[] => [
     {
         accessorKey: "nombre",
         header: "Nombre",
@@ -60,7 +64,7 @@ export const columns: ColumnDef<Proveedor>[] = [
                             Copiar ID
                         </DropdownMenuItem>
                         <DropdownMenuSeparator />
-                        <DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => onEdit(proveedor)}>
                             <Pencil className="mr-2 h-4 w-4" /> Editar
                         </DropdownMenuItem>
                         <DropdownMenuItem className="text-red-600">

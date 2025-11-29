@@ -32,41 +32,49 @@ const formSchema = z.object({
 type FormValues = z.infer<typeof formSchema>
 
 interface ProveedorFormProps {
+    initialData?: any
     onSuccess?: () => void
 }
 
-export function ProveedorForm({ onSuccess }: ProveedorFormProps) {
+export function ProveedorForm({ initialData, onSuccess }: ProveedorFormProps) {
     const { toast } = useToast()
     const queryClient = useQueryClient()
 
     const form = useForm<FormValues>({
         resolver: zodResolver(formSchema),
         defaultValues: {
-            nombre: "",
-            ruc: "",
-            email: "",
-            telefono: "",
-            direccion: "",
-            contacto: "",
+            nombre: initialData?.nombre || "",
+            ruc: initialData?.ruc || "",
+            email: initialData?.email || "",
+            telefono: initialData?.telefono || "",
+            direccion: initialData?.direccion || "",
+            contacto: initialData?.contacto || "",
         },
     })
 
     const mutation = useMutation({
-        mutationFn: proveedoresApi.create,
+        mutationFn: (data: any) => {
+            if (initialData) {
+                return proveedoresApi.update(initialData.id, data)
+            }
+            return proveedoresApi.create(data)
+        },
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ["proveedores"] })
             toast({
-                title: "Proveedor creado",
-                description: "El proveedor se ha registrado exitosamente.",
+                title: initialData ? "Proveedor actualizado" : "Proveedor creado",
+                description: initialData
+                    ? "Los datos se han actualizado correctamente."
+                    : "El proveedor se ha registrado exitosamente.",
             })
-            form.reset()
+            if (!initialData) form.reset()
             onSuccess?.()
         },
         onError: (error: Error) => {
             toast({
                 variant: "destructive",
                 title: "Error",
-                description: error.message || "No se pudo crear el proveedor.",
+                description: error.message || "No se pudo guardar el proveedor.",
             })
         },
     })
@@ -166,7 +174,7 @@ export function ProveedorForm({ onSuccess }: ProveedorFormProps) {
                 <div className="flex justify-end pt-4">
                     <Button type="submit" disabled={mutation.isPending}>
                         {mutation.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                        Guardar Proveedor
+                        {initialData ? 'Actualizar' : 'Guardar'} Proveedor
                     </Button>
                 </div>
             </form>

@@ -29,39 +29,47 @@ const formSchema = z.object({
 type FormValues = z.infer<typeof formSchema>
 
 interface AlmacenFormProps {
+    initialData?: any
     onSuccess?: () => void
 }
 
-export function AlmacenForm({ onSuccess }: AlmacenFormProps) {
+export function AlmacenForm({ initialData, onSuccess }: AlmacenFormProps) {
     const { toast } = useToast()
     const queryClient = useQueryClient()
 
     const form = useForm<FormValues>({
         resolver: zodResolver(formSchema),
         defaultValues: {
-            codigo: "",
-            nombre: "",
-            ubicacion: "",
-            descripcion: "",
+            codigo: initialData?.codigo || "",
+            nombre: initialData?.nombre || "",
+            ubicacion: initialData?.ubicacion || "",
+            descripcion: initialData?.descripcion || "",
         },
     })
 
     const mutation = useMutation({
-        mutationFn: almacenesApi.create,
+        mutationFn: (data: any) => {
+            if (initialData) {
+                return almacenesApi.update(initialData.id, data)
+            }
+            return almacenesApi.create(data)
+        },
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ["almacenes"] })
             toast({
-                title: "Almacén creado",
-                description: "El almacén se ha registrado exitosamente.",
+                title: initialData ? "Almacén actualizado" : "Almacén creado",
+                description: initialData
+                    ? "Los datos se han actualizado correctamente."
+                    : "El almacén se ha registrado exitosamente.",
             })
-            form.reset()
+            if (!initialData) form.reset()
             onSuccess?.()
         },
         onError: (error: Error) => {
             toast({
                 variant: "destructive",
                 title: "Error",
-                description: error.message || "No se pudo crear el almacén.",
+                description: error.message || "No se pudo guardar el almacén.",
             })
         },
     })
@@ -102,38 +110,39 @@ export function AlmacenForm({ onSuccess }: AlmacenFormProps) {
                     />
                 </div>
 
-                <FormField
-                    control={form.control}
-                    name="ubicacion"
-                    render={({ field }) => (
-                        <FormItem>
-                            <FormLabel>Ubicación</FormLabel>
-                            <FormControl>
-                                <Input placeholder="Nave 3, Sector B" {...field} />
-                            </FormControl>
-                            <FormMessage />
-                        </FormItem>
-                    )}
-                />
-
-                <FormField
-                    control={form.control}
-                    name="descripcion"
-                    render={({ field }) => (
-                        <FormItem>
-                            <FormLabel>Descripción</FormLabel>
-                            <FormControl>
-                                <Input placeholder="Almacén principal de neumáticos nuevos" {...field} />
-                            </FormControl>
-                            <FormMessage />
-                        </FormItem>
-                    )}
-                />
+                <div className="grid grid-cols-2 gap-4">
+                    <FormField
+                        control={form.control}
+                        name="ubicacion"
+                        render={({ field }) => (
+                            <FormItem>
+                                <FormLabel>Ubicación</FormLabel>
+                                <FormControl>
+                                    <Input placeholder="Nave 3, Sector B" {...field} />
+                                </FormControl>
+                                <FormMessage />
+                            </FormItem>
+                        )}
+                    />
+                    <FormField
+                        control={form.control}
+                        name="descripcion"
+                        render={({ field }) => (
+                            <FormItem>
+                                <FormLabel>Descripción</FormLabel>
+                                <FormControl>
+                                    <Input placeholder="Almacén principal de neumáticos nuevos" {...field} />
+                                </FormControl>
+                                <FormMessage />
+                            </FormItem>
+                        )}
+                    />
+                </div>
 
                 <div className="flex justify-end pt-4">
                     <Button type="submit" disabled={mutation.isPending}>
                         {mutation.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                        Guardar Almacén
+                        {initialData ? 'Actualizar' : 'Guardar'} Almacén
                     </Button>
                 </div>
             </form>

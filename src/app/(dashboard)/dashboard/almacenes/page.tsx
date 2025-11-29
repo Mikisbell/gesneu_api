@@ -4,7 +4,7 @@ import { useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { almacenesApi } from '@/lib/api/almacenes'
 import { DataTable } from '@/components/ui/data-table'
-import { columns } from './columns'
+import { getColumns } from './columns'
 import { Button } from '@/components/ui/button'
 import { Plus, Loader2 } from 'lucide-react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
@@ -20,11 +20,24 @@ import { AlmacenForm } from '@/components/forms/almacen-form'
 
 export default function AlmacenesPage() {
     const [open, setOpen] = useState(false)
+    const [editingAlmacen, setEditingAlmacen] = useState<any>(null)
 
     const { data: almacenes, isLoading, isError } = useQuery({
         queryKey: ['almacenes'],
         queryFn: almacenesApi.getAll,
     })
+
+    const handleEdit = (almacen: any) => {
+        setEditingAlmacen(almacen)
+        setOpen(true)
+    }
+
+    const handleClose = () => {
+        setOpen(false)
+        setEditingAlmacen(null)
+    }
+
+    const columns = getColumns({ onEdit: handleEdit })
 
     if (isError) {
         return (
@@ -40,19 +53,25 @@ export default function AlmacenesPage() {
                 <h1 className="text-3xl font-bold tracking-tight">Almacenes</h1>
 
                 <Dialog open={open} onOpenChange={setOpen}>
-                    <DialogTrigger asChild>
-                        <Button>
-                            <Plus className="mr-2 h-4 w-4" /> Nuevo Almacén
-                        </Button>
-                    </DialogTrigger>
+                    <Button onClick={() => {
+                        setEditingAlmacen(null)
+                        setOpen(true)
+                    }}>
+                        <Plus className="mr-2 h-4 w-4" /> Nuevo Almacén
+                    </Button>
                     <DialogContent className="sm:max-w-[600px]">
                         <DialogHeader>
-                            <DialogTitle>Registrar Almacén</DialogTitle>
+                            <DialogTitle>{editingAlmacen ? 'Editar Almacén' : 'Registrar Almacén'}</DialogTitle>
                             <DialogDescription>
-                                Ingrese los datos del nuevo almacén para el inventario.
+                                {editingAlmacen
+                                    ? 'Modifique los datos del almacén seleccionado.'
+                                    : 'Ingrese los datos del nuevo almacén para el inventario.'}
                             </DialogDescription>
                         </DialogHeader>
-                        <AlmacenForm onSuccess={() => setOpen(false)} />
+                        <AlmacenForm
+                            initialData={editingAlmacen}
+                            onSuccess={handleClose}
+                        />
                     </DialogContent>
                 </Dialog>
             </div>
