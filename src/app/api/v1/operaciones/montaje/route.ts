@@ -39,7 +39,7 @@ export async function POST(request: NextRequest) {
  * Validaciones de negocio antes del montaje
  */
 async function validateMontaje(data: MontajeNeumaticoInput) {
-    // 1. Verificar que el neumático existe y está activo
+    // 1. Verificar que el neumático existe
     const neumatico = await prisma.neumatico.findUnique({
         where: { id: data.neumatico_id },
         include: { modelo: true },
@@ -49,16 +49,12 @@ async function validateMontaje(data: MontajeNeumaticoInput) {
         throw new Error('Neumático no encontrado');
     }
 
-    if (!neumatico.activo) {
-        throw new Error('Neumático no está activo');
-    }
-
     // 2. Verificar que el neumático está EN_STOCK
     if (neumatico.estado_actual !== 'EN_STOCK') {
         throw new Error(`Neumático no está disponible. Estado actual: ${neumatico.estado_actual}`);
     }
 
-    // 3. Verificar que el vehículo existe y está activo
+    // 3. Verificar que el vehículo existe
     const vehiculo = await prisma.vehiculo.findUnique({
         where: { id: data.vehiculo_id },
         include: { tipo_vehiculo: true },
@@ -66,25 +62,6 @@ async function validateMontaje(data: MontajeNeumaticoInput) {
 
     if (!vehiculo) {
         throw new Error('Vehículo no encontrado');
-    }
-
-    if (!vehiculo.activo) {
-        throw new Error('Vehículo no está activo');
-    }
-
-    // 4. Si se especifica posición, verificar disponibilidad
-    if (data.posicion_neumatico_id) {
-        const posicionOcupada = await prisma.neumatico.findFirst({
-            where: {
-                ubicacion_posicion_id: data.posicion_neumatico_id,
-                activo: true,
-                estado_actual: 'INSTALADO',
-            },
-        });
-
-        if (posicionOcupada) {
-            throw new Error('La posición especificada ya está ocupada');
-        }
     }
 
     return { neumatico, vehiculo };
@@ -114,38 +91,13 @@ async function ejecutarMontaje(data: MontajeNeumaticoInput, usuario_id: string, 
         });
 
         // 2. Actualizar neumático
-        const neumatico = await tx.neumatico.update({
+        const neumaticoActualizado = await tx.neumatico.update({
             where: { id: data.neumatico_id },
             data: {
                 estado_actual: 'INSTALADO',
                 ubicacion_almacen_id: null,
                 ubicacion_vehiculo_id: data.vehiculo_id,
-                ubicacion_posicion_id: data.posicion_neumatico_id || null,
-                profundidad_actual_mm: data.profundidad_mm,
-                presion_actual_psi: data.presion_psi,
-                fecha_instalacion: now,
-                actualizado_en: now,
-            },
-        });
-
-        // 3. Crear registro de medición de profundidad
-        await tx.medicionProfundidad.create({
-            data: {
-                neumatico_id: data.neumatico_id,
-                profundidad_mm: data.profundidad_mm,
-                fecha_medicion: now,
-                medido_por: usuario_id,
-            },
-        });
-
-        // 4. Actualizar odómetro del vehículo
-        await tx.registroOdometro.create({
-            data: {
-                vehiculo_id: data.vehiculo_id,
-                kilometraje: data.contador_vehiculo,
-                fecha_registro: now,
-                registrado_por: usuario_id,
-                notas: `Montaje de neumático ${neumatico.numero_serie}`,
+                ubicacion_posicion_id: data.posicion_neumatico_id || null
             },
         });
 
@@ -158,10 +110,10 @@ async function ejecutarMontaje(data: MontajeNeumaticoInput, usuario_id: string, 
                 fecha_evento: evento.fecha_evento,
             },
             neumatico: {
-                id: neumatico.id,
-                numero_serie: neumatico.numero_serie,
-                estado_actual: neumatico.estado_actual,
-                ubicacion_vehiculo_id: neumatico.ubicacion_vehiculo_id,
+                id: neumaticoActualizado.id,
+                numero_serie: neumaticoActualizado.numero_serie,
+                estado_actual: neumaticoActualizado.estado_actual,
+                ubicacion_vehiculo_id: neumaticoActualizado.ubicacion_vehiculo_id,
             },
         };
     });
