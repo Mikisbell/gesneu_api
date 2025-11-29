@@ -8,6 +8,11 @@ import { BusinessError } from '@/lib/errors/business.error';
 // Type for Prisma transaction client
 type TxClient = Prisma.TransactionClient;
 
+// Type for Neumatico with modelo relation included
+type NeumaticoConModelo = Prisma.NeumaticoGetPayload<{
+    include: { modelo: true }
+}>;
+
 export class NeumaticoService {
     private repository: NeumaticoRepository;
 
@@ -453,8 +458,25 @@ export class NeumaticoService {
             });
         }
 
-        // 6. Check Alerts (TODO: profundidad_minima_recomendada_mm not in ModeloNeumatico schema)
-        // Alert logic temporarily disabled - need to implement via ConfiguracionTipoVehiculo
+        // TODO: Implementar sistema de alertas basado en especificaciones_desgaste
+        // 
+        // La tabla ModeloNeumatico NO tiene profundidad_minima_recomendada_mm.
+        // Este campo está en la tabla especificaciones_desgaste, que relaciona:
+        // - modelo_id (del neumático)
+        // - tipo_vehiculo_id (del vehículo donde está instalado)
+        // 
+        // Implementación sugerida:
+        // const specs = await tx.especificacionesDesgaste.findFirst({
+        //     where: {
+        //         modelo_id: neumatico.modelo_id,
+        //         tipo_vehiculo_id: neumatico.ubicacion_vehiculo?.tipo_vehiculo_id,
+        //         activo: true
+        //     }
+        // });
+        // 
+        // if (specs && profundidad_remanente <= Number(specs.profundidad_minima_recomendada_mm)) {
+        //     await tx.alerta.create({ /* ... */ });
+        // }
         /*
         if (profundidad_remanente && neumatico.modelo?.profundidad_minima_recomendada_mm) {
             if (profundidad_remanente <= Number(neumatico.modelo.profundidad_minima_recomendada_mm)) {
@@ -472,6 +494,7 @@ export class NeumaticoService {
             }
         }
         */
+
 
 
         return nuevoEvento;
@@ -718,20 +741,19 @@ export class NeumaticoService {
         if (!neumatico_id) throw new Error('Faltan datos requeridos para reencauche');
 
         // Include modelo to access reencauches_maximos
-        const neumatico = await this._validateAndGetNeumatico(tx, neumatico_id, { modelo: true });
+        const neumatico = await this._validateAndGetNeumatico(tx, neumatico_id, { modelo: true }) as NeumaticoConModelo;
 
         if (neumatico.estado_actual !== EstadoNeumaticoEnum.EN_STOCK) {
             throw new Error(`El neumático debe estar EN_STOCK. Estado actual: ${neumatico.estado_actual}`);
         }
 
-        // Validate max retreads (RF16) - using correct field names from schema
+        // Validate max retreads (RF16) - TypeScript now knows modelo exists and has reencauches_maximos
         if (!neumatico.modelo) {
             throw new Error('No se pudo obtener información del modelo del neumático');
         }
 
-        const modelo = neumatico.modelo as unknown as { reencauches_maximos: number };
-        if (neumatico.reencauches_realizados >= modelo.reencauches_maximos) {
-            throw new Error(`El neumático ha alcanzado el límite de reencauches (${modelo.reencauches_maximos})`);
+        if (neumatico.reencauches_realizados >= neumatico.modelo.reencauches_maximos) {
+            throw new Error(`El neumático ha alcanzado el límite de reencauches (${neumatico.modelo.reencauches_maximos})`);
         }
 
 
