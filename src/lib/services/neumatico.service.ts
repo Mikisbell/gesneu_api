@@ -134,6 +134,7 @@ export class NeumaticoService {
         const {
             numero_serie,
             modelo_id,
+            dot,
             profundidad_inicial,
             fecha_compra,
             costo_compra,
@@ -144,8 +145,8 @@ export class NeumaticoService {
         const now = new Date(evento.fecha_evento || new Date());
 
         // 1. Validate required fields for purchase
-        if (!numero_serie || !modelo_id) {
-            throw BusinessError.badRequest('Faltan datos requeridos: numero_serie y modelo_id son obligatorios');
+        if (!numero_serie || !modelo_id || !dot) {
+            throw BusinessError.badRequest('Faltan datos requeridos: numero_serie, modelo_id y dot son obligatorios');
         }
 
         // 2. Check if tire already exists
@@ -161,6 +162,7 @@ export class NeumaticoService {
             data: {
                 numero_serie,
                 modelo_id,
+                dot,
                 profundidad_inicial_mm: profundidad_inicial || 0,
                 profundidad_actual_mm: profundidad_inicial || 0,
                 estado_actual: EstadoNeumaticoEnum.EN_STOCK,
