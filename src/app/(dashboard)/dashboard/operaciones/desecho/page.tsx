@@ -5,7 +5,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { apiClient } from '@/lib/api-client';
+import { apiClient } from '@/lib/api/client';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -15,7 +15,6 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { useToast } from '@/hooks/use-toast';
 import { Search, Trash2, AlertTriangle, Loader2 } from 'lucide-react';
-import { Alert, AlertDescription } from '@/components/ui/alert';
 
 // Form schema
 const desechoFormSchema = z.object({
@@ -195,19 +194,18 @@ export default function DesechoPage() {
                                     <span className="text-muted-foreground">Profundidad:</span>
                                     <span className="ml-2">{selectedTire.profundidad_actual_mm || 'N/A'} mm</span>
                                 </div>
-                            </div>
 
-                            {isTireInstalled && (
-                                <Alert variant="destructive" className="mt-4">
-                                    <AlertTriangle className="h-4 w-4" />
-                                    <AlertDescription>
-                                        Este neumático está instalado en un vehículo. Debe desmontarlo antes de desecharlo.
-                                    </AlertDescription>
-                                </Alert>
-                            )}
-                        </div>
+                                {isTireInstalled && (
+                                    <div className="mt-4 p-4 bg-destructive/10 text-destructive rounded-lg border border-destructive/20 flex gap-2">
+                                        <AlertTriangle className="h-4 w-4 mt-0.5 flex-shrink-0" />
+                                        <p className="text-sm">
+                                            Este neumático está instalado en un vehículo. Debe desmontarlo antes de desecharlo.
+                                        </p>
+                                    </div>
+                                )}
+                            </div>
                     )}
-                </CardContent>
+                        </CardContent>
             </Card>
 
             {/* Disposal Form */}
