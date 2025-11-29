@@ -13,6 +13,8 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/components/ui/use-toast';
 import { apiClient } from '@/lib/api/client';
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Truck, Wrench, CheckCircle, ArrowRight, ArrowLeft } from 'lucide-react';
 
 // Wizard steps
@@ -39,6 +41,8 @@ export default function MontajePage() {
     const form = useForm<MontajeForm>({
         resolver: zodResolver(montajeSchema),
         defaultValues: {
+            vehiculo_id: '',
+            neumatico_id: '',
             kilometraje_vehiculo: 0,
             profundidad_mm: 10,
             presion_psi: 100,
@@ -120,187 +124,241 @@ export default function MontajePage() {
                 ))}
             </div>
 
-            <form onSubmit={form.handleSubmit(onSubmit)}>
-                <Card>
-                    <CardHeader>
-                        <CardTitle className="flex items-center gap-2">
-                            {currentStep === 1 && <><Truck className="w-5 h-5" /> Paso 1: Seleccionar Vehículo</>}
-                            {currentStep === 2 && <><Wrench className="w-5 h-5" /> Paso 2: Seleccionar Neumático</>}
-                            {currentStep === 3 && <><Wrench className="w-5 h-5" /> Paso 3: Datos de Montaje</>}
-                            {currentStep === 4 && <><CheckCircle className="w-5 h-5" /> Paso 4: Confirmar</>}
-                        </CardTitle>
-                        <CardDescription>
-                            {currentStep === 1 && 'Selecciona el vehículo donde se montará el neumático'}
-                            {currentStep === 2 && 'Selecciona el neumático disponible en stock'}
-                            {currentStep === 3 && 'Ingresa los datos de medición y kilometraje'}
-                            {currentStep === 4 && 'Revisa la información y confirma el montaje'}
-                        </CardDescription>
-                    </CardHeader>
-                    <CardContent className="space-y-4">
-                        {/* Step 1: Select Vehicle */}
-                        {currentStep === 1 && (
-                            <div className="space-y-4">
-                                <Label>Vehículo</Label>
-                                {loadingVehiculos ? (
-                                    <p className="text-sm text-muted-foreground">Cargando vehículos...</p>
-                                ) : (
-                                    <select
-                                        {...form.register('vehiculo_id')}
-                                        className="w-full p-2 border rounded-md"
-                                    >
-                                        <option value="">Selecciona un vehículo</option>
-                                        {vehiculos?.map((vehiculo: any) => (
-                                            <option key={vehiculo.id} value={vehiculo.id}>
-                                                {vehiculo.placa} - {vehiculo.marca} {vehiculo.modelo}
-                                            </option>
-                                        ))}
-                                    </select>
-                                )}
-                                {form.formState.errors.vehiculo_id && (
-                                    <p className="text-sm text-destructive">{form.formState.errors.vehiculo_id.message}</p>
-                                )}
-                            </div>
-                        )}
-
-                        {/* Step 2: Select Tire */}
-                        {currentStep === 2 && (
-                            <div className="space-y-4">
-                                <Label>Neumático (EN_STOCK)</Label>
-                                {loadingNeumaticos ? (
-                                    <p className="text-sm text-muted-foreground">Cargando neumáticos...</p>
-                                ) : (
-                                    <select
-                                        {...form.register('neumatico_id')}
-                                        className="w-full p-2 border rounded-md"
-                                    >
-                                        <option value="">Selecciona un neumático</option>
-                                        {neumaticos?.map((neumatico: any) => (
-                                            <option key={neumatico.id} value={neumatico.id}>
-                                                {neumatico.numero_serie} - {neumatico.modelo?.nombre} ({neumatico.modelo?.medida})
-                                            </option>
-                                        ))}
-                                    </select>
-                                )}
-                                {form.formState.errors.neumatico_id && (
-                                    <p className="text-sm text-destructive">{form.formState.errors.neumatico_id.message}</p>
-                                )}
-                            </div>
-                        )}
-
-                        {/* Step 3: Measurement Data */}
-                        {currentStep === 3 && (
-                            <div className="grid gap-4">
-                                <div>
-                                    <Label htmlFor="kilometraje_vehiculo">Kilometraje del Vehículo</Label>
-                                    <Input
-                                        id="kilometraje_vehiculo"
-                                        type="number"
-                                        {...form.register('kilometraje_vehiculo')}
-                                        placeholder="150000"
-                                    />
-                                    {form.formState.errors.kilometraje_vehiculo && (
-                                        <p className="text-sm text-destructive">{form.formState.errors.kilometraje_vehiculo.message}</p>
+            <Form {...form}>
+                <form onSubmit={form.handleSubmit(onSubmit)}>
+                    <Card>
+                        <CardHeader>
+                            <CardTitle className="flex items-center gap-2">
+                                {currentStep === 1 && <><Truck className="w-5 h-5" /> Paso 1: Seleccionar Vehículo</>}
+                                {currentStep === 2 && <><Wrench className="w-5 h-5" /> Paso 2: Seleccionar Neumático</>}
+                                {currentStep === 3 && <><Wrench className="w-5 h-5" /> Paso 3: Datos de Montaje</>}
+                                {currentStep === 4 && <><CheckCircle className="w-5 h-5" /> Paso 4: Confirmar</>}
+                            </CardTitle>
+                            <CardDescription>
+                                {currentStep === 1 && 'Selecciona el vehículo donde se montará el neumático'}
+                                {currentStep === 2 && 'Selecciona el neumático disponible en stock'}
+                                {currentStep === 3 && 'Ingresa los datos de medición y kilometraje'}
+                                {currentStep === 4 && 'Revisa la información y confirma el montaje'}
+                            </CardDescription>
+                        </CardHeader>
+                        <CardContent className="space-y-4">
+                            {/* Step 1: Select Vehicle */}
+                            {currentStep === 1 && (
+                                <FormField
+                                    control={form.control}
+                                    name="vehiculo_id"
+                                    render={({ field }) => (
+                                        <FormItem>
+                                            <FormLabel>Vehículo</FormLabel>
+                                            <Select onValueChange={field.onChange} value={field.value}>
+                                                <FormControl>
+                                                    <SelectTrigger>
+                                                        <SelectValue placeholder="Selecciona un vehículo" />
+                                                    </SelectTrigger>
+                                                </FormControl>
+                                                <SelectContent>
+                                                    {loadingVehiculos ? (
+                                                        <SelectItem value="loading" disabled>
+                                                            Cargando...
+                                                        </SelectItem>
+                                                    ) : vehiculos?.length === 0 ? (
+                                                        <SelectItem value="empty" disabled>
+                                                            No hay vehículos registrados
+                                                        </SelectItem>
+                                                    ) : (
+                                                        vehiculos?.map((vehiculo: any) => (
+                                                            <SelectItem key={vehiculo.id} value={vehiculo.id}>
+                                                                {vehiculo.placa} - {vehiculo.marca} {vehiculo.modelo}
+                                                            </SelectItem>
+                                                        ))
+                                                    )}
+                                                </SelectContent>
+                                            </Select>
+                                            <FormMessage />
+                                        </FormItem>
                                     )}
-                                </div>
-                                <div>
-                                    <Label htmlFor="profundidad_mm">Profundidad (mm)</Label>
-                                    <Input
-                                        id="profundidad_mm"
-                                        type="number"
-                                        step="0.1"
-                                        {...form.register('profundidad_mm')}
-                                        placeholder="15.5"
-                                    />
-                                    {form.formState.errors.profundidad_mm && (
-                                        <p className="text-sm text-destructive">{form.formState.errors.profundidad_mm.message}</p>
-                                    )}
-                                </div>
-                                <div>
-                                    <Label htmlFor="presion_psi">Presión (PSI)</Label>
-                                    <Input
-                                        id="presion_psi"
-                                        type="number"
-                                        {...form.register('presion_psi')}
-                                        placeholder="110"
-                                    />
-                                    {form.formState.errors.presion_psi && (
-                                        <p className="text-sm text-destructive">{form.formState.errors.presion_psi.message}</p>
-                                    )}
-                                </div>
-                                <div>
-                                    <Label htmlFor="observaciones">Observaciones (opcional)</Label>
-                                    <Textarea
-                                        id="observaciones"
-                                        {...form.register('observaciones')}
-                                        placeholder="Notas adicionales sobre el montaje..."
-                                        rows={3}
-                                    />
-                                </div>
-                            </div>
-                        )}
+                                />
+                            )}
 
-                        {/* Step 4: Confirmation */}
-                        {currentStep === 4 && (
-                            <div className="space-y-4">
-                                <div className="bg-muted p-4 rounded-md space-y-2">
-                                    <h3 className="font-semibold">Resumen del Montaje</h3>
-                                    <div className="grid grid-cols-2 gap-2 text-sm">
-                                        <div className="text-muted-foreground">Vehículo:</div>
-                                        <div className="font-medium">
-                                            {selectedVehiculo?.placa} - {selectedVehiculo?.marca} {selectedVehiculo?.modelo}
+                            {/* Step 2: Select Tire */}
+                            {currentStep === 2 && (
+                                <FormField
+                                    control={form.control}
+                                    name="neumatico_id"
+                                    render={({ field }) => (
+                                        <FormItem>
+                                            <FormLabel>Neumático (EN_STOCK)</FormLabel>
+                                            <Select onValueChange={field.onChange} value={field.value}>
+                                                <FormControl>
+                                                    <SelectTrigger>
+                                                        <SelectValue placeholder="Selecciona un neumático" />
+                                                    </SelectTrigger>
+                                                </FormControl>
+                                                <SelectContent>
+                                                    {loadingNeumaticos ? (
+                                                        <SelectItem value="loading" disabled>
+                                                            Cargando...
+                                                        </SelectItem>
+                                                    ) : neumaticos?.length === 0 ? (
+                                                        <SelectItem value="empty" disabled>
+                                                            No hay neumáticos en stock
+                                                        </SelectItem>
+                                                    ) : (
+                                                        neumaticos?.map((neumatico: any) => (
+                                                            <SelectItem key={neumatico.id} value={neumatico.id}>
+                                                                {neumatico.numero_serie} - {neumatico.modelo?.nombre} ({neumatico.modelo?.medida})
+                                                            </SelectItem>
+                                                        ))
+                                                    )}
+                                                </SelectContent>
+                                            </Select>
+                                            <FormMessage />
+                                        </FormItem>
+                                    )}
+                                />
+                            )}
+
+                            {/* Step 3: Measurement Data */}
+                            {currentStep === 3 && (
+                                <div className="grid gap-4">
+                                    <FormField
+                                        control={form.control}
+                                        name="kilometraje_vehiculo"
+                                        render={({ field }) => (
+                                            <FormItem>
+                                                <FormLabel>Kilometraje del Vehículo</FormLabel>
+                                                <FormControl>
+                                                    <Input
+                                                        type="number"
+                                                        placeholder="150000"
+                                                        {...field}
+                                                        onChange={e => field.onChange(parseFloat(e.target.value))}
+                                                    />
+                                                </FormControl>
+                                                <FormMessage />
+                                            </FormItem>
+                                        )}
+                                    />
+                                    <FormField
+                                        control={form.control}
+                                        name="profundidad_mm"
+                                        render={({ field }) => (
+                                            <FormItem>
+                                                <FormLabel>Profundidad (mm)</FormLabel>
+                                                <FormControl>
+                                                    <Input
+                                                        type="number"
+                                                        step="0.1"
+                                                        placeholder="15.5"
+                                                        {...field}
+                                                        onChange={e => field.onChange(parseFloat(e.target.value))}
+                                                    />
+                                                </FormControl>
+                                                <FormMessage />
+                                            </FormItem>
+                                        )}
+                                    />
+                                    <FormField
+                                        control={form.control}
+                                        name="presion_psi"
+                                        render={({ field }) => (
+                                            <FormItem>
+                                                <FormLabel>Presión (PSI)</FormLabel>
+                                                <FormControl>
+                                                    <Input
+                                                        type="number"
+                                                        placeholder="110"
+                                                        {...field}
+                                                        onChange={e => field.onChange(parseFloat(e.target.value))}
+                                                    />
+                                                </FormControl>
+                                                <FormMessage />
+                                            </FormItem>
+                                        )}
+                                    />
+                                    <FormField
+                                        control={form.control}
+                                        name="observaciones"
+                                        render={({ field }) => (
+                                            <FormItem>
+                                                <FormLabel>Observaciones (opcional)</FormLabel>
+                                                <FormControl>
+                                                    <Textarea
+                                                        placeholder="Notas adicionales sobre el montaje..."
+                                                        rows={3}
+                                                        {...field}
+                                                    />
+                                                </FormControl>
+                                                <FormMessage />
+                                            </FormItem>
+                                        )}
+                                    />
+                                </div>
+                            )}
+
+                            {/* Step 4: Confirmation */}
+                            {currentStep === 4 && (
+                                <div className="space-y-4">
+                                    <div className="bg-muted p-4 rounded-md space-y-2">
+                                        <h3 className="font-semibold">Resumen del Montaje</h3>
+                                        <div className="grid grid-cols-2 gap-2 text-sm">
+                                            <div className="text-muted-foreground">Vehículo:</div>
+                                            <div className="font-medium">
+                                                {selectedVehiculo?.placa} - {selectedVehiculo?.marca} {selectedVehiculo?.modelo}
+                                            </div>
+                                            <div className="text-muted-foreground">Neumático:</div>
+                                            <div className="font-medium">{selectedNeumatico?.numero_serie}</div>
+                                            <div className="text-muted-foreground">Kilometraje:</div>
+                                            <div className="font-medium">{form.watch('kilometraje_vehiculo')} km</div>
+                                            <div className="text-muted-foreground">Profundidad:</div>
+                                            <div className="font-medium">{form.watch('profundidad_mm')} mm</div>
+                                            <div className="text-muted-foreground">Presión:</div>
+                                            <div className="font-medium">{form.watch('presion_psi')} PSI</div>
                                         </div>
-                                        <div className="text-muted-foreground">Neumático:</div>
-                                        <div className="font-medium">{selectedNeumatico?.numero_serie}</div>
-                                        <div className="text-muted-foreground">Kilometraje:</div>
-                                        <div className="font-medium">{form.watch('kilometraje_vehiculo')} km</div>
-                                        <div className="text-muted-foreground">Profundidad:</div>
-                                        <div className="font-medium">{form.watch('profundidad_mm')} mm</div>
-                                        <div className="text-muted-foreground">Presión:</div>
-                                        <div className="font-medium">{form.watch('presion_psi')} PSI</div>
+                                        {form.watch('observaciones') && (
+                                            <>
+                                                <div className="text-sm text-muted-foreground mt-2">Observaciones:</div>
+                                                <div className="text-sm">{form.watch('observaciones')}</div>
+                                            </>
+                                        )}
                                     </div>
-                                    {form.watch('observaciones') && (
-                                        <>
-                                            <div className="text-sm text-muted-foreground mt-2">Observaciones:</div>
-                                            <div className="text-sm">{form.watch('observaciones')}</div>
-                                        </>
-                                    )}
                                 </div>
-                            </div>
-                        )}
-                    </CardContent>
-                </Card>
+                            )}
+                        </CardContent>
+                    </Card>
 
-                {/* Navigation Buttons */}
-                <div className="flex justify-between mt-6">
-                    <Button
-                        type="button"
-                        variant="outline"
-                        onClick={handleBack}
-                        disabled={currentStep === 1}
-                    >
-                        <ArrowLeft className="w-4 h-4 mr-2" />
-                        Atrás
-                    </Button>
-                    {currentStep < 4 ? (
+                    {/* Navigation Buttons */}
+                    <div className="flex justify-between mt-6">
                         <Button
                             type="button"
-                            onClick={handleNext}
-                            disabled={
-                                (currentStep === 1 && !form.watch('vehiculo_id')) ||
-                                (currentStep === 2 && !form.watch('neumatico_id'))
-                            }
+                            variant="outline"
+                            onClick={handleBack}
+                            disabled={currentStep === 1}
                         >
-                            Siguiente
-                            <ArrowRight className="w-4 h-4 ml-2" />
+                            <ArrowLeft className="w-4 h-4 mr-2" />
+                            Atrás
                         </Button>
-                    ) : (
-                        <Button type="submit" disabled={montajeMutation.isPending}>
-                            {montajeMutation.isPending ? 'Montando...' : 'Confirmar Montaje'}
-                            <CheckCircle className="w-4 h-4 ml-2" />
-                        </Button>
-                    )}
-                </div>
-            </form>
+                        {currentStep < 4 ? (
+                            <Button
+                                type="button"
+                                onClick={handleNext}
+                                disabled={
+                                    (currentStep === 1 && !form.watch('vehiculo_id')) ||
+                                    (currentStep === 2 && !form.watch('neumatico_id'))
+                                }
+                            >
+                                Siguiente
+                                <ArrowRight className="w-4 h-4 ml-2" />
+                            </Button>
+                        ) : (
+                            <Button type="submit" disabled={montajeMutation.isPending}>
+                                {montajeMutation.isPending ? 'Montando...' : 'Confirmar Montaje'}
+                                <CheckCircle className="w-4 h-4 ml-2" />
+                            </Button>
+                        )}
+                    </div>
+                </form>
+            </Form>
         </div>
     );
 }
