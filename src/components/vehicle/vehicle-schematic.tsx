@@ -10,6 +10,7 @@ interface VehicleSchematicProps {
     neumaticos?: any[];
     onPositionClick?: (posicionId: string, neumaticoId?: string) => void;
     isInteractive?: boolean;
+    draggingRetread?: boolean;
 }
 
 export function VehicleSchematic({
