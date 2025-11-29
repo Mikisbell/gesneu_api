@@ -556,10 +556,9 @@ export class NeumaticoService {
         const neumatico = await tx.neumatico.findUnique({ where: { id: neumatico_id } });
         if (!neumatico) throw new Error('Neumático no encontrado');
 
-        // Allow sending from STOCK or PARA_REPARACION
-        // If INSTALADO, should use DESMONTAJE first.
-        if (![EstadoNeumaticoEnum.EN_STOCK, EstadoNeumaticoEnum.PARA_REPARACION].includes(neumatico.estado_actual)) {
-            throw new Error(`El neumático debe estar EN_STOCK o PARA_REPARACION. Estado actual: ${neumatico.estado_actual}`);
+        // Allow sending from STOCK only
+        if (neumatico.estado_actual !== EstadoNeumaticoEnum.EN_STOCK) {
+            throw new Error(`El neumático debe estar EN_STOCK. Estado actual: ${neumatico.estado_actual}`);
         }
 
         const nuevoEvento = await tx.eventoNeumatico.create({
@@ -654,8 +653,8 @@ export class NeumaticoService {
         const neumatico = await tx.neumatico.findUnique({ where: { id: neumatico_id } });
         if (!neumatico) throw new Error('Neumático no encontrado');
 
-        if (![EstadoNeumaticoEnum.EN_STOCK, EstadoNeumaticoEnum.PARA_REENCAUCHE].includes(neumatico.estado_actual)) {
-            throw new Error(`El neumático debe estar EN_STOCK o PARA_REENCAUCHE. Estado actual: ${neumatico.estado_actual}`);
+        if (neumatico.estado_actual !== EstadoNeumaticoEnum.EN_STOCK) {
+            throw new Error(`El neumático debe estar EN_STOCK. Estado actual: ${neumatico.estado_actual}`);
         }
 
         // Validate max retreads (RF16)
