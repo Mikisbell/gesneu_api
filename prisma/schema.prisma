@@ -1,3 +1,5 @@
+// prisma/schema.prisma
+
 generator client {
   provider = "prisma-client-js"
 }
@@ -6,131 +8,249 @@ datasource db {
   provider = "postgresql"
 }
 
+// --- NUEVOS MODELOS PARA TRAZABILIDAD FINANCIERA ---
+
+model CentroCosto {
+  id           String     @id @default(uuid()) @db.Uuid
+  codigo       String     @unique @db.VarChar(20) // Ej: "650101"
+  nombre       String     @db.VarChar(100)        // Ej: "TRANSPORTE COMERCIAL"
+  area_negocio String?    @db.VarChar(100)        // Ej: "OBRAS CIVILES", "LINEA BLANCA"
+  vehiculos    Vehiculo[]
+  activo       Boolean    @default(true)
+  creado_en    DateTime   @default(now()) @db.Timestamptz(6)
+
+  @@map("centros_costo")
+}
+
+// --- MODELOS PRINCIPALES ---
+
 model Usuario {
-  id                                                                                        String                            @id @default(uuid()) @db.Uuid
-  username                                                                                  String                            @unique @db.VarChar(50)
-  nombre_completo                                                                           String                            @db.VarChar(200)
-  email                                                                                     String                            @unique @db.VarChar(100)
-  password_hash                                                                             String
-  activo                                                                                    Boolean                           @default(true)
-  creado_en                                                                                 DateTime                          @default(now()) @db.Timestamptz(6)
-  creado_por                                                                                String?                           @db.Uuid
-  actualizado_en                                                                            DateTime?                         @db.Timestamptz(6)
-  actualizado_por                                                                           String?                           @db.Uuid
-  bloqueado_hasta                                                                           DateTime?                         @db.Timestamptz(6)
-  intentos_login                                                                            Int                               @default(0)
-  ultimo_login                                                                              DateTime?                         @db.Timestamptz(6)
-  alertas_gestionadas                                                                       Alerta[]
-  audit_logs                                                                                AuditLog[]
-  auditoria_roles_usuarios                                                                  auditoria_roles_usuarios[]
-  bitacora_operaciones_bitacora_operaciones_actualizado_porTousuarios                       bitacora_operaciones[]            @relation("bitacora_operaciones_actualizado_porTousuarios")
-  bitacora_operaciones_bitacora_operaciones_creado_porTousuarios                            bitacora_operaciones[]            @relation("bitacora_operaciones_creado_porTousuarios")
-  bitacora_operaciones_bitacora_operaciones_usuario_idTousuarios                            bitacora_operaciones[]            @relation("bitacora_operaciones_usuario_idTousuarios")
-  bitacora_operaciones_neumaticos_bitacora_operaciones_neumaticos_actualizado_porTousuarios bitacora_operaciones_neumaticos[] @relation("bitacora_operaciones_neumaticos_actualizado_porTousuarios")
-  bitacora_operaciones_neumaticos_bitacora_operaciones_neumaticos_creado_porTousuarios      bitacora_operaciones_neumaticos[] @relation("bitacora_operaciones_neumaticos_creado_porTousuarios")
-  parametros_sistema                                                                        parametros_sistema[]
-  rutas_rutas_actualizado_porTousuarios                                                     rutas[]                           @relation("rutas_actualizado_porTousuarios")
-  rutas_rutas_creado_porTousuarios                                                          rutas[]                           @relation("rutas_creado_porTousuarios")
-  tareas_programadas                                                                        tareas_programadas[]
-  roles                                                                                     UsuarioRol[]
+  id              String    @id @default(uuid()) @db.Uuid
+  username        String    @unique @db.VarChar(50)
+  nombre_completo String    @db.VarChar(200)
+  email           String    @unique @db.VarChar(100)
+  password_hash   String
+  rol             RolEnum   @default(OPERADOR) // Simplificado para MVP, puedes usar tu tabla Rol si prefieres
+  activo          Boolean   @default(true)
+  creado_en       DateTime  @default(now()) @db.Timestamptz(6)
+  
+  // Relaciones de auditoría simplificadas
+  eventos_creados EventoNeumatico[]
 
   @@map("usuarios")
 }
 
-model Rol {
-  id              String       @id @default(uuid()) @db.Uuid
-  nombre          String       @unique @db.VarChar(50)
+model Vehiculo {
+  id               String           @id @default(uuid()) @db.Uuid
+  codigo_interno   String?          @unique @db.VarChar(20) // Ej: "TC-100", "CF-01"
+  placa            String?          @unique @db.VarChar(20)
+  tipo_vehiculo_id String           @db.Uuid
+  centro_costo_id  String?          @db.Uuid // 💰 Vinculación Financiera
+  
+  marca            String?          @db.VarChar(50)
+  modelo           String?          @db.VarChar(50)
+  anio             Int?
+  numero_serie     String?          // VIN o Serie
+  
+  // 🚨 SOPORTE PARA LÍNEA AMARILLA
+  tipo_medicion    TipoMedicionEnum @default(KILOMETRAJE)
+  contador_actual  Float            @default(0) // Guarda Km o Horas según el tipo
+  
+  activo           Boolean          @default(true)
+  creado_en        DateTime         @default(now()) @db.Timestamptz(6)
+
+  // Relaciones
+  tipo_vehiculo         TipoVehiculo      @relation(fields: [tipo_vehiculo_id], references: [id])
+  centro_costo          CentroCosto?      @relation(fields: [centro_costo_id], references: [id])
+  neumaticos_instalados Neumatico[]
+  eventos               EventoNeumatico[]
+  registros_contador    RegistroContador[]
+
+  @@map("vehiculos")
+}
+
+model Neumatico {
+  id                     String              @id @default(uuid()) @db.Uuid
+  numero_serie           String              @unique @db.VarChar(50)
+  modelo_id              String              @db.Uuid
+  dot                    String?             @db.VarChar(4)
+  marca_id               String?             @db.Uuid // Opcional si se infiere del modelo
+  
+  estado_actual          EstadoNeumaticoEnum @default(EN_STOCK)
+  
+  // Medición y Vida Útil
+  profundidad_inicial_mm Float
+  profundidad_actual_mm  Float?              // Promedio actual
+  
+  // 🚨 Detalle de desgaste actual (Snapshot)
+  profundidad_int        Float?
+  profundidad_cen        Float?
+  profundidad_ext        Float?
+  
+  presion_actual_psi     Float?
+  
+  // Ciclo de Vida
+  kilometraje_acumulado  Float               @default(0) // O horas acumuladas
+  horas_acumuladas       Float               @default(0) // Para línea amarilla
+  vida_actual            Int                 @default(1)
+  reencauches_realizados Int                 @default(0)
+  es_reencauchado        Boolean             @default(false)
+  
+  // Costos
+  costo_compra           Decimal?            @db.Decimal(10, 2)
+  fecha_compra           DateTime?           @db.Date
+  
+  // Ubicación
+  ubicacion_almacen_id   String?             @db.Uuid
+  ubicacion_vehiculo_id  String?             @db.Uuid
+  ubicacion_posicion_id  String?             @db.Uuid
+
+  activo                 Boolean             @default(true)
+  creado_en              DateTime            @default(now()) @db.Timestamptz(6)
+  actualizado_en         DateTime?           @db.Timestamptz(6)
+  creado_por             String?             @db.Uuid
+
+  // Relaciones
+  modelo                 ModeloNeumatico     @relation(fields: [modelo_id], references: [id])
+  ubicacion_almacen      Almacen?            @relation(fields: [ubicacion_almacen_id], references: [id])
+  ubicacion_vehiculo     Vehiculo?           @relation(fields: [ubicacion_vehiculo_id], references: [id])
+  ubicacion_posicion     PosicionNeumatico?  @relation(fields: [ubicacion_posicion_id], references: [id])
+  eventos                EventoNeumatico[]
+
+  @@map("neumaticos")
+}
+
+model EventoNeumatico {
+  id                    String                  @id @default(uuid()) @db.Uuid
+  tipo_evento           TipoEventoNeumaticoEnum
+  neumatico_id          String                  @db.Uuid
+  fecha_evento          DateTime                @db.Timestamptz(6)
+  
+  // Contadores al momento del evento
+  contador_vehiculo     Float?                  // Km o Horas
+  
+  // 🚨 Medición detallada (NSK)
+  profundidad_int       Decimal?                @db.Decimal(5, 2)
+  profundidad_cen       Decimal?                @db.Decimal(5, 2)
+  profundidad_ext       Decimal?                @db.Decimal(5, 2)
+  profundidad_remanente Decimal?                @db.Decimal(5, 2) // Promedio o mínima
+  
+  presion_psi           Float?
+  
+  // Relaciones del evento
+  vehiculo_id           String?                 @db.Uuid
+  posicion_montaje_id   String?                 @db.Uuid
+  almacen_destino_id    String?                 @db.Uuid
+  proveedor_id          String?                 @db.Uuid
+  motivo_desecho_id     String?                 @db.Uuid
+  
+  costo_evento          Decimal?                @db.Decimal(10, 2)
+  notas                 String?
+  creado_por            String?                 @db.Uuid
+  creado_en             DateTime                @default(now())
+
+  // Relaciones
+  neumatico             Neumatico               @relation(fields: [neumatico_id], references: [id])
+  vehiculo              Vehiculo?               @relation(fields: [vehiculo_id], references: [id])
+  posicion_montaje      PosicionNeumatico?      @relation(fields: [posicion_montaje_id], references: [id])
+  almacen_destino       Almacen?                @relation(fields: [almacen_destino_id], references: [id])
+  proveedor             Proveedor?              @relation(fields: [proveedor_id], references: [id])
+  motivo_desecho        MotivoDesecho?          @relation(fields: [motivo_desecho_id], references: [id])
+  usuario               Usuario?                @relation(fields: [creado_por], references: [id])
+
+  @@map("eventos_neumaticos")
+}
+
+// --- CATÁLOGOS ---
+
+model TipoVehiculo {
+  id              String             @id @default(uuid()) @db.Uuid
+  nombre          String             @unique @db.VarChar(50)
   descripcion     String?
-  activo          Boolean      @default(true)
-  creado_en       DateTime     @default(now()) @db.Timestamptz(6)
-  creado_por      String?      @db.Uuid
-  actualizado_en  DateTime?    @db.Timestamptz(6)
-  actualizado_por String?      @db.Uuid
-  permisos        RolPermiso[]
-  usuarios        UsuarioRol[]
+  configuraciones ConfiguracionEje[]
+  vehiculos       Vehiculo[]
+  activo          Boolean            @default(true)
 
-  @@map("roles")
+  @@map("tipos_vehiculo")
 }
 
-model Permiso {
-  id          String       @id @default(uuid()) @db.Uuid
-  codigo      String       @unique @db.VarChar(100)
-  nombre      String       @db.VarChar(100)
-  descripcion String?
-  recurso     String       @db.VarChar(50)
-  accion      String       @db.VarChar(50)
-  activo      Boolean      @default(true)
-  creado_en   DateTime     @default(now()) @db.Timestamptz(6)
-  roles       RolPermiso[]
+model ConfiguracionEje {
+  id                    String              @id @default(uuid()) @db.Uuid
+  tipo_vehiculo_id      String              @db.Uuid
+  numero_eje            Int
+  tipo_eje              TipoEjeEnum
+  posiciones_neumatico  Int
+  permite_reencauchados Boolean             @default(true)
+  tipo_vehiculo         TipoVehiculo        @relation(fields: [tipo_vehiculo_id], references: [id])
+  posiciones            PosicionNeumatico[]
 
-  @@map("permisos")
+  @@map("configuraciones_eje")
 }
 
-model UsuarioRol {
-  id           String   @id @default(uuid()) @db.Uuid
-  usuario_id   String   @db.Uuid
-  rol_id       String   @db.Uuid
-  asignado_en  DateTime @default(now()) @db.Timestamptz(6)
-  asignado_por String?  @db.Uuid
-  activo       Boolean  @default(true)
-  rol          Rol      @relation(fields: [rol_id], references: [id])
-  usuario      Usuario  @relation(fields: [usuario_id], references: [id])
+model PosicionNeumatico {
+  id                   String             @id @default(uuid()) @db.Uuid
+  configuracion_eje_id String             @db.Uuid
+  numero_posicion      Int
+  lado_vehiculo        LadoVehiculoEnum
+  configuracion_eje    ConfiguracionEje   @relation(fields: [configuracion_eje_id], references: [id])
+  neumaticos           Neumatico[]
+  eventos              EventoNeumatico[]
 
-  @@unique([usuario_id, rol_id])
-  @@map("usuarios_roles")
+  @@map("posiciones_neumatico")
 }
 
-model RolPermiso {
-  id           String   @id @default(uuid()) @db.Uuid
-  rol_id       String   @db.Uuid
-  permiso_id   String   @db.Uuid
-  asignado_en  DateTime @default(now()) @db.Timestamptz(6)
-  asignado_por String?  @db.Uuid
-  permiso      Permiso  @relation(fields: [permiso_id], references: [id])
-  rol          Rol      @relation(fields: [rol_id], references: [id])
+model FabricanteNeumatico {
+  id      String            @id @default(uuid()) @db.Uuid
+  nombre  String            @unique @db.VarChar(100)
+  modelos ModeloNeumatico[]
 
-  @@unique([rol_id, permiso_id])
-  @@map("roles_permisos")
+  @@map("fabricantes_neumatico")
+}
+
+model ModeloNeumatico {
+  id                     String              @id @default(uuid()) @db.Uuid
+  nombre                 String              @db.VarChar(100)
+  medida                 String              @db.VarChar(50)
+  profundidad_inicial_mm Float
+  reencauches_maximos    Int                 @default(0)
+  fabricante_id          String              @db.Uuid
+  fabricante             FabricanteNeumatico @relation(fields: [fabricante_id], references: [id])
+  neumaticos             Neumatico[]
+
+  @@map("modelos_neumatico")
+}
+
+model Almacen {
+  id        String            @id @default(uuid()) @db.Uuid
+  nombre    String            @db.VarChar(100)
+  tipo      String?           @default("PRINCIPAL") // "PRINCIPAL", "TRANSITORIO", "SCRAP"
+  ubicacion String?
+  eventos   EventoNeumatico[]
+  neumaticos Neumatico[]
+
+  @@map("almacenes")
 }
 
 model Proveedor {
-  id                   String                 @id @default(uuid()) @db.Uuid
-  nombre               String                 @db.VarChar(200)
-  ruc                  String?                @unique @db.VarChar(20)
-  contacto_principal   String?                @db.VarChar(200)
-  telefono             String?                @db.VarChar(20)
-  email                String?                @db.VarChar(100)
-  direccion            String?
-  activo               Boolean                @default(true)
-  creado_en            DateTime               @default(now()) @db.Timestamptz(6)
-  creado_por           String?                @db.Uuid
-  actualizado_en       DateTime?              @db.Timestamptz(6)
-  actualizado_por      String?                @db.Uuid
-  tipo                 TipoProveedorEnum
-  bitacora_operaciones bitacora_operaciones[]
-  eventos_neumaticos   EventoNeumatico[]
+  id      String            @id @default(uuid()) @db.Uuid
+  nombre  String            @db.VarChar(200)
+  ruc     String?           @unique @db.VarChar(20)
+  tipo    TipoProveedorEnum
+  eventos EventoNeumatico[]
 
   @@map("proveedores")
 }
 
-model Almacen {
-  id                     String                 @id @default(uuid()) @db.Uuid
-  codigo                 String                 @unique @db.VarChar(10)
-  nombre                 String                 @db.VarChar(100)
-  ubicacion              String?
-  activo                 Boolean                @default(true)
-  creado_en              DateTime               @default(now()) @db.Timestamptz(6)
-  creado_por             String?                @db.Uuid
-  actualizado_en         DateTime?              @db.Timestamptz(6)
-  actualizado_por        String?                @db.Uuid
-  descripcion            String?
-  alertas                Alerta[]
-  bitacora_operaciones   bitacora_operaciones[]
-  eventos_neumaticos     EventoNeumatico[]
-  movimientos_inventario MovimientoInventario[]
-  neumaticos_almacenados Neumatico[]
+model RegistroContador {
+  id             String   @id @default(uuid()) @db.Uuid
+  vehiculo_id    String   @db.Uuid
+  valor          Float    // Km u Horas
+  fecha_registro DateTime @db.Timestamptz(6)
+  notas          String?
+  creado_en      DateTime @default(now())
+  vehiculo       Vehiculo @relation(fields: [vehiculo_id], references: [id])
 
-  @@map("almacenes")
+  @@map("registros_contador")
 }
 
 model MotivoDesecho {
@@ -148,582 +268,17 @@ model MotivoDesecho {
   @@map("motivos_desecho")
 }
 
-model FabricanteNeumatico {
-  id             String            @id @default(uuid()) @db.Uuid
-  nombre         String            @unique @db.VarChar(100)
-  pais_origen    String?           @db.VarChar(50)
-  activo         Boolean           @default(true)
-  creado_en      DateTime          @default(now()) @db.Timestamptz(6)
-  actualizado_en DateTime?         @db.Timestamptz(6)
-  modelos        ModeloNeumatico[]
+// --- ENUMS ---
 
-  @@map("fabricantes_neumatico")
+enum RolEnum {
+  ADMIN
+  GESTOR
+  OPERADOR
 }
 
-model TipoVehiculo {
-  id                            String                      @id @default(uuid()) @db.Uuid
-  nombre                        String                      @unique @db.VarChar(50)
-  descripcion                   String?
-  activo                        Boolean                     @default(true)
-  creado_en                     DateTime                    @default(now()) @db.Timestamptz(6)
-  actualizado_en                DateTime?                   @db.Timestamptz(6)
-  configuraciones               ConfiguracionEje[]
-  especificaciones_desgaste     especificaciones_desgaste[]
-  modelos_posiciones_permitidas ModeloPosicionPermitida[]
-  vehiculos                     Vehiculo[]
-
-  @@map("tipos_vehiculo")
-}
-
-// 1. NUEVO: Centros de Costo para Trazabilidad Financiera (Tablas.csv)
-model CentroCosto {
-  id           String     @id @default(uuid()) @db.Uuid
-  codigo       String     @unique @db.VarChar(20) // Ej: "650101"
-  nombre       String     @db.VarChar(100)        // Ej: "TRANSPORTE COMERCIAL"
-  area_negocio String?    @db.VarChar(100)        // Ej: "OBRAS CIVILES", "LINEA BLANCA"
-  vehiculos    Vehiculo[]
-  activo       Boolean    @default(true)
-
-  @@map("centros_costo")
-}
-
-model Vehiculo {
-  id                    String                @id @default(uuid()) @db.Uuid
-  codigo_interno        String?               @unique @db.VarChar(20) // Ej: "TC-100", "VQ-32"
-  placa                 String?               @unique @db.VarChar(20) // Puede ser null en maquinaria
-  tipo_vehiculo_id      String                @db.Uuid
-  centro_costo_id       String?               @db.Uuid // 💰 Vinculación Financiera
-  
-  // 2. NUEVO: Soporte para Línea Amarilla (Horómetro)
-  tipo_medicion         TipoMedicionEnum      @default(KILOMETRAJE)
-  contador_actual       Float                 @default(0) // Guarda Km o Horas según el tipo
-  
-  marca                 String?               @db.VarChar(50)
-  modelo                String?               @db.VarChar(50)
-  anio                  Int?
-  numero_serie          String?               // VIN o Serie Chasis
-  kilometraje_actual    Float?                // Mantener por compatibilidad o migrar a contador_actual
-  
-  activo                Boolean               @default(true)
-  creado_en             DateTime              @default(now()) @db.Timestamptz(6)
-  actualizado_en        DateTime?             @db.Timestamptz(6)
-
-  // Relaciones
-  tipo_vehiculo         TipoVehiculo          @relation(fields: [tipo_vehiculo_id], references: [id])
-  centro_costo          CentroCosto?          @relation(fields: [centro_costo_id], references: [id])
-  neumaticos_instalados Neumatico[]
-  eventos_neumaticos    EventoNeumatico[]
-  bitacora_operaciones  bitacora_operaciones[]
-  registros_odometro    RegistroOdometro[]
-  alertas               Alerta[]
-  
-  @@map("vehiculos")
-}
-
-model ConfiguracionEje {
-  id                    String              @id @default(uuid()) @db.Uuid
-  tipo_vehiculo_id      String              @db.Uuid
-  activo                Boolean             @default(true)
-  creado_en             DateTime            @default(now()) @db.Timestamptz(6)
-  numero_eje            Int
-  permite_reencauchados Boolean             @default(true)
-  posiciones_neumatico  Int
-  tipo_eje              TipoEjeEnum
-  tipo_vehiculo         TipoVehiculo        @relation(fields: [tipo_vehiculo_id], references: [id])
-  posiciones            PosicionNeumatico[]
-
-  @@unique([tipo_vehiculo_id, numero_eje])
-  @@map("configuraciones_eje")
-}
-
-model PosicionNeumatico {
-  id                              String                            @id @default(uuid()) @db.Uuid
-  configuracion_eje_id            String                            @db.Uuid
-  activo                          Boolean                           @default(true)
-  creado_en                       DateTime                          @default(now()) @db.Timestamptz(6)
-  numero_posicion                 Int
-  lado_vehiculo                   LadoVehiculoEnum
-  bitacora_operaciones_neumaticos bitacora_operaciones_neumaticos[]
-  eventos_neumaticos              EventoNeumatico[]
-  neumaticos                      Neumatico[]
-  configuracion_eje               ConfiguracionEje                  @relation(fields: [configuracion_eje_id], references: [id])
-
-  @@unique([configuracion_eje_id, numero_posicion])
-  @@map("posiciones_neumatico")
-}
-
-model RegistroOdometro {
-  id             String   @id @default(uuid()) @db.Uuid
-  vehiculo_id    String   @db.Uuid
-  kilometraje    Float
-  fecha_registro DateTime @db.Timestamptz(6)
-  registrado_por String?  @db.Uuid
-  notas          String?
-  creado_en      DateTime @default(now()) @db.Timestamptz(6)
-  vehiculo       Vehiculo @relation(fields: [vehiculo_id], references: [id])
-
-  @@map("registros_odometro")
-}
-
-model ModeloNeumatico {
-  id                        String                         @id @default(uuid()) @db.Uuid
-  nombre                    String                         @db.VarChar(100)
-  medida                    String                         @db.VarChar(50)
-  profundidad_inicial_mm    Float
-  activo                    Boolean                        @default(true)
-  creado_en                 DateTime                       @default(now()) @db.Timestamptz(6)
-  actualizado_en            DateTime?                      @db.Timestamptz(6)
-  fabricante_id             String                         @db.Uuid
-  reencauches_maximos       Int                            @default(0)
-  indice_carga              String?                        @db.VarChar(10)
-  indice_velocidad          String?                        @db.VarChar(5)
-  tipo_construccion         String?                        @db.VarChar(20)
-  vida_util_km              Float?
-  especificaciones_desgaste especificaciones_desgaste[]
-  fabricante                FabricanteNeumatico            @relation(fields: [fabricante_id], references: [id])
-  posiciones_permitidas     ModeloPosicionPermitida[]
-  neumaticos                Neumatico[]
-  parametros_rendimiento    ParametroRendimientoEsperado[]
-
-  @@unique([fabricante_id, nombre, medida])
-  @@map("modelos_neumatico")
-}
-
-model ModeloPosicionPermitida {
-  id               String          @id @default(uuid()) @db.Uuid
-  modelo_id        String          @db.Uuid
-  tipo_vehiculo_id String          @db.Uuid
-  tipo_eje         TipoEjeEnum
-  es_recomendado   Boolean         @default(false)
-  activo           Boolean         @default(true)
-  creado_en        DateTime        @default(now()) @db.Timestamptz(6)
-  modelo           ModeloNeumatico @relation(fields: [modelo_id], references: [id])
-  tipo_vehiculo    TipoVehiculo    @relation(fields: [tipo_vehiculo_id], references: [id])
-
-  @@unique([modelo_id, tipo_vehiculo_id, tipo_eje])
-  @@map("modelos_posiciones_permitidas")
-}
-
-model Neumatico {
-  id                              String                            @id @default(uuid()) @db.Uuid
-  numero_serie                    String                            @unique @db.VarChar(50)
-  modelo_id                       String                            @db.Uuid
-  dot                             String                            @db.VarChar(4)
-  estado_actual                   EstadoNeumaticoEnum               @default(EN_STOCK)
-  profundidad_inicial_mm          Float
-  profundidad_actual_mm           Float?
-  presion_actual_psi              Float?
-  reencauches_realizados          Int                               @default(0)
-  es_reencauchado                 Boolean                           @default(false)
-  kilometraje_acumulado           Float                             @default(0)
-  vida_actual                     Int                               @default(1)
-  ubicacion_almacen_id            String?                           @db.Uuid
-  ubicacion_vehiculo_id           String?                           @db.Uuid
-  ubicacion_posicion_id           String?                           @db.Uuid
-  costo_compra                    Decimal?                          @db.Decimal(10, 2)
-  fecha_compra                    DateTime?                         @db.Date
-  fecha_instalacion               DateTime?                         @db.Timestamptz(6)
-  fecha_desecho                   DateTime?                         @db.Timestamptz(6)
-  activo                          Boolean                           @default(true)
-  creado_en                       DateTime                          @default(now()) @db.Timestamptz(6)
-  actualizado_en                  DateTime?                         @db.Timestamptz(6)
-  alertas                         Alerta[]
-  bitacora_operaciones_neumaticos bitacora_operaciones_neumaticos[]
-  eventos                         EventoNeumatico[]
-  garantias                       GarantiaNeumatico[]
-  historial_estados               HistorialEstadoNeumatico[]
-  mediciones_profundidad          MedicionProfundidad[]
-  modelo                          ModeloNeumatico                   @relation(fields: [modelo_id], references: [id])
-  ubicacion_almacen               Almacen?                          @relation(fields: [ubicacion_almacen_id], references: [id])
-  ubicacion_posicion              PosicionNeumatico?                @relation(fields: [ubicacion_posicion_id], references: [id])
-  ubicacion_vehiculo              Vehiculo?                         @relation(fields: [ubicacion_vehiculo_id], references: [id])
-
-  @@map("neumaticos")
-}
-
-// 3. ACTUALIZADO: Medición de 3 Puntos (BASE_DATOS.csv: Ext, Cen, Int)
-model EventoNeumatico {
-  id                    String                  @id @default(uuid()) @db.Uuid
-  tipo_evento           TipoEventoNeumaticoEnum
-  neumatico_id          String                  @db.Uuid
-  fecha_evento          DateTime                @db.Timestamptz(6)
-  
-  // Medidores flexibles
-  contador_vehiculo     Float?                  // Km o Horas al momento del evento
-  kilometraje_vehiculo  Float?                  // Mantener por compatibilidad
-  
-  // Profundidad detallada (NSK)
-  profundidad_int       Decimal?                @db.Decimal(5, 2)
-  profundidad_cen       Decimal?                @db.Decimal(5, 2)
-  profundidad_ext       Decimal?                @db.Decimal(5, 2)
-  profundidad_promedio  Decimal?                @db.Decimal(5, 2) // Calculado
-  profundidad_remanente Float?                  // Mantener por compatibilidad (float vs decimal)
-  
-  presion_psi           Float?
-  
-  vehiculo_id           String?                 @db.Uuid
-  posicion_montaje_id   String?                 @db.Uuid
-  almacen_destino_id    String?                 @db.Uuid
-  proveedor_id          String?                 @db.Uuid
-  motivo_desecho_id     String?                 @db.Uuid
-  costo_evento          Decimal?                @db.Decimal(10, 2)
-  notas                 String?
-  creado_por            String?                 @db.Uuid
-  creado_en             DateTime                @default(now()) @db.Timestamptz(6)
-
-  // Relaciones...
-  neumatico             Neumatico               @relation(fields: [neumatico_id], references: [id])
-  vehiculo              Vehiculo?               @relation(fields: [vehiculo_id], references: [id])
-  posicion_montaje      PosicionNeumatico?      @relation(fields: [posicion_montaje_id], references: [id])
-  almacen_destino       Almacen?                @relation(fields: [almacen_destino_id], references: [id])
-  proveedor             Proveedor?              @relation(fields: [proveedor_id], references: [id])
-  motivo_desecho        MotivoDesecho?          @relation(fields: [motivo_desecho_id], references: [id])
-
-  @@map("eventos_neumaticos")
-}
-
-model HistorialEstadoNeumatico {
-  id              String               @id @default(uuid()) @db.Uuid
-  neumatico_id    String               @db.Uuid
-  fecha_cambio    DateTime             @db.Timestamptz(6)
-  motivo          String?
-  creado_por      String?              @db.Uuid
-  creado_en       DateTime             @default(now()) @db.Timestamptz(6)
-  estado_anterior EstadoNeumaticoEnum?
-  estado_nuevo    EstadoNeumaticoEnum
-  neumatico       Neumatico            @relation(fields: [neumatico_id], references: [id])
-
-  @@map("historial_estados_neumaticos")
-}
-
-model MedicionProfundidad {
-  id                String    @id @default(uuid()) @db.Uuid
-  neumatico_id      String    @db.Uuid
-  fecha_medicion    DateTime  @db.Timestamptz(6)
-  profundidad_mm    Float
-  posicion_medicion String?   @db.VarChar(50)
-  medido_por        String?   @db.Uuid
-  notas             String?
-  creado_en         DateTime  @default(now()) @db.Timestamptz(6)
-  neumatico         Neumatico @relation(fields: [neumatico_id], references: [id])
-
-  @@map("mediciones_profundidad")
-}
-
-model InventarioNeumatico {
-  id                   String   @id @default(uuid()) @db.Uuid
-  almacen_id           String   @db.Uuid
-  modelo_id            String   @db.Uuid
-  cantidad_actual      Int      @default(0)
-  stock_minimo         Int      @default(0)
-  stock_maximo         Int      @default(0)
-  punto_reorden        Int      @default(0)
-  ultima_actualizacion DateTime @default(now()) @db.Timestamptz(6)
-
-  @@unique([almacen_id, modelo_id])
-  @@map("inventario_neumaticos")
-}
-
-model MovimientoInventario {
-  id                String   @id @default(uuid()) @db.Uuid
-  almacen_id        String   @db.Uuid
-  modelo_id         String   @db.Uuid
-  tipo_movimiento   String   @db.VarChar(20)
-  cantidad          Int
-  cantidad_anterior Int
-  cantidad_nueva    Int
-  motivo            String?
-  referencia_evento String?  @db.Uuid
-  creado_en         DateTime @default(now()) @db.Timestamptz(6)
-  creado_por        String?  @db.Uuid
-  almacen           Almacen  @relation(fields: [almacen_id], references: [id])
-
-  @@map("movimientos_inventario")
-}
-
-model GarantiaNeumatico {
-  id                 String    @id @default(uuid()) @db.Uuid
-  neumatico_id       String    @db.Uuid
-  fecha_inicio       DateTime  @db.Date
-  fecha_vencimiento  DateTime  @db.Date
-  kilometraje_limite Float?
-  tipo_garantia      String    @db.VarChar(50)
-  proveedor_id       String?   @db.Uuid
-  activa             Boolean   @default(true)
-  creado_en          DateTime  @default(now()) @db.Timestamptz(6)
-  neumatico          Neumatico @relation(fields: [neumatico_id], references: [id])
-
-  @@map("garantias_neumaticos")
-}
-
-model Alerta {
-  id                   String     @id @default(uuid()) @db.Uuid
-  tipo_alerta          String     @db.VarChar(50)
-  mensaje              String
-  nivel_severidad      String     @db.VarChar(20)
-  estado_alerta        String     @db.VarChar(20)
-  timestamp_generacion DateTime   @default(now()) @db.Timestamptz(6)
-  timestamp_gestion    DateTime?  @db.Timestamptz(6)
-  usuario_gestion_id   String?    @db.Uuid
-  neumatico_id         String?    @db.Uuid
-  vehiculo_id          String?    @db.Uuid
-  modelo_id            String?    @db.Uuid
-  almacen_id           String?    @db.Uuid
-  parametro_id         String?    @db.Uuid
-  datos_contexto       Json?
-  almacen              Almacen?   @relation(fields: [almacen_id], references: [id])
-  neumatico            Neumatico? @relation(fields: [neumatico_id], references: [id])
-  usuario_gestion      Usuario?   @relation(fields: [usuario_gestion_id], references: [id])
-  vehiculo             Vehiculo?  @relation(fields: [vehiculo_id], references: [id])
-
-  @@map("alertas")
-}
-
-model ParametroInventario {
-  id             String            @id @default(uuid()) @db.Uuid
-  almacen_id     String            @db.Uuid
-  modelo_id      String            @db.Uuid
-  tipo_parametro TipoParametroEnum
-  valor_numerico Float?
-  valor_texto    String?           @db.VarChar(100)
-  activo         Boolean           @default(true)
-  creado_en      DateTime          @default(now()) @db.Timestamptz(6)
-  actualizado_en DateTime?         @db.Timestamptz(6)
-
-  @@unique([almacen_id, modelo_id, tipo_parametro])
-  @@map("parametros_inventario")
-}
-
-model ParametroRendimientoEsperado {
-  id                   String          @id @default(uuid()) @db.Uuid
-  modelo_id            String          @db.Uuid
-  tipo_vehiculo_id     String          @db.Uuid
-  kilometraje_esperado Float
-  desgaste_promedio_mm Float
-  presion_optima_psi   Float
-  temperatura_maxima_c Float?
-  activo               Boolean         @default(true)
-  creado_en            DateTime        @default(now()) @db.Timestamptz(6)
-  modelo               ModeloNeumatico @relation(fields: [modelo_id], references: [id])
-
-  @@unique([modelo_id, tipo_vehiculo_id])
-  @@map("parametros_rendimiento_esperado_modelo")
-}
-
-model AuditoriaLog {
-  id                          String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  esquema_tabla               String   @db.VarChar(50)
-  nombre_tabla                String   @db.VarChar(50)
-  operacion                   String   @db.VarChar(20)
-  usuario_aplicacion_id       String?  @db.Uuid
-  usuario_aplicacion_username String?  @db.VarChar(50)
-  id_entidad                  String?  @db.Uuid
-  datos_antiguos              Json?
-  datos_nuevos                Json?
-  cambios                     Json?
-  contexto_aplicacion         Json?
-  timestamp_log               DateTime @default(now()) @db.Timestamptz(6)
-
-  @@map("auditoria_log")
-}
-
-/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
-model auditoria_roles_usuarios {
-  id            Int      @id @default(autoincrement())
-  usuario_id    String   @db.Uuid
-  rol_id        String   @db.Uuid
-  accion        String   @db.VarChar(10)
-  ejecutado_por String?  @db.Uuid
-  ejecutado_en  DateTime @default(now()) @db.Timestamptz(6)
-  metadata      Json?
-  usuarios      Usuario? @relation(fields: [ejecutado_por], references: [id], onDelete: NoAction, onUpdate: NoAction)
-}
-
-model bitacora_mantenimiento {
-  id              Int                      @id @default(autoincrement())
-  fecha_ejecucion DateTime                 @default(now()) @db.Timestamptz(6)
-  tipo            String                   @db.VarChar(50)
-  descripcion     String
-  ejecutado_por   String                   @default(dbgenerated("CURRENT_USER")) @db.VarChar(100)
-  duracion        Unsupported("interval")?
-  exito           Boolean?                 @default(true)
-  detalles        String?
-}
-
-/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
-model bitacora_operaciones {
-  id                                                      String                            @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  tipo_operacion                                          String                            @db.VarChar(50)
-  descripcion                                             String
-  fecha_operacion                                         DateTime                          @default(now()) @db.Timestamptz(6)
-  usuario_id                                              String?                           @db.Uuid
-  almacen_id                                              String?                           @db.Uuid
-  vehiculo_id                                             String?                           @db.Uuid
-  estado_operacion                                        String                            @default("PENDIENTE") @db.VarChar(20)
-  duracion_minutos                                        Int?
-  costo_estimado                                          Decimal?                          @db.Decimal(10, 2)
-  costo_real                                              Decimal?                          @db.Decimal(10, 2)
-  proveedor_id                                            String?                           @db.Uuid
-  observaciones                                           String?
-  creado_en                                               DateTime                          @default(now()) @db.Timestamptz(6)
-  actualizado_en                                          DateTime                          @default(now()) @db.Timestamptz(6)
-  creado_por                                              String?                           @db.Uuid
-  actualizado_por                                         String?                           @db.Uuid
-  usuarios_bitacora_operaciones_actualizado_porTousuarios Usuario?                          @relation("bitacora_operaciones_actualizado_porTousuarios", fields: [actualizado_por], references: [id], onDelete: NoAction, onUpdate: NoAction)
-  almacenes                                               Almacen?                          @relation(fields: [almacen_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
-  usuarios_bitacora_operaciones_creado_porTousuarios      Usuario?                          @relation("bitacora_operaciones_creado_porTousuarios", fields: [creado_por], references: [id], onDelete: NoAction, onUpdate: NoAction)
-  proveedores                                             Proveedor?                        @relation(fields: [proveedor_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
-  usuarios_bitacora_operaciones_usuario_idTousuarios      Usuario?                          @relation("bitacora_operaciones_usuario_idTousuarios", fields: [usuario_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
-  vehiculos                                               Vehiculo?                         @relation(fields: [vehiculo_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
-  bitacora_operaciones_neumaticos                         bitacora_operaciones_neumaticos[]
-
-  @@index([estado_operacion], map: "idx_bitacora_operaciones_estado")
-  @@index([fecha_operacion], map: "idx_bitacora_operaciones_fecha")
-}
-
-/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
-model bitacora_operaciones_neumaticos {
-  id                                                                 String               @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  operacion_id                                                       String               @db.Uuid
-  neumatico_id                                                       String               @db.Uuid
-  tipo_accion                                                        String               @db.VarChar(50)
-  posicion_neumatico_id                                              String?              @db.Uuid
-  profundidad_inicial_mm                                             Decimal?             @db.Decimal(5, 2)
-  profundidad_final_mm                                               Decimal?             @db.Decimal(5, 2)
-  presion_inicial_psi                                                Decimal?             @db.Decimal(5, 2)
-  presion_final_psi                                                  Decimal?             @db.Decimal(5, 2)
-  kilometraje_vehiculo_km                                            Decimal?             @db.Decimal(10, 2)
-  observaciones                                                      String?
-  creado_en                                                          DateTime             @default(now()) @db.Timestamptz(6)
-  actualizado_en                                                     DateTime             @default(now()) @db.Timestamptz(6)
-  creado_por                                                         String?              @db.Uuid
-  actualizado_por                                                    String?              @db.Uuid
-  usuarios_bitacora_operaciones_neumaticos_actualizado_porTousuarios Usuario?             @relation("bitacora_operaciones_neumaticos_actualizado_porTousuarios", fields: [actualizado_por], references: [id], onDelete: NoAction, onUpdate: NoAction)
-  usuarios_bitacora_operaciones_neumaticos_creado_porTousuarios      Usuario?             @relation("bitacora_operaciones_neumaticos_creado_porTousuarios", fields: [creado_por], references: [id], onDelete: NoAction, onUpdate: NoAction)
-  neumaticos                                                         Neumatico            @relation(fields: [neumatico_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
-  bitacora_operaciones                                               bitacora_operaciones @relation(fields: [operacion_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
-  posiciones_neumatico                                               PosicionNeumatico?   @relation(fields: [posicion_neumatico_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
-
-  @@unique([operacion_id, neumatico_id, tipo_accion], map: "bitacora_operaciones_neumatic_operacion_id_neumatico_id_tip_key")
-}
-
-/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
-model configuracion_auditoria {
-  nombre_tabla     String    @id @db.VarChar(63)
-  activo           Boolean   @default(true)
-  prioridad        String?   @db.VarChar(20)
-  campos_excluidos Json?     @default("{}")
-  creado_en        DateTime? @default(now()) @db.Timestamptz(6)
-  actualizado_en   DateTime? @default(now()) @db.Timestamptz(6)
-}
-
-model errores_aplicacion {
-  id                    String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  nombre_funcion        String
-  mensaje_error         String
-  detalles              Json?
-  creado_por            String?   @default("SISTEMA")
-  creado_en             DateTime  @default(now()) @db.Timestamptz(6)
-  resuelto              Boolean?  @default(false)
-  resuelto_por          String?
-  resuelto_en           DateTime? @db.Timestamptz(6)
-  comentario_resolucion String?
-}
-
-model especificaciones_desgaste {
-  id                                String          @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  modelo_id                         String          @db.Uuid
-  tipo_vehiculo_id                  String?         @db.Uuid
-  posicion_eje                      String?         @db.VarChar(50)
-  profundidad_minima_legal_mm       Decimal         @db.Decimal(4, 2)
-  profundidad_minima_recomendada_mm Decimal         @db.Decimal(4, 2)
-  profundidad_minima_reencauche_mm  Decimal?        @db.Decimal(4, 2)
-  desgaste_estimado_mm_por_1000km   Decimal?        @db.Decimal(5, 3)
-  vida_util_km_estimada             Decimal?        @db.Decimal(10, 2)
-  creado_en                         DateTime?       @default(now()) @db.Timestamptz(6)
-  actualizado_en                    DateTime?       @db.Timestamptz(6)
-  activo                            Boolean?        @default(true)
-  modelos_neumatico                 ModeloNeumatico @relation(fields: [modelo_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
-  tipos_vehiculo                    TipoVehiculo?   @relation(fields: [tipo_vehiculo_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
-}
-
-/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
-model parametros_sistema {
-  id              String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  clave           String    @unique @db.VarChar(100)
-  valor           String?
-  tipo_dato       String?   @default("STRING") @db.VarChar(20)
-  descripcion     String?
-  categoria       String?   @db.VarChar(50)
-  es_editable     Boolean?  @default(true)
-  creado_en       DateTime? @default(now()) @db.Timestamptz(6)
-  actualizado_en  DateTime? @db.Timestamptz(6)
-  actualizado_por String?   @db.Uuid
-  usuarios        Usuario?  @relation(fields: [actualizado_por], references: [id], onDelete: NoAction, onUpdate: NoAction)
-}
-
-model rutas {
-  id                                       String      @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  tipo_ruta_id                             String?     @db.Uuid
-  codigo                                   String?     @unique @db.VarChar(50)
-  nombre                                   String      @db.VarChar(200)
-  origen                                   String?     @db.VarChar(200)
-  destino                                  String?     @db.VarChar(200)
-  distancia_km                             Decimal?    @db.Decimal(10, 2)
-  duracion_estimada_horas                  Decimal?    @db.Decimal(5, 2)
-  descripcion                              String?
-  activo                                   Boolean?    @default(true)
-  creado_en                                DateTime?   @default(now()) @db.Timestamptz(6)
-  actualizado_en                           DateTime?   @db.Timestamptz(6)
-  creado_por                               String?     @db.Uuid
-  actualizado_por                          String?     @db.Uuid
-  usuarios_rutas_actualizado_porTousuarios Usuario?    @relation("rutas_actualizado_porTousuarios", fields: [actualizado_por], references: [id], onDelete: NoAction, onUpdate: NoAction)
-  usuarios_rutas_creado_porTousuarios      Usuario?    @relation("rutas_creado_porTousuarios", fields: [creado_por], references: [id], onDelete: NoAction, onUpdate: NoAction)
-  tipos_ruta                               tipos_ruta? @relation(fields: [tipo_ruta_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
-}
-
-/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
-model tareas_programadas {
-  id                         String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  nombre                     String    @db.VarChar(200)
-  descripcion                String?
-  tipo_tarea                 String    @db.VarChar(50)
-  frecuencia                 String?   @db.VarChar(50)
-  ultima_ejecucion           DateTime? @db.Timestamptz(6)
-  proxima_ejecucion          DateTime? @db.Timestamptz(6)
-  estado                     String?   @default("ACTIVA") @db.VarChar(20)
-  parametros                 Json?
-  resultado_ultima_ejecucion Json?
-  creado_en                  DateTime? @default(now()) @db.Timestamptz(6)
-  actualizado_en             DateTime? @db.Timestamptz(6)
-  creado_por                 String?   @db.Uuid
-  usuarios                   Usuario?  @relation(fields: [creado_por], references: [id], onDelete: NoAction, onUpdate: NoAction)
-}
-
-model tipos_ruta {
-  id                      String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  nombre                  String    @unique @db.VarChar(100)
-  descripcion             String?
-  distancia_promedio_km   Decimal?  @db.Decimal(10, 2)
-  duracion_promedio_horas Decimal?  @db.Decimal(5, 2)
-  tipo_terreno            String?   @db.VarChar(50)
-  activo                  Boolean?  @default(true)
-  creado_en               DateTime? @default(now()) @db.Timestamptz(6)
-  actualizado_en          DateTime? @db.Timestamptz(6)
-  rutas                   rutas[]
-}
-
-model AuditLog {
-  id         String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  user_id    String   @db.Uuid
-  action     String   @db.VarChar(50)
-  resource   String   @db.VarChar(100)
-  details    Json?
-  created_at DateTime @default(now()) @db.Timestamptz(6)
-  ip_address String?  @db.Inet
-  usuario    Usuario  @relation(fields: [user_id], references: [id])
-
-  @@map("audit_logs")
+enum TipoMedicionEnum {
+  KILOMETRAJE
+  HOROMETRO
 }
 
 enum EstadoNeumaticoEnum {
@@ -732,98 +287,37 @@ enum EstadoNeumaticoEnum {
   EN_REPARACION
   EN_REENCAUCHE
   DESECHADO
-  EN_TRANSITO
-
-  @@map("estado_neumatico")
-}
-
-enum TipoMedicionEnum {
-  KILOMETRAJE
-  HOROMETRO
-
-  @@map("tipo_medicion_enum")
 }
 
 enum TipoEventoNeumaticoEnum {
   COMPRA
   INSTALACION
   DESMONTAJE
-  INSPECCION
   ROTACION
+  INSPECCION
   REPARACION_ENTRADA
   REPARACION_SALIDA
   REENCAUCHE_ENTRADA
   REENCAUCHE_SALIDA
   DESECHO
   AJUSTE_INVENTARIO
-  TRANSFERENCIA_UBICACION
-
-  @@map("tipo_evento_neumatico_enum")
 }
 
-enum TipoProveedorEnum {
-  FABRICANTE
-  DISTRIBUIDOR
-  SERVICIO_REPARACION
-  SERVICIO_REENCAUCHE
-  OTRO
-
-  @@map("tipoproveedorenum")
+enum TipoEjeEnum {
+  DIRECCION
+  TRACCION
+  ARRASTRE // Ejes libres de carretas
 }
 
 enum LadoVehiculoEnum {
   IZQUIERDO
   DERECHO
   CENTRAL
-  INDETERMINADO
-
-  @@map("lado_vehiculo_enum")
 }
 
-enum TipoEjeEnum {
-  DIRECCION
-  TRACCION
-  ARRASTRE
-  ELEVADOR
-  RETRACTIL
+enum TipoProveedorEnum {
+  FABRICANTE
+  SERVICIO_REPARACION
+  SERVICIO_REENCAUCHE
   OTRO
-
-  @@map("tipo_eje_enum")
-}
-
-enum EstadoOperacionEnum {
-  PENDIENTE
-  EN_PROCESO
-  COMPLETADA
-  CANCELADA
-  VENCIDA
-
-  @@map("estado_operacion_enum")
-}
-
-enum EstadoAlertaEnum {
-  NUEVA
-  VISTA
-  GESTIONADA
-
-  @@map("estado_alerta_enum")
-}
-
-enum NivelSeveridadEnum {
-  INFO
-  WARN
-  CRITICAL
-
-  @@map("nivel_severidad_enum")
-}
-
-enum TipoParametroEnum {
-  STOCK_MINIMO
-  STOCK_MAXIMO
-  PUNTO_REORDEN
-  VIDA_UTIL
-  PRESION_OPTIMA
-  TEMPERATURA_MAXIMA
-
-  @@map("tipo_parametro_enum")
 }
