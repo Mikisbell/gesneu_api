@@ -23,6 +23,7 @@ export function hasPermission(session: any, permission: string): boolean {
 }
 
 export function hasRole(session: any, role: string): boolean {
-    if (!session?.user?.roles) return false;
+    if (!session?.user?.roles || !Array.isArray(session.user.roles)) return false;
+    // roles is now an array with single rol enum value
     return session.user.roles.includes(role);
 }

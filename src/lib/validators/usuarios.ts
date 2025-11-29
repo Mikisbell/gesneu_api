@@ -1,18 +1,22 @@
 import { z } from 'zod';
 
+// Definimos los roles permitidos según el Schema
+const RolesEnum = z.enum(['ADMIN', 'GESTOR', 'OPERADOR']);
+
 export const createUsuarioSchema = z.object({
     username: z.string().min(3, 'El nombre de usuario debe tener al menos 3 caracteres').max(50),
     nombre_completo: z.string().min(3, 'El nombre completo debe tener al menos 3 caracteres').max(200),
     email: z.string().email('Email inválido').max(100),
     password: z.string().min(6, 'La contraseña debe tener al menos 6 caracteres'),
-    roles: z.array(z.string().uuid()).min(1, 'Debe asignar al menos un rol'),
+    // Ahora es un solo Enum, no un array de UUIDs
+    rol: RolesEnum.default('OPERADOR'),
 });
 
 export const updateUsuarioSchema = z.object({
     nombre_completo: z.string().min(3).max(200).optional(),
     email: z.string().email().max(100).optional(),
     password: z.string().min(6).optional(),
-    roles: z.array(z.string().uuid()).optional(),
+    rol: RolesEnum.optional(),
     activo: z.boolean().optional(),
 });
 
