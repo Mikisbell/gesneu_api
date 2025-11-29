@@ -138,9 +138,13 @@ export async function POST(request: NextRequest) {
         // 2. Authorization
         requirePermission(session, PERMISSIONS.NEUMATICOS_CREATE);
 
+        if (!session.user?.id) {
+            return ApiResponseHelper.unauthorized();
+        }
+
         // 3. Business logic
         const body = await request.json() as CreateNeumaticoDTO
-        const neumatico = await service.create(body)
+        const neumatico = await service.create(body, session.user.id)
         return ApiResponseHelper.created(neumatico, 'Neumático creado exitosamente')
     } catch (error) {
         return ApiResponseHelper.handleError(error)

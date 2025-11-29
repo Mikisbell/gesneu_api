@@ -36,6 +36,30 @@ export class NeumaticoService {
         return await this.repository.findBySerie(serie);
     }
 
+    async create(data: CreateNeumaticoDTO, userId: string): Promise<INeumatico> {
+        const evento: EventoNeumaticoCreate = {
+            tipo_evento: TipoEventoNeumaticoEnum.COMPRA,
+            fecha_evento: data.fecha_compra?.toISOString() || new Date().toISOString(),
+            numero_serie: data.numero_serie,
+            modelo_id: data.modelo_id,
+            dot: data.dot,
+            profundidad_inicial: data.profundidad_inicial_mm,
+            costo_compra: data.costo_compra,
+            almacen_destino_id: data.ubicacion_almacen_id,
+            observaciones: 'Creación directa desde API'
+        };
+        const result = await this.registrarEvento(evento, userId);
+        return result.neumatico;
+    }
+
+    async update(id: string, data: UpdateNeumaticoDTO): Promise<INeumatico> {
+        return await this.repository.update(id, data);
+    }
+
+    async delete(id: string): Promise<INeumatico> {
+        return await this.repository.delete(id);
+    }
+
     // --- MÉTODO PRINCIPAL DE TRANSACCIÓN ---
     async registrarEvento(evento: EventoNeumaticoCreate, userId: string): Promise<any> {
         const { tipo_evento } = evento;
@@ -46,7 +70,7 @@ export class NeumaticoService {
             switch (tipo_evento) {
                 // ✅ FIX CRÍTICO 1: El evento COMPRA ahora es ciudadano de primera clase
                 case TipoEventoNeumaticoEnum.COMPRA:
-                    result = await this._handleCompra(evento as EventoCompra, userId, tx);
+                    result = await this._handleCompra(evento as any, userId, tx);
                     break;
                 case TipoEventoNeumaticoEnum.INSTALACION:
                     result = await this._handleInstalacion(evento, userId, tx);
@@ -92,11 +116,20 @@ export class NeumaticoService {
         return neumatico;
     }
 
-    // ✅ LÓGICA DE COMPRA (NUEVA)
-    private async _handleCompra(evento: EventoCompra, userId: string, tx: TxClient) {
-        const { numero_serie, modelo_id, dot, profundidad_inicial, costo_compra, fecha_evento, proveedor_id, almacen_destino_id, observaciones } = evento;
+    // ✅ LÓGICA DE COMPRA (Nacimiento del neumático)
+    private async _handleCompra(evento: any, userId: string, tx: TxClient) {
+        // Extraemos todos los datos posibles del evento
+        // Mapeamos observaciones (del DTO) a notas (del código del usuario)
+        const {
+            numero_serie, modelo_id, dot, profundidad_inicial, costo_compra,
+            fecha_evento, proveedor_id, almacen_destino_id, observaciones, medida
+        } = evento;
+
+        const notas = observaciones; // Alias para compatibilidad
+
         const now = new Date(fecha_evento || new Date());
 
+        // Validaciones estrictas para creación
         if (!numero_serie || !modelo_id || !dot || !profundidad_inicial || !almacen_destino_id) {
             throw BusinessError.badRequest('Faltan datos obligatorios para COMPRA (serie, modelo, dot, profundidad, almacén)');
         }
@@ -110,17 +143,19 @@ export class NeumaticoService {
                 numero_serie,
                 modelo_id,
                 dot,
+                // Si la medida no viene en el evento, se confía en que el modelo la tiene (se resolverá en lecturas con include)
                 profundidad_inicial_mm: profundidad_inicial,
                 profundidad_actual_mm: profundidad_inicial,
                 estado_actual: EstadoNeumaticoEnum.EN_STOCK,
                 ubicacion_almacen_id: almacen_destino_id,
                 fecha_compra: now,
                 costo_compra: costo_compra ? new Prisma.Decimal(costo_compra) : undefined,
+                // creado_por: userId, // No existe en el modelo Neumatico según schema.prisma
                 activo: true
             }
         });
 
-        // 2. Registrar el Evento
+        // 2. Registrar el Evento de Compra (Para tener la historia completa desde el día 0)
         const nuevoEvento = await tx.eventoNeumatico.create({
             data: {
                 tipo_evento: TipoEventoNeumaticoEnum.COMPRA,
@@ -130,7 +165,7 @@ export class NeumaticoService {
                 almacen_destino_id,
                 costo_evento: costo_compra ? new Prisma.Decimal(costo_compra) : undefined,
                 profundidad_remanente: profundidad_inicial,
-                notas: observaciones || 'Alta inicial por compra',
+                notas: notas || 'Alta inicial por compra',
                 creado_por: userId
             }
         });
