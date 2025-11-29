@@ -4,6 +4,7 @@ import { ZodError } from 'zod'
 import { Prisma } from '@prisma/client'
 import { HTTP_STATUS, ERROR_MESSAGES } from './constants'
 import type { ApiResponse, ApiError, PaginatedResponse, PaginationMeta } from '@/lib/types/api'
+import { BusinessError } from '@/lib/errors/business.error'
 
 export class ApiResponseHelper {
   static success<T>(data: T, message?: string): NextResponse<ApiResponse<T>> {
@@ -79,6 +80,11 @@ export class ApiResponseHelper {
   static handleError(error: unknown): NextResponse<ApiError> {
     console.error('API Error:', error)
 
+    // Handle BusinessError first (proper HTTP status codes)
+    if (error instanceof BusinessError) {
+      return this.error(error.message, error.statusCode, error.code);
+    }
+
     // Handle custom auth errors
     if (error instanceof Error) {
       if (error.message === 'UNAUTHORIZED') {
@@ -104,6 +110,7 @@ export class ApiResponseHelper {
       }
     }
 
+    // Generic Error fallback (500)
     if (error instanceof Error) {
       return this.error(error.message, HTTP_STATUS.INTERNAL_SERVER_ERROR, 'INTERNAL_ERROR')
     }

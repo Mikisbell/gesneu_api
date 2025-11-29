@@ -3,6 +3,7 @@ import { CreateNeumaticoDTO, UpdateNeumaticoDTO, INeumatico, NeumaticoFilters } 
 import { prisma } from '@/lib/prisma';
 import { EventoNeumaticoCreate } from '@/lib/validators/evento-neumatico';
 import { TipoEventoNeumaticoEnum, EstadoNeumaticoEnum, Prisma } from '@prisma/client';
+import { BusinessError } from '@/lib/errors/business.error';
 
 // Type for Prisma transaction client
 type TxClient = Prisma.TransactionClient;
@@ -107,11 +108,11 @@ export class NeumaticoService {
         });
 
         if (!neumatico) {
-            throw new Error('Neumático no encontrado');
+            throw BusinessError.notFound('Neumático', id);
         }
 
         if (!neumatico.activo) {
-            throw new Error('Neumático no está activo');
+            throw BusinessError.badRequest('El neumático no está activo');
         }
 
         return neumatico;
