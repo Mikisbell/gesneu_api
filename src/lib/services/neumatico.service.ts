@@ -1,6 +1,8 @@
 import { NeumaticoRepository } from '@/lib/repositories/neumatico.repository';
 import { CreateNeumaticoDTO, UpdateNeumaticoDTO, INeumatico, NeumaticoFilters } from '@/types/domain/neumatico.types';
 import { prisma } from '@/lib/prisma';
+import { EventoNeumaticoCreate } from '@/lib/validators/evento-neumatico';
+import { TipoEventoNeumatico, EstadoNeumatico } from '@prisma/client';
 
 export class NeumaticoService {
     private repository: NeumaticoRepository;
@@ -47,7 +49,7 @@ export class NeumaticoService {
      * Centralized method to register any tire event.
      * Dispatches to specific handlers based on event type.
      */
-    async registrarEvento(evento: any, userId: string): Promise<any> {
+    async registrarEvento(evento: EventoNeumaticoCreate, userId: string): Promise<any> {
         const { tipo_evento } = evento;
 
         // Start transaction
@@ -55,31 +57,31 @@ export class NeumaticoService {
             let result;
 
             switch (tipo_evento) {
-                case 'INSTALACION':
+                case TipoEventoNeumatico.INSTALACION:
                     result = await this._handleInstalacion(evento, userId, tx);
                     break;
-                case 'DESMONTAJE':
+                case TipoEventoNeumatico.DESMONTAJE:
                     result = await this._handleDesmontaje(evento, userId, tx);
                     break;
-                case 'INSPECCION':
+                case TipoEventoNeumatico.INSPECCION:
                     result = await this._handleInspeccion(evento, userId, tx);
                     break;
-                case 'ROTACION':
+                case TipoEventoNeumatico.ROTACION:
                     result = await this._handleRotacion(evento, userId, tx);
                     break;
-                case 'REPARACION_ENTRADA':
+                case TipoEventoNeumatico.REPARACION_ENTRADA:
                     result = await this._handleReparacionEntrada(evento, userId, tx);
                     break;
-                case 'REPARACION_SALIDA':
+                case TipoEventoNeumatico.REPARACION_SALIDA:
                     result = await this._handleReparacionSalida(evento, userId, tx);
                     break;
-                case 'REENCAUCHE_ENTRADA':
+                case TipoEventoNeumatico.REENCAUCHE_ENTRADA:
                     result = await this._handleReencaucheEntrada(evento, userId, tx);
                     break;
-                case 'REENCAUCHE_SALIDA':
+                case TipoEventoNeumatico.REENCAUCHE_SALIDA:
                     result = await this._handleReencaucheSalida(evento, userId, tx);
                     break;
-                case 'DESECHO':
+                case TipoEventoNeumatico.DESECHO:
                     result = await this._handleDesecho(evento, userId, tx);
                     break;
                 // Add other cases here as they are implemented
@@ -91,9 +93,11 @@ export class NeumaticoService {
         });
     }
 
-    private async _handleInstalacion(evento: any, userId: string, tx: any) {
+    private async _handleInstalacion(evento: EventoNeumaticoCreate, userId: string, tx: any) {
         const { neumatico_id, vehiculo_id, posicion_montaje_id, kilometraje_vehiculo, profundidad_remanente, presion_psi, observaciones } = evento;
-        const now = new Date();
+        const now = new Date(evento.fecha_evento || new Date());
+
+        if (!neumatico_id || !vehiculo_id) throw new Error('Faltan datos requeridos para instalación');
 
         // 1. Validate Tire
         const neumatico = await tx.neumatico.findUnique({
@@ -103,7 +107,7 @@ export class NeumaticoService {
 
         if (!neumatico) throw new Error('Neumático no encontrado');
         if (!neumatico.activo) throw new Error('Neumático no está activo');
-        if (neumatico.estado_actual !== 'EN_STOCK') throw new Error(`Neumático no está disponible. Estado actual: ${neumatico.estado_actual}`);
+        if (neumatico.estado_actual !== EstadoNeumatico.EN_STOCK) throw new Error(`Neumático no está disponible. Estado actual: ${neumatico.estado_actual}`);
 
         // 2. Validate Vehicle
         const vehiculo = await tx.vehiculo.findUnique({
@@ -128,7 +132,7 @@ export class NeumaticoService {
                 where: {
                     ubicacion_posicion_id: posicion_montaje_id,
                     activo: true,
-                    estado_actual: 'INSTALADO',
+                    estado_actual: EstadoNeumatico.INSTALADO,
                 },
             });
             if (posicionOcupada) throw new Error(`La posición ya está ocupada por el neumático ${posicionOcupada.numero_serie}`);
@@ -142,7 +146,7 @@ export class NeumaticoService {
         // 4. Create Event
         const nuevoEvento = await tx.eventoNeumatico.create({
             data: {
-                tipo_evento: 'INSTALACION',
+                tipo_evento: TipoEventoNeumatico.INSTALACION,
                 neumatico_id,
                 fecha_evento: now,
                 kilometraje_vehiculo,
@@ -159,7 +163,7 @@ export class NeumaticoService {
         await tx.neumatico.update({
             where: { id: neumatico_id },
             data: {
-                estado_actual: 'INSTALADO',
+                estado_actual: EstadoNeumatico.INSTALADO,
                 ubicacion_almacen_id: null,
                 ubicacion_vehiculo_id: vehiculo_id,
                 ubicacion_posicion_id: posicion_montaje_id || null,
@@ -175,7 +179,7 @@ export class NeumaticoService {
             data: {
                 neumatico_id: neumatico.id,
                 estado_anterior: neumatico.estado_actual,
-                estado_nuevo: 'INSTALADO',
+                estado_nuevo: EstadoNeumatico.INSTALADO,
                 fecha_cambio: now,
                 motivo: `Montaje en vehículo ${vehiculo.placa}`
             }
@@ -217,9 +221,11 @@ export class NeumaticoService {
         return nuevoEvento;
     }
 
-    private async _handleDesmontaje(evento: any, userId: string, tx: any) {
+    private async _handleDesmontaje(evento: EventoNeumaticoCreate, userId: string, tx: any) {
         const { neumatico_id, kilometraje_vehiculo, profundidad_remanente, presion_psi, observaciones, estado_neumatico_resultante, almacen_destino_id, motivo_desecho_id } = evento;
-        const now = new Date();
+        const now = new Date(evento.fecha_evento || new Date());
+
+        if (!neumatico_id) throw new Error('Faltan datos requeridos para desmontaje');
 
         // 1. Validate Tire
         const neumatico = await tx.neumatico.findUnique({
@@ -228,34 +234,45 @@ export class NeumaticoService {
         });
 
         if (!neumatico) throw new Error('Neumático no encontrado');
-        if (neumatico.estado_actual !== 'INSTALADO') throw new Error(`El neumático no está instalado. Estado actual: ${neumatico.estado_actual}`);
+        if (neumatico.estado_actual !== EstadoNeumatico.INSTALADO) throw new Error(`El neumático no está instalado. Estado actual: ${neumatico.estado_actual}`);
 
         // 2. Calculate accumulated mileage
         let kmRecorrido = 0;
         if (neumatico.fecha_instalacion && kilometraje_vehiculo && neumatico.ubicacion_vehiculo_id) {
-            // Get vehicle to check previous mileage or use installation mileage if stored (ideally should be stored in tire or event)
-            // For simplicity, we assume we can calculate diff if we had km_instalacion. 
-            // Since Neumatico model doesn't have km_instalacion explicitly in the provided schema snippet (it might be in event),
-            // we will rely on the requirement RF19: Update kilometraje_acumulado.
-            // We need the installation event to know km at installation.
             const instalacionEvento = await tx.eventoNeumatico.findFirst({
                 where: {
                     neumatico_id: neumatico_id,
-                    tipo_evento: 'INSTALACION',
+                    tipo_evento: TipoEventoNeumatico.INSTALACION,
                 },
                 orderBy: { fecha_evento: 'desc' }
             });
 
             if (instalacionEvento && instalacionEvento.kilometraje_vehiculo) {
                 kmRecorrido = kilometraje_vehiculo - instalacionEvento.kilometraje_vehiculo;
-                if (kmRecorrido < 0) kmRecorrido = 0; // Safety check
+                if (kmRecorrido < 0) kmRecorrido = 0;
             }
         }
 
-        // 3. Create Event
+        // 3. Determine Destination State and Event Type
+        // If not provided, defaults to EN_STOCK
+        let nuevoEstado = estado_neumatico_resultante || EstadoNeumatico.EN_STOCK;
+        let tipoEvento = TipoEventoNeumatico.DESMONTAJE;
+
+        // Validation based on destination
+        if (nuevoEstado === EstadoNeumatico.EN_STOCK && !almacen_destino_id) {
+            throw new Error('Debe especificar un almacén destino para devolver a stock');
+        }
+        if (nuevoEstado === EstadoNeumatico.DESECHADO) {
+            if (!motivo_desecho_id) throw new Error('Debe especificar un motivo para el desecho');
+            // Note: We keep the event type as DESMONTAJE, but the state becomes DESECHADO. 
+            // Alternatively, we could create a secondary DESECHO event, but keeping it simple is better.
+            // Requirement says: "Desmontaje" implies taking it off. "Desecho" is the fate.
+        }
+
+        // 4. Create Event
         const nuevoEvento = await tx.eventoNeumatico.create({
             data: {
-                tipo_evento: 'DESMONTAJE',
+                tipo_evento: tipoEvento,
                 neumatico_id,
                 fecha_evento: now,
                 kilometraje_vehiculo,
@@ -270,9 +287,7 @@ export class NeumaticoService {
             },
         });
 
-        // 4. Update Tire
-        const nuevoEstado = estado_neumatico_resultante || 'EN_STOCK';
-
+        // 5. Update Tire
         await tx.neumatico.update({
             where: { id: neumatico_id },
             data: {
@@ -283,12 +298,12 @@ export class NeumaticoService {
                 profundidad_actual_mm: profundidad_remanente,
                 presion_actual_psi: presion_psi,
                 kilometraje_acumulado: { increment: kmRecorrido },
-                fecha_desecho: nuevoEstado === 'DESECHADO' ? now : null,
+                fecha_desecho: nuevoEstado === EstadoNeumatico.DESECHADO ? now : null,
                 actualizado_en: now,
             },
         });
 
-        // 4b. Create History Record
+        // 5b. Create History Record
         await tx.historialEstadoNeumatico.create({
             data: {
                 neumatico_id: neumatico.id,
@@ -299,7 +314,7 @@ export class NeumaticoService {
             }
         });
 
-        // 5. Create Measurement Log
+        // 6. Create Measurement Log
         if (profundidad_remanente) {
             await tx.medicionProfundidad.create({
                 data: {
@@ -311,7 +326,7 @@ export class NeumaticoService {
             });
         }
 
-        // 6. Update Vehicle Odometer
+        // 7. Update Vehicle Odometer
         if (kilometraje_vehiculo && neumatico.ubicacion_vehiculo_id) {
             await tx.registroOdometro.create({
                 data: {
@@ -333,9 +348,11 @@ export class NeumaticoService {
         return nuevoEvento;
     }
 
-    private async _handleInspeccion(evento: any, userId: string, tx: any) {
+    private async _handleInspeccion(evento: EventoNeumaticoCreate, userId: string, tx: any) {
         const { neumatico_id, kilometraje_vehiculo, profundidad_remanente, presion_psi, observaciones } = evento;
-        const now = new Date();
+        const now = new Date(evento.fecha_evento || new Date());
+
+        if (!neumatico_id) throw new Error('Faltan datos requeridos para inspección');
 
         // 1. Validate Tire
         const neumatico = await tx.neumatico.findUnique({
@@ -349,7 +366,7 @@ export class NeumaticoService {
         // 2. Create Event
         const nuevoEvento = await tx.eventoNeumatico.create({
             data: {
-                tipo_evento: 'INSPECCION',
+                tipo_evento: TipoEventoNeumatico.INSPECCION,
                 neumatico_id,
                 fecha_evento: now,
                 kilometraje_vehiculo,
@@ -404,10 +421,8 @@ export class NeumaticoService {
         }
 
         // 6. Check Alerts (Simplified Logic for now)
-        // In a real scenario, this would call AlertService
         if (profundidad_remanente && neumatico.modelo?.profundidad_minima_recomendada_mm) {
             if (profundidad_remanente <= Number(neumatico.modelo.profundidad_minima_recomendada_mm)) {
-                // Create Alert
                 await tx.alerta.create({
                     data: {
                         tipo_alerta: 'PROFUNDIDAD_BAJA',
@@ -425,9 +440,11 @@ export class NeumaticoService {
         return nuevoEvento;
     }
 
-    private async _handleRotacion(evento: any, userId: string, tx: any) {
+    private async _handleRotacion(evento: EventoNeumaticoCreate, userId: string, tx: any) {
         const { neumatico_id, vehiculo_id, posicion_montaje_id, kilometraje_vehiculo, profundidad_remanente, presion_psi, observaciones } = evento;
-        const now = new Date();
+        const now = new Date(evento.fecha_evento || new Date());
+
+        if (!neumatico_id || !posicion_montaje_id) throw new Error('Faltan datos requeridos para rotación');
 
         // 1. Validate Primary Tire (Tire A)
         const neumatico = await tx.neumatico.findUnique({
@@ -436,13 +453,12 @@ export class NeumaticoService {
         });
 
         if (!neumatico) throw new Error('Neumático no encontrado');
-        if (neumatico.estado_actual !== 'INSTALADO') throw new Error('El neumático debe estar INSTALADO para rotarse');
+        if (neumatico.estado_actual !== EstadoNeumatico.INSTALADO) throw new Error('El neumático debe estar INSTALADO para rotarse');
         if (!neumatico.ubicacion_vehiculo_id) throw new Error('El neumático no está asignado a ningún vehículo');
 
         const currentPosId = neumatico.ubicacion_posicion_id;
         const targetPosId = posicion_montaje_id;
 
-        if (!targetPosId) throw new Error('Debe especificar la posición de destino para la rotación');
         if (currentPosId === targetPosId) throw new Error('La posición de destino es la misma que la actual');
 
         // 2. Validate Target Position
@@ -451,7 +467,7 @@ export class NeumaticoService {
             where: {
                 ubicacion_posicion_id: targetPosId,
                 activo: true,
-                estado_actual: 'INSTALADO',
+                estado_actual: EstadoNeumatico.INSTALADO,
                 // Ensure it's on the same vehicle if we assume intra-vehicle rotation
                 ubicacion_vehiculo_id: neumatico.ubicacion_vehiculo_id
             }
@@ -460,7 +476,7 @@ export class NeumaticoService {
         // 3. Create Event for Tire A
         const eventoRotacion = await tx.eventoNeumatico.create({
             data: {
-                tipo_evento: 'ROTACION',
+                tipo_evento: TipoEventoNeumatico.ROTACION,
                 neumatico_id,
                 fecha_evento: now,
                 kilometraje_vehiculo,
@@ -489,7 +505,7 @@ export class NeumaticoService {
             // Create Event for Tire B (Swap)
             await tx.eventoNeumatico.create({
                 data: {
-                    tipo_evento: 'ROTACION',
+                    tipo_evento: TipoEventoNeumatico.ROTACION,
                     neumatico_id: neumaticoEnDestino.id,
                     fecha_evento: now,
                     kilometraje_vehiculo, // Same mileage
@@ -531,23 +547,24 @@ export class NeumaticoService {
         return eventoRotacion;
     }
 
-    private async _handleReparacionEntrada(evento: any, userId: string, tx: any) {
+    private async _handleReparacionEntrada(evento: EventoNeumaticoCreate, userId: string, tx: any) {
         const { neumatico_id, proveedor_id, observaciones } = evento;
-        const now = new Date();
+        const now = new Date(evento.fecha_evento || new Date());
+
+        if (!neumatico_id) throw new Error('Faltan datos requeridos para reparación');
 
         const neumatico = await tx.neumatico.findUnique({ where: { id: neumatico_id } });
         if (!neumatico) throw new Error('Neumático no encontrado');
 
         // Allow sending from STOCK or PARA_REPARACION
-        const validStates = ['EN_STOCK', 'PARA_REPARACION', 'INSTALADO']; // If INSTALADO, should use DESMONTAJE first, but maybe we allow direct? No, stick to flow.
-        // Actually, if it's INSTALADO, it must be dismounted first.
-        if (!['EN_STOCK', 'PARA_REPARACION'].includes(neumatico.estado_actual)) {
+        // If INSTALADO, should use DESMONTAJE first.
+        if (![EstadoNeumatico.EN_STOCK, EstadoNeumatico.PARA_REPARACION].includes(neumatico.estado_actual)) {
             throw new Error(`El neumático debe estar EN_STOCK o PARA_REPARACION. Estado actual: ${neumatico.estado_actual}`);
         }
 
         const nuevoEvento = await tx.eventoNeumatico.create({
             data: {
-                tipo_evento: 'REPARACION_ENTRADA',
+                tipo_evento: TipoEventoNeumatico.REPARACION_ENTRADA,
                 neumatico_id,
                 fecha_evento: now,
                 proveedor_id,
@@ -559,7 +576,7 @@ export class NeumaticoService {
         await tx.neumatico.update({
             where: { id: neumatico_id },
             data: {
-                estado_actual: 'EN_REPARACION',
+                estado_actual: EstadoNeumatico.EN_REPARACION,
                 ubicacion_almacen_id: null, // It's at the provider
                 actualizado_en: now,
             },
@@ -569,7 +586,7 @@ export class NeumaticoService {
             data: {
                 neumatico_id: neumatico.id,
                 estado_anterior: neumatico.estado_actual,
-                estado_nuevo: 'EN_REPARACION',
+                estado_nuevo: EstadoNeumatico.EN_REPARACION,
                 fecha_cambio: now,
                 motivo: `Envío a reparación`
             }
@@ -578,19 +595,21 @@ export class NeumaticoService {
         return nuevoEvento;
     }
 
-    private async _handleReparacionSalida(evento: any, userId: string, tx: any) {
+    private async _handleReparacionSalida(evento: EventoNeumaticoCreate, userId: string, tx: any) {
         const { neumatico_id, almacen_destino_id, costo_evento, observaciones, profundidad_remanente } = evento;
-        const now = new Date();
+        const now = new Date(evento.fecha_evento || new Date());
+
+        if (!neumatico_id) throw new Error('Faltan datos requeridos para retorno de reparación');
 
         const neumatico = await tx.neumatico.findUnique({ where: { id: neumatico_id } });
         if (!neumatico) throw new Error('Neumático no encontrado');
-        if (neumatico.estado_actual !== 'EN_REPARACION') {
+        if (neumatico.estado_actual !== EstadoNeumatico.EN_REPARACION) {
             throw new Error(`El neumático no está en reparación. Estado actual: ${neumatico.estado_actual}`);
         }
 
         const nuevoEvento = await tx.eventoNeumatico.create({
             data: {
-                tipo_evento: 'REPARACION_SALIDA',
+                tipo_evento: TipoEventoNeumatico.REPARACION_SALIDA,
                 neumatico_id,
                 fecha_evento: now,
                 almacen_destino_id,
@@ -604,7 +623,7 @@ export class NeumaticoService {
         await tx.neumatico.update({
             where: { id: neumatico_id },
             data: {
-                estado_actual: 'EN_STOCK', // Back to stock
+                estado_actual: EstadoNeumatico.EN_STOCK, // Back to stock
                 ubicacion_almacen_id: almacen_destino_id,
                 profundidad_actual_mm: profundidad_remanente || undefined,
                 reparaciones_cantidad: { increment: 1 },
@@ -617,7 +636,7 @@ export class NeumaticoService {
             data: {
                 neumatico_id: neumatico.id,
                 estado_anterior: neumatico.estado_actual,
-                estado_nuevo: 'EN_STOCK',
+                estado_nuevo: EstadoNeumatico.EN_STOCK,
                 fecha_cambio: now,
                 motivo: `Retorno de reparación`
             }
@@ -626,14 +645,16 @@ export class NeumaticoService {
         return nuevoEvento;
     }
 
-    private async _handleReencaucheEntrada(evento: any, userId: string, tx: any) {
+    private async _handleReencaucheEntrada(evento: EventoNeumaticoCreate, userId: string, tx: any) {
         const { neumatico_id, proveedor_id, observaciones } = evento;
-        const now = new Date();
+        const now = new Date(evento.fecha_evento || new Date());
+
+        if (!neumatico_id) throw new Error('Faltan datos requeridos para reencauche');
 
         const neumatico = await tx.neumatico.findUnique({ where: { id: neumatico_id } });
         if (!neumatico) throw new Error('Neumático no encontrado');
 
-        if (!['EN_STOCK', 'PARA_REENCAUCHE'].includes(neumatico.estado_actual)) {
+        if (![EstadoNeumatico.EN_STOCK, EstadoNeumatico.PARA_REENCAUCHE].includes(neumatico.estado_actual)) {
             throw new Error(`El neumático debe estar EN_STOCK o PARA_REENCAUCHE. Estado actual: ${neumatico.estado_actual}`);
         }
 
@@ -644,7 +665,7 @@ export class NeumaticoService {
 
         const nuevoEvento = await tx.eventoNeumatico.create({
             data: {
-                tipo_evento: 'REENCAUCHE_ENTRADA',
+                tipo_evento: TipoEventoNeumatico.REENCAUCHE_ENTRADA,
                 neumatico_id,
                 fecha_evento: now,
                 proveedor_id,
@@ -656,7 +677,7 @@ export class NeumaticoService {
         await tx.neumatico.update({
             where: { id: neumatico_id },
             data: {
-                estado_actual: 'EN_REENCAUCHE',
+                estado_actual: EstadoNeumatico.EN_REENCAUCHE,
                 ubicacion_almacen_id: null,
                 actualizado_en: now,
             },
@@ -666,7 +687,7 @@ export class NeumaticoService {
             data: {
                 neumatico_id: neumatico.id,
                 estado_anterior: neumatico.estado_actual,
-                estado_nuevo: 'EN_REENCAUCHE',
+                estado_nuevo: EstadoNeumatico.EN_REENCAUCHE,
                 fecha_cambio: now,
                 motivo: `Envío a reencauche`
             }
@@ -675,19 +696,21 @@ export class NeumaticoService {
         return nuevoEvento;
     }
 
-    private async _handleReencaucheSalida(evento: any, userId: string, tx: any) {
+    private async _handleReencaucheSalida(evento: EventoNeumaticoCreate, userId: string, tx: any) {
         const { neumatico_id, almacen_destino_id, costo_evento, observaciones, profundidad_remanente } = evento;
-        const now = new Date();
+        const now = new Date(evento.fecha_evento || new Date());
+
+        if (!neumatico_id) throw new Error('Faltan datos requeridos para retorno de reencauche');
 
         const neumatico = await tx.neumatico.findUnique({ where: { id: neumatico_id } });
         if (!neumatico) throw new Error('Neumático no encontrado');
-        if (neumatico.estado_actual !== 'EN_REENCAUCHE') {
+        if (neumatico.estado_actual !== EstadoNeumatico.EN_REENCAUCHE) {
             throw new Error(`El neumático no está en reencauche. Estado actual: ${neumatico.estado_actual}`);
         }
 
         const nuevoEvento = await tx.eventoNeumatico.create({
             data: {
-                tipo_evento: 'REENCAUCHE_SALIDA',
+                tipo_evento: TipoEventoNeumatico.REENCAUCHE_SALIDA,
                 neumatico_id,
                 fecha_evento: now,
                 almacen_destino_id,
@@ -701,7 +724,7 @@ export class NeumaticoService {
         await tx.neumatico.update({
             where: { id: neumatico_id },
             data: {
-                estado_actual: 'EN_STOCK',
+                estado_actual: EstadoNeumatico.EN_STOCK,
                 ubicacion_almacen_id: almacen_destino_id,
                 profundidad_actual_mm: profundidad_remanente || undefined,
                 es_reencauchado: true,
@@ -715,7 +738,7 @@ export class NeumaticoService {
             data: {
                 neumatico_id: neumatico.id,
                 estado_anterior: neumatico.estado_actual,
-                estado_nuevo: 'EN_STOCK',
+                estado_nuevo: EstadoNeumatico.EN_STOCK,
                 fecha_cambio: now,
                 motivo: `Retorno de reencauche`
             }
@@ -724,21 +747,23 @@ export class NeumaticoService {
         return nuevoEvento;
     }
 
-    private async _handleDesecho(evento: any, userId: string, tx: any) {
+    private async _handleDesecho(evento: EventoNeumaticoCreate, userId: string, tx: any) {
         const { neumatico_id, motivo_desecho_id, observaciones } = evento;
-        const now = new Date();
+        const now = new Date(evento.fecha_evento || new Date());
+
+        if (!neumatico_id) throw new Error('Faltan datos requeridos para desecho');
 
         const neumatico = await tx.neumatico.findUnique({ where: { id: neumatico_id } });
         if (!neumatico) throw new Error('Neumático no encontrado');
 
         // Can be discarded from almost any state except installed (should be dismounted first)
-        if (neumatico.estado_actual === 'INSTALADO') {
+        if (neumatico.estado_actual === EstadoNeumatico.INSTALADO) {
             throw new Error('El neumático debe ser desmontado antes de desecharse');
         }
 
         const nuevoEvento = await tx.eventoNeumatico.create({
             data: {
-                tipo_evento: 'DESECHO',
+                tipo_evento: TipoEventoNeumatico.DESECHO,
                 neumatico_id,
                 fecha_evento: now,
                 motivo_desecho_id,
@@ -750,7 +775,7 @@ export class NeumaticoService {
         await tx.neumatico.update({
             where: { id: neumatico_id },
             data: {
-                estado_actual: 'DESECHADO',
+                estado_actual: EstadoNeumatico.DESECHADO,
                 ubicacion_almacen_id: null,
                 ubicacion_vehiculo_id: null,
                 ubicacion_posicion_id: null,
@@ -763,7 +788,7 @@ export class NeumaticoService {
             data: {
                 neumatico_id: neumatico.id,
                 estado_anterior: neumatico.estado_actual,
-                estado_nuevo: 'DESECHADO',
+                estado_nuevo: EstadoNeumatico.DESECHADO,
                 fecha_cambio: now,
                 motivo: `Baja definitiva`
             }
