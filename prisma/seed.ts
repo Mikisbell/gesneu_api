@@ -91,6 +91,51 @@ async function main() {
     // 5. Vehículos (Necesitamos un tipo de vehículo)
     const tipoCamion = await prisma.tipoVehiculo.findFirst({ where: { nombre: 'Camión Carga Pesada' } })
     if (tipoCamion) {
+        // Crear configuración de ejes para el tipo de camión si no existe
+        const existingConfig = await prisma.configuracionEje.findFirst({ where: { tipo_vehiculo_id: tipoCamion.id } });
+
+        if (!existingConfig) {
+            console.log('⚙️ Creando configuración de ejes para Camión...');
+
+            // Eje 1: Direccional (2 llantas)
+            const eje1 = await prisma.configuracionEje.create({
+                data: {
+                    tipo_vehiculo_id: tipoCamion.id,
+                    numero_eje: 1,
+                    tipo_eje: 'DIRECCION',
+                    posiciones_neumatico: 2
+                }
+            });
+
+            await prisma.posicionNeumatico.createMany({
+                data: [
+                    { configuracion_eje_id: eje1.id, numero_posicion: 1, lado_vehiculo: 'IZQUIERDO' },
+                    { configuracion_eje_id: eje1.id, numero_posicion: 2, lado_vehiculo: 'DERECHO' }
+                ]
+            });
+
+            // Eje 2: Tracción (4 llantas)
+            const eje2 = await prisma.configuracionEje.create({
+                data: {
+                    tipo_vehiculo_id: tipoCamion.id,
+                    numero_eje: 2,
+                    tipo_eje: 'TRACCION',
+                    posiciones_neumatico: 4
+                }
+            });
+
+            await prisma.posicionNeumatico.createMany({
+                data: [
+                    { configuracion_eje_id: eje2.id, numero_posicion: 3, lado_vehiculo: 'IZQUIERDO' }, // Exterior
+                    { configuracion_eje_id: eje2.id, numero_posicion: 4, lado_vehiculo: 'IZQUIERDO' }, // Interior
+                    { configuracion_eje_id: eje2.id, numero_posicion: 5, lado_vehiculo: 'DERECHO' },  // Interior
+                    { configuracion_eje_id: eje2.id, numero_posicion: 6, lado_vehiculo: 'DERECHO' }   // Exterior
+                ]
+            });
+
+            console.log('✅ Configuración de ejes creada');
+        }
+
         const vehiculos = [
             { placa: 'ABC-123', marca: 'Volvo', modelo: 'FH16', anio: 2022, kilometraje_actual: 45000 },
             { placa: 'XYZ-789', marca: 'Scania', modelo: 'R500', anio: 2023, kilometraje_actual: 12000 },
