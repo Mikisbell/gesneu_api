@@ -75,6 +75,11 @@ export const getColumns = ({ onEdit }: GetColumnsProps): ColumnDef<VehiculoWithR
                         <DropdownMenuItem onClick={() => onEdit(vehiculo)}>
                             <Pencil className="mr-2 h-4 w-4" /> Editar
                         </DropdownMenuItem>
+                        <DropdownMenuItem asChild>
+                            <a href={`/dashboard/vehiculos/${vehiculo.id}/montaje`} className="flex items-center">
+                                <span className="mr-2">🔧</span> Montaje
+                            </a>
+                        </DropdownMenuItem>
                         <DropdownMenuItem className="text-red-600">
                             <Trash className="mr-2 h-4 w-4" /> Eliminar
                         </DropdownMenuItem>

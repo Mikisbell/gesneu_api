@@ -119,8 +119,7 @@ export default function MontajePage() {
     });
 
     const handleVehicleSelect = (vehicleId: string) => {
-        setSelectedVehicleId(vehicleId);
-        form.setValue('vehiculo_id', vehicleId);
+        router.push(`/dashboard/vehiculos/${vehicleId}/montaje`);
     };
 
     const handlePositionClick = (posicionId: string, neumaticoId?: string) => {
