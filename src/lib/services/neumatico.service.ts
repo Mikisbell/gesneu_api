@@ -58,6 +58,12 @@ export class NeumaticoService {
                 case 'INSTALACION':
                     result = await this._handleInstalacion(evento, userId, tx);
                     break;
+                case 'DESMONTAJE':
+                    result = await this._handleDesmontaje(evento, userId, tx);
+                    break;
+                case 'INSPECCION':
+                    result = await this._handleInspeccion(evento, userId, tx);
+                    break;
                 // Add other cases here as they are implemented
                 default:
                     throw new Error(`Evento ${tipo_evento} no soportado aún.`);
@@ -173,6 +179,200 @@ export class NeumaticoService {
                 where: { id: vehiculo_id },
                 data: { kilometraje_actual: kilometraje_vehiculo }
             });
+        }
+
+        return nuevoEvento;
+    }
+
+    private async _handleDesmontaje(evento: any, userId: string, tx: any) {
+        const { neumatico_id, kilometraje_vehiculo, profundidad_remanente, presion_psi, observaciones, estado_neumatico_resultante, almacen_destino_id } = evento;
+        const now = new Date();
+
+        // 1. Validate Tire
+        const neumatico = await tx.neumatico.findUnique({
+            where: { id: neumatico_id }
+        });
+
+        if (!neumatico) throw new Error('Neumático no encontrado');
+        if (neumatico.estado_actual !== 'INSTALADO') throw new Error(`El neumático no está instalado. Estado actual: ${neumatico.estado_actual}`);
+
+        // 2. Calculate accumulated mileage
+        let kmRecorrido = 0;
+        if (neumatico.fecha_instalacion && kilometraje_vehiculo && neumatico.ubicacion_vehiculo_id) {
+            // Get vehicle to check previous mileage or use installation mileage if stored (ideally should be stored in tire or event)
+            // For simplicity, we assume we can calculate diff if we had km_instalacion. 
+            // Since Neumatico model doesn't have km_instalacion explicitly in the provided schema snippet (it might be in event),
+            // we will rely on the requirement RF19: Update kilometraje_acumulado.
+            // We need the installation event to know km at installation.
+            const instalacionEvento = await tx.eventoNeumatico.findFirst({
+                where: {
+                    neumatico_id: neumatico_id,
+                    tipo_evento: 'INSTALACION',
+                },
+                orderBy: { fecha_evento: 'desc' }
+            });
+
+            if (instalacionEvento && instalacionEvento.kilometraje_vehiculo) {
+                kmRecorrido = kilometraje_vehiculo - instalacionEvento.kilometraje_vehiculo;
+                if (kmRecorrido < 0) kmRecorrido = 0; // Safety check
+            }
+        }
+
+        // 3. Create Event
+        const nuevoEvento = await tx.eventoNeumatico.create({
+            data: {
+                tipo_evento: 'DESMONTAJE',
+                neumatico_id,
+                fecha_evento: now,
+                kilometraje_vehiculo,
+                profundidad_remanente,
+                presion_psi,
+                vehiculo_id: neumatico.ubicacion_vehiculo_id, // Record where it came from
+                posicion_montaje_id: neumatico.ubicacion_posicion_id,
+                almacen_destino_id,
+                notas: observaciones,
+                creado_por: userId,
+            },
+        });
+
+        // 4. Update Tire
+        const nuevoEstado = estado_neumatico_resultante || 'EN_STOCK';
+
+        await tx.neumatico.update({
+            where: { id: neumatico_id },
+            data: {
+                estado_actual: nuevoEstado,
+                ubicacion_almacen_id: almacen_destino_id || null, // Should be provided if going to stock
+                ubicacion_vehiculo_id: null,
+                ubicacion_posicion_id: null,
+                profundidad_actual_mm: profundidad_remanente,
+                presion_actual_psi: presion_psi,
+                kilometraje_acumulado: { increment: kmRecorrido },
+                actualizado_en: now,
+            },
+        });
+
+        // 5. Create Measurement Log
+        if (profundidad_remanente) {
+            await tx.medicionProfundidad.create({
+                data: {
+                    neumatico_id,
+                    profundidad_mm: profundidad_remanente,
+                    fecha_medicion: now,
+                    medido_por: userId,
+                },
+            });
+        }
+
+        // 6. Update Vehicle Odometer
+        if (kilometraje_vehiculo && neumatico.ubicacion_vehiculo_id) {
+            await tx.registroOdometro.create({
+                data: {
+                    vehiculo_id: neumatico.ubicacion_vehiculo_id,
+                    kilometraje: kilometraje_vehiculo,
+                    fecha_registro: now,
+                    registrado_por: userId,
+                    notas: `Desmontaje de neumático ${neumatico.numero_serie}`,
+                },
+            });
+
+            // Update vehicle current km
+            await tx.vehiculo.update({
+                where: { id: neumatico.ubicacion_vehiculo_id },
+                data: { kilometraje_actual: kilometraje_vehiculo }
+            });
+        }
+
+        return nuevoEvento;
+    }
+
+    private async _handleInspeccion(evento: any, userId: string, tx: any) {
+        const { neumatico_id, kilometraje_vehiculo, profundidad_remanente, presion_psi, observaciones } = evento;
+        const now = new Date();
+
+        // 1. Validate Tire
+        const neumatico = await tx.neumatico.findUnique({
+            where: { id: neumatico_id },
+            include: { modelo: true }
+        });
+
+        if (!neumatico) throw new Error('Neumático no encontrado');
+        if (!neumatico.activo) throw new Error('Neumático no está activo');
+
+        // 2. Create Event
+        const nuevoEvento = await tx.eventoNeumatico.create({
+            data: {
+                tipo_evento: 'INSPECCION',
+                neumatico_id,
+                fecha_evento: now,
+                kilometraje_vehiculo,
+                profundidad_remanente,
+                presion_psi,
+                vehiculo_id: neumatico.ubicacion_vehiculo_id,
+                posicion_montaje_id: neumatico.ubicacion_posicion_id,
+                notas: observaciones,
+                creado_por: userId,
+            },
+        });
+
+        // 3. Update Tire
+        await tx.neumatico.update({
+            where: { id: neumatico_id },
+            data: {
+                profundidad_actual_mm: profundidad_remanente,
+                presion_actual_psi: presion_psi,
+                actualizado_en: now,
+            },
+        });
+
+        // 4. Create Measurement Log
+        if (profundidad_remanente) {
+            await tx.medicionProfundidad.create({
+                data: {
+                    neumatico_id,
+                    profundidad_mm: profundidad_remanente,
+                    fecha_medicion: now,
+                    medido_por: userId,
+                },
+            });
+        }
+
+        // 5. Update Odometer (if attached to vehicle)
+        if (kilometraje_vehiculo && neumatico.ubicacion_vehiculo_id) {
+            await tx.registroOdometro.create({
+                data: {
+                    vehiculo_id: neumatico.ubicacion_vehiculo_id,
+                    kilometraje: kilometraje_vehiculo,
+                    fecha_registro: now,
+                    registrado_por: userId,
+                    notas: `Inspección de neumático ${neumatico.numero_serie}`,
+                },
+            });
+
+            // Update vehicle current km
+            await tx.vehiculo.update({
+                where: { id: neumatico.ubicacion_vehiculo_id },
+                data: { kilometraje_actual: kilometraje_vehiculo }
+            });
+        }
+
+        // 6. Check Alerts (Simplified Logic for now)
+        // In a real scenario, this would call AlertService
+        if (profundidad_remanente && neumatico.modelo?.profundidad_minima_recomendada_mm) {
+            if (profundidad_remanente <= Number(neumatico.modelo.profundidad_minima_recomendada_mm)) {
+                // Create Alert
+                await tx.alerta.create({
+                    data: {
+                        tipo_alerta: 'PROFUNDIDAD_BAJA',
+                        mensaje: `Neumático ${neumatico.numero_serie} con profundidad baja (${profundidad_remanente}mm)`,
+                        nivel_severidad: 'WARN',
+                        estado_alerta: 'NUEVA',
+                        neumatico_id: neumatico.id,
+                        vehiculo_id: neumatico.ubicacion_vehiculo_id,
+                        almacen_id: neumatico.ubicacion_almacen_id,
+                    }
+                });
+            }
         }
 
         return nuevoEvento;
