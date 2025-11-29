@@ -93,6 +93,27 @@ export class NeumaticoService {
         });
     }
 
+    /**
+     * Helper method to validate and fetch a tire with proper error handling.
+     * Reduces code duplication across event handlers.
+     */
+    private async _validateAndGetNeumatico(tx: any, id: string, includes: any = {}) {
+        const neumatico = await tx.neumatico.findUnique({
+            where: { id },
+            include: includes
+        });
+
+        if (!neumatico) {
+            throw new Error('Neumático no encontrado');
+        }
+
+        if (!neumatico.activo) {
+            throw new Error('Neumático no está activo');
+        }
+
+        return neumatico;
+    }
+
     private async _handleInstalacion(evento: EventoNeumaticoCreate, userId: string, tx: any) {
         const { neumatico_id, vehiculo_id, posicion_montaje_id, kilometraje_vehiculo, profundidad_remanente, presion_psi, observaciones } = evento;
         const now = new Date(evento.fecha_evento || new Date());
@@ -600,8 +621,8 @@ export class NeumaticoService {
 
         if (!neumatico_id) throw new Error('Faltan datos requeridos para retorno de reparación');
 
-        const neumatico = await tx.neumatico.findUnique({ where: { id: neumatico_id } });
-        if (!neumatico) throw new Error('Neumático no encontrado');
+        const neumatico = await this._validateAndGetNeumatico(tx, neumatico_id);
+
         if (neumatico.estado_actual !== EstadoNeumaticoEnum.EN_REPARACION) {
             throw new Error(`El neumático no está en reparación. Estado actual: ${neumatico.estado_actual}`);
         }
@@ -619,14 +640,13 @@ export class NeumaticoService {
             },
         });
 
+        // Cost tracking fields don't exist in schema - removed
         await tx.neumatico.update({
             where: { id: neumatico_id },
             data: {
                 estado_actual: EstadoNeumaticoEnum.EN_STOCK, // Back to stock
                 ubicacion_almacen_id: almacen_destino_id,
                 profundidad_actual_mm: profundidad_remanente || undefined,
-                reparaciones_cantidad: { increment: 1 },
-                costo_total_reparaciones: costo_evento ? { increment: costo_evento } : undefined,
                 actualizado_en: now,
             },
         });
@@ -650,16 +670,16 @@ export class NeumaticoService {
 
         if (!neumatico_id) throw new Error('Faltan datos requeridos para reencauche');
 
-        const neumatico = await tx.neumatico.findUnique({ where: { id: neumatico_id } });
-        if (!neumatico) throw new Error('Neumático no encontrado');
+        // Include modelo to access reencauches_maximos
+        const neumatico = await this._validateAndGetNeumatico(tx, neumatico_id, { modelo: true });
 
         if (neumatico.estado_actual !== EstadoNeumaticoEnum.EN_STOCK) {
             throw new Error(`El neumático debe estar EN_STOCK. Estado actual: ${neumatico.estado_actual}`);
         }
 
-        // Validate max retreads (RF16)
-        if (neumatico.cantidad_reencauches >= neumatico.maximo_reencauches) {
-            throw new Error(`El neumático ha alcanzado el límite de reencauches (${neumatico.maximo_reencauches})`);
+        // Validate max retreads (RF16) - using correct field names from schema
+        if (neumatico.reencauches_realizados >= neumatico.modelo.reencauches_maximos) {
+            throw new Error(`El neumático ha alcanzado el límite de reencauches (${neumatico.modelo.reencauches_maximos})`);
         }
 
         const nuevoEvento = await tx.eventoNeumatico.create({
@@ -701,8 +721,8 @@ export class NeumaticoService {
 
         if (!neumatico_id) throw new Error('Faltan datos requeridos para retorno de reencauche');
 
-        const neumatico = await tx.neumatico.findUnique({ where: { id: neumatico_id } });
-        if (!neumatico) throw new Error('Neumático no encontrado');
+        const neumatico = await this._validateAndGetNeumatico(tx, neumatico_id);
+
         if (neumatico.estado_actual !== EstadoNeumaticoEnum.EN_REENCAUCHE) {
             throw new Error(`El neumático no está en reencauche. Estado actual: ${neumatico.estado_actual}`);
         }
@@ -720,6 +740,7 @@ export class NeumaticoService {
             },
         });
 
+        // Update tire - use correct field name from schema and remove non-existent cost field
         await tx.neumatico.update({
             where: { id: neumatico_id },
             data: {
@@ -727,8 +748,7 @@ export class NeumaticoService {
                 ubicacion_almacen_id: almacen_destino_id,
                 profundidad_actual_mm: profundidad_remanente || undefined,
                 es_reencauchado: true,
-                cantidad_reencauches: { increment: 1 },
-                costo_total_reencauches: costo_evento ? { increment: costo_evento } : undefined,
+                reencauches_realizados: { increment: 1 }, // Correct field name from schema
                 actualizado_en: now,
             },
         });

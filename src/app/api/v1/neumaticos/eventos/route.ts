@@ -35,10 +35,8 @@ export async function POST(request: NextRequest) {
         if (requiredPermission) {
             requirePermission(session, requiredPermission);
         } else {
-            // Fallback or error if permission not defined for event
-            // For now, let's assume if it's not in the map, it might need a generic permission or we log a warning
-            // But strict security is better:
-            // requirePermission(session, PERMISSIONS.NEUMATICOS_UPDATE); // Example fallback
+            // Security: If event type is not in the map, deny access
+            throw new Error(`Permisos no configurados para el evento: ${validatedData.tipo_evento}`);
         }
 
         // 4. Execute Business Logic via Service
