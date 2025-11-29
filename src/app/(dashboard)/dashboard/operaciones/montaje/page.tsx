@@ -26,7 +26,7 @@ const montajeSchema = z.object({
     neumatico_id: z.string().uuid(),
     vehiculo_id: z.string().uuid(),
     posicion_neumatico_id: z.string().uuid().optional(),
-    kilometraje_vehiculo: z.number().positive(),
+    contador_vehiculo: z.number().positive(),
     profundidad_mm: z.number().positive().max(25),
     presion_psi: z.number().positive().max(150),
     observaciones: z.string().optional(),
@@ -49,7 +49,7 @@ export default function MontajePage() {
         defaultValues: {
             vehiculo_id: '',
             neumatico_id: '',
-            kilometraje_vehiculo: 0,
+            contador_vehiculo: 0,
             profundidad_mm: 10,
             presion_psi: 100,
             observaciones: '',
@@ -87,7 +87,7 @@ export default function MontajePage() {
                 neumatico_id: data.neumatico_id,
                 vehiculo_id: data.vehiculo_id,
                 posicion_montaje_id: data.posicion_neumatico_id,
-                kilometraje_vehiculo: data.kilometraje_vehiculo,
+                contador_vehiculo: data.contador_vehiculo,
                 profundidad_remanente: data.profundidad_mm,
                 presion_psi: data.presion_psi,
                 observaciones: data.observaciones,
@@ -102,7 +102,7 @@ export default function MontajePage() {
             setIsDialogOpen(false);
             form.reset({
                 vehiculo_id: selectedVehicleId || '',
-                kilometraje_vehiculo: form.getValues('kilometraje_vehiculo'), // Keep mileage
+                contador_vehiculo: form.getValues('contador_vehiculo'), // Keep mileage
                 profundidad_mm: 10,
                 presion_psi: 100,
                 observaciones: '',
@@ -144,8 +144,8 @@ export default function MontajePage() {
         setSelectedPosition(foundPos);
         form.setValue('posicion_neumatico_id', posicionId);
         // Pre-fill mileage if available from vehicle
-        if (vehicleDetails?.kilometraje_actual) {
-            form.setValue('kilometraje_vehiculo', vehicleDetails.kilometraje_actual);
+        if (vehicleDetails?.contador_actual) {
+            form.setValue('contador_vehiculo', vehicleDetails.contador_actual);
         }
         setIsDialogOpen(true);
     };
@@ -345,7 +345,7 @@ export default function MontajePage() {
 
                             <FormField
                                 control={form.control}
-                                name="kilometraje_vehiculo"
+                                name="contador_vehiculo"
                                 render={({ field }) => (
                                     <FormItem>
                                         <FormLabel>Kilometraje Vehículo</FormLabel>

@@ -80,7 +80,7 @@ export default function InspeccionPage() {
             profundidad_remanente: data.profundidad_mm,
             presion_psi: data.presion_psi,
             observaciones: data.observaciones,
-            kilometraje_vehiculo: selectedNeumatico.vehiculo ? data.kilometraje_vehiculo : undefined
+            contador_vehiculo: selectedNeumatico.vehiculo ? data.contador_vehiculo : undefined
         };
 
         inspeccionMutation.mutate(payload);
@@ -216,7 +216,7 @@ export default function InspeccionPage() {
                                 {selectedNeumatico?.vehiculo && (
                                     <FormField
                                         control={form.control}
-                                        name="kilometraje_vehiculo"
+                                        name="contador_vehiculo"
                                         render={({ field }) => (
                                             <FormItem>
                                                 <FormLabel>Kilometraje Vehículo</FormLabel>

@@ -24,7 +24,7 @@ const rotacionSchema = z.object({
     vehiculo_id: z.string().uuid(),
     neumatico_id: z.string().uuid(),
     posicion_montaje_id: z.string().uuid(),
-    kilometraje_vehiculo: z.number().positive(),
+    contador_vehiculo: z.number().positive(),
     profundidad_remanente: z.number().positive().optional(),
     presion_psi: z.number().positive().optional(),
     observaciones: z.string().optional(),
@@ -49,7 +49,7 @@ export default function RotacionPage() {
             vehiculo_id: '',
             neumatico_id: '',
             posicion_montaje_id: '',
-            kilometraje_vehiculo: 0,
+            contador_vehiculo: 0,
             profundidad_remanente: undefined,
             presion_psi: undefined,
             observaciones: '',
@@ -87,7 +87,7 @@ export default function RotacionPage() {
             setTargetPosition(null);
             form.reset({
                 vehiculo_id: selectedVehicleId || '',
-                kilometraje_vehiculo: form.getValues('kilometraje_vehiculo'),
+                contador_vehiculo: form.getValues('contador_vehiculo'),
             });
             refetchDetails();
         },
@@ -150,8 +150,8 @@ export default function RotacionPage() {
             // Prepare form
             form.setValue('neumatico_id', sourceTire.id);
             form.setValue('posicion_montaje_id', posicionId);
-            if (vehicleDetails?.kilometraje_actual) {
-                form.setValue('kilometraje_vehiculo', vehicleDetails.kilometraje_actual);
+            if (vehicleDetails?.contador_actual) {
+                form.setValue('contador_vehiculo', vehicleDetails.contador_actual);
             }
 
             setIsDialogOpen(true);
@@ -246,7 +246,7 @@ export default function RotacionPage() {
                         <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
                             <FormField
                                 control={form.control}
-                                name="kilometraje_vehiculo"
+                                name="contador_vehiculo"
                                 render={({ field }) => (
                                     <FormItem>
                                         <FormLabel>Kilometraje Actual</FormLabel>
