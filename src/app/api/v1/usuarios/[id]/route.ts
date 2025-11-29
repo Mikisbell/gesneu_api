@@ -112,14 +112,7 @@ export async function GET(
         const { id } = await context.params;
 
         const usuario = await prisma.usuario.findUnique({
-            where: { id, activo: true },
-            include: {
-                roles: {
-                    include: {
-                        rol: true,
-                    },
-                },
-            },
+            where: { id }
         });
 
         if (!usuario) {
@@ -151,10 +144,10 @@ export async function PUT(
             return ApiResponseHelper.validationError(validation.error);
         }
 
-        const { roles, password, ...userData } = validation.data;
+        const { password, ...userData } = validation.data;
 
         const existingUser = await prisma.usuario.findUnique({
-            where: { id, activo: true },
+            where: { id },
         });
 
         if (!existingUser) {
@@ -166,46 +159,12 @@ export async function PUT(
             passwordHash = await hash(password, 10);
         }
 
-        // Transaction to update user and roles
-        const updatedUser = await prisma.$transaction(async (tx) => {
-            // Update basic info
-            const user = await tx.usuario.update({
-                where: { id },
-                data: {
-                    ...userData,
-                    ...(passwordHash && { password_hash: passwordHash }),
-                    actualizado_por: session.user.id,
-                    actualizado_en: new Date(),
-                },
-            });
-
-            // Update roles if provided
-            if (roles) {
-                // Remove existing roles
-                await tx.usuarioRol.deleteMany({
-                    where: { usuario_id: id },
-                });
-
-                // Add new roles
-                await tx.usuarioRol.createMany({
-                    data: roles.map((rolId) => ({
-                        usuario_id: id,
-                        rol_id: rolId,
-                        asignado_por: session.user.id,
-                    })),
-                });
-            }
-
-            return tx.usuario.findUnique({
-                where: { id },
-                include: {
-                    roles: {
-                        include: {
-                            rol: true,
-                        },
-                    },
-                },
-            });
+        const updatedUser = await prisma.usuario.update({
+            where: { id },
+            data: {
+                ...userData,
+                ...(passwordHash && { password_hash: passwordHash })
+            },
         });
 
         if (!updatedUser) {
@@ -231,21 +190,16 @@ export async function DELETE(
         const { id } = await context.params;
 
         const existingUser = await prisma.usuario.findUnique({
-            where: { id, activo: true },
+            where: { id },
         });
 
         if (!existingUser) {
             return ApiResponseHelper.notFound();
         }
 
-        // Soft delete
-        await prisma.usuario.update({
-            where: { id },
-            data: {
-                activo: false,
-                actualizado_por: session.user.id,
-                actualizado_en: new Date(),
-            },
+        // Hard delete (no soft delete in simplified schema)
+        await prisma.usuario.delete({
+            where: { id }
         });
 
         return ApiResponseHelper.success({ message: 'Usuario desactivado exitosamente' });
