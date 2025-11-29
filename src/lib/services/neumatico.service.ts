@@ -741,7 +741,7 @@ export class NeumaticoService {
         if (!neumatico_id) throw new Error('Faltan datos requeridos para reencauche');
 
         // Include modelo to access reencauches_maximos
-        const neumatico = await this._validateAndGetNeumatico(tx, neumatico_id, { modelo: true }) as NeumaticoConModelo;
+        const neumatico = await this._validateAndGetNeumatico(tx, neumatico_id, { modelo: true }) as unknown as NeumaticoConModelo;
 
         if (neumatico.estado_actual !== EstadoNeumaticoEnum.EN_STOCK) {
             throw new Error(`El neumático debe estar EN_STOCK. Estado actual: ${neumatico.estado_actual}`);
