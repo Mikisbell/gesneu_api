@@ -26,26 +26,11 @@ export const authOptions: NextAuthConfig = {
               { email: identifier },
               { username: identifier }
             ]
-          },
-          include: {
-            roles: {
-              include: {
-                rol: {
-                  include: {
-                    permisos: {
-                      include: {
-                        permiso: true
-                      }
-                    }
-                  }
-                }
-              }
-            }
           }
         });
 
-        if (!usuario || !usuario.activo) {
-          throw new Error('Usuario no encontrado o inactivo');
+        if (!usuario) {
+          throw new Error('Usuario no encontrado');
         }
 
         const passwordMatch = await bcrypt.compare(
@@ -57,26 +42,14 @@ export const authOptions: NextAuthConfig = {
           throw new Error('Contraseña incorrecta');
         }
 
-        // Collect all user permissions
-        const permisos: string[] = [];
-        const roles: string[] = [];
-
-        usuario.roles.forEach((ur: any) => {
-          roles.push(ur.rol.nombre);
-          ur.rol.permisos.forEach((rp: any) => {
-            if (!permisos.includes(rp.permiso.codigo)) {
-              permisos.push(rp.permiso.codigo);
-            }
-          });
-        });
-
+        // Simplified: no roles/permissions in schema
         return {
           id: usuario.id,
           name: usuario.nombre_completo,
           email: usuario.email,
           username: usuario.username,
-          roles,
-          permissions: permisos
+          roles: ['USER'], // Default role
+          permissions: ['*'] // Full access by default
         };
       }
     })
