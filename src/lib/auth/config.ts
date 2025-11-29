@@ -33,6 +33,11 @@ export const authOptions: NextAuthConfig = {
           throw new Error('Usuario no encontrado');
         }
 
+        // Check if user is active
+        if (!usuario.activo) {
+          throw new Error('Usuario inactivo. Contacte al administrador');
+        }
+
         const passwordMatch = await bcrypt.compare(
           password,
           usuario.password_hash
@@ -42,14 +47,18 @@ export const authOptions: NextAuthConfig = {
           throw new Error('Contraseña incorrecta');
         }
 
-        // Simplified: no roles/permissions in schema
+        // Map rol enum to permissions
+        const permissions = usuario.rol === 'ADMIN' ? ['*'] :
+          usuario.rol === 'GESTOR' ? ['read:*', 'write:catalogos', 'write:neumaticos'] :
+            ['read:*']; // OPERADOR
+
         return {
           id: usuario.id,
           name: usuario.nombre_completo,
           email: usuario.email,
           username: usuario.username,
-          roles: ['USER'], // Default role
-          permissions: ['*'] // Full access by default
+          roles: [usuario.rol], // Use actual rol from enum
+          permissions
         };
       }
     })
