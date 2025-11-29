@@ -40,9 +40,6 @@ export async function GET(request: NextRequest) {
 
     // 3. Business logic
     const almacenes = await prisma.almacen.findMany({
-      where: {
-        activo: true
-      },
       orderBy: {
         nombre: 'asc'
       }
@@ -102,26 +99,15 @@ export async function POST(request: NextRequest) {
     const body = await request.json()
 
     // Validar campos requeridos
-    if (!body.nombre || !body.codigo) {
-      return ApiResponseHelper.error('Nombre y código son requeridos', 400)
-    }
-
-    // Verificar código único
-    const existe = await prisma.almacen.findUnique({
-      where: { codigo: body.codigo }
-    })
-
-    if (existe) {
-      return ApiResponseHelper.error('El código de almacén ya existe', 409)
+    if (!body.nombre) {
+      return ApiResponseHelper.error('Nombre es requerido', 400)
     }
 
     const almacen = await prisma.almacen.create({
       data: {
         nombre: body.nombre,
-        codigo: body.codigo,
-        descripcion: body.descripcion,
-        ubicacion: body.ubicacion,
-        activo: body.activo ?? true
+        tipo: body.tipo || 'PRINCIPAL',
+        ubicacion: body.ubicacion
       }
     })
 

@@ -135,8 +135,7 @@ export async function PUT(
       data: {
         nombre: body.nombre,
         ubicacion: body.ubicacion,
-        activo: body.activo,
-        actualizado_en: new Date()
+        tipo: body.tipo
       }
     })
 
@@ -194,12 +193,9 @@ export async function DELETE(
     requirePermission(session, PERMISSIONS.CATALOGOS_ALMACENES_DELETE);
 
     // 3. Business logic
-    const almacen = await prisma.almacen.update({
-      where: { id: (await params).id },
-      data: {
-        activo: false,
-        actualizado_en: new Date()
-      }
+    // Soft delete not supported in simplified schema
+    const almacen = await prisma.almacen.delete({
+      where: { id: (await params).id }
     })
 
     return ApiResponseHelper.success(almacen, 'Almacén desactivado exitosamente')
