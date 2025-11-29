@@ -7,7 +7,7 @@ export const InspeccionNeumaticoSchema = z.object({
     neumatico_id: z.string().uuid('ID de neumático debe ser un UUID válido'),
     profundidad_mm: z.number().positive('Profundidad debe ser mayor a 0').max(30, 'Profundidad máxima es 30mm'),
     presion_psi: z.number().positive('Presión debe ser mayor a 0').max(150, 'Presión máxima es 150 PSI'),
-    kilometraje_vehiculo: z.number().positive('Kilometraje debe ser mayor a 0').optional(),
+    contador_vehiculo: z.number().positive('Kilometraje debe ser mayor a 0').optional(),
     observaciones: z.string().optional(),
 });
 

@@ -7,7 +7,7 @@ export const MontajeNeumaticoSchema = z.object({
     neumatico_id: z.string().uuid('ID de neumático debe ser un UUID válido'),
     vehiculo_id: z.string().uuid('ID de vehículo debe ser un UUID válido'),
     posicion_id: z.string().uuid('ID de posición debe ser un UUID válido'),
-    kilometraje_vehiculo: z.number()
+    contador_vehiculo: z.number()
         .nonnegative('El kilometraje debe ser un número positivo')
         .int('El kilometraje debe ser un número entero'),
     presion_psi: z.number()
@@ -26,7 +26,7 @@ export const DesmontajeNeumaticoSchema = z.object({
     destino: z.enum(['STOCK', 'REPARACION', 'REENCAUCHE', 'DESECHO'], {
         message: 'Destino debe ser uno de: STOCK, REPARACION, REENCAUCHE, DESECHO'
     }),
-    kilometraje_vehiculo: z.number()
+    contador_vehiculo: z.number()
         .nonnegative('El kilometraje debe ser un número positivo')
         .int('El kilometraje debe ser un número entero'),
     almacen_destino_id: z.string().uuid('ID de almacén debe ser un UUID válido').optional(),
@@ -68,7 +68,7 @@ const MovimientoRotacionSchema = z.object({
  */
 export const RotacionNeumaticoSchema = z.object({
     vehiculo_id: z.string().uuid('ID de vehículo debe ser un UUID válido'),
-    kilometraje_vehiculo: z.number()
+    contador_vehiculo: z.number()
         .nonnegative('El kilometraje debe ser un número positivo')
         .int('El kilometraje debe ser un número entero'),
     movimientos: z.array(MovimientoRotacionSchema)
@@ -105,7 +105,7 @@ export const InspeccionNeumaticoSchema = z.object({
     profundidad_centro_mm: z.number().nonnegative().max(25).optional(),
     profundidad_derecha_mm: z.number().nonnegative().max(25).optional(),
     presion_psi: z.number().positive().max(150).optional(),
-    kilometraje_vehiculo: z.number().nonnegative().int().optional(),
+    contador_vehiculo: z.number().nonnegative().int().optional(),
     observaciones: z.string().max(1000).optional(),
     fecha_evento: z.coerce.date().optional()
 });
@@ -116,7 +116,7 @@ export const InspeccionNeumaticoSchema = z.object({
 export const ReparacionEntradaSchema = z.object({
     neumatico_id: z.string().uuid(),
     proveedor_id: z.string().uuid('ID de proveedor/taller debe ser un UUID válido'),
-    kilometraje_vehiculo: z.number().nonnegative().int().optional(),
+    contador_vehiculo: z.number().nonnegative().int().optional(),
     costo_estimado: z.number().nonnegative().optional(),
     observaciones: z.string().max(1000).optional(),
     fecha_evento: z.coerce.date().optional()
@@ -140,7 +140,7 @@ export const ReparacionSalidaSchema = z.object({
 export const ReencaucheEntradaSchema = z.object({
     neumatico_id: z.string().uuid(),
     proveedor_id: z.string().uuid('ID de proveedor/reencauchadora debe ser un UUID válido'),
-    kilometraje_vehiculo: z.number().nonnegative().int().optional(),
+    contador_vehiculo: z.number().nonnegative().int().optional(),
     costo_estimado: z.number().nonnegative().optional(),
     observaciones: z.string().max(1000).optional(),
     fecha_evento: z.coerce.date().optional()
@@ -164,7 +164,7 @@ export const ReencaucheSalidaSchema = z.object({
 export const DesechoNeumaticoSchema = z.object({
     neumatico_id: z.string().uuid(),
     motivo_id: z.string().uuid('ID de motivo de desecho debe ser un UUID válido'),
-    kilometraje_vehiculo: z.number().nonnegative().int().optional(),
+    contador_vehiculo: z.number().nonnegative().int().optional(),
     observaciones: z.string().max(1000).optional(),
     fecha_evento: z.coerce.date().optional()
 });

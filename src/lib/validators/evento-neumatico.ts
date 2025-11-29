@@ -41,7 +41,7 @@ export const EventoNeumaticoCreateSchema = z.object({
     neumatico_id: z.string().uuid().optional(),
 
     // --- Campos Comunes de Operación ---
-    kilometraje_vehiculo: z.number().nonnegative().optional(),
+    contador_vehiculo: z.number().nonnegative().optional(),
     profundidad_remanente: z.number().nonnegative().optional(),
     presion_psi: z.number().nonnegative().optional(),
     observaciones: z.string().optional(),

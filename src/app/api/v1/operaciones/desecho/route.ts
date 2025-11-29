@@ -47,7 +47,7 @@ export async function POST(req: NextRequest) {
         const {
             neumatico_id,
             motivo_id,
-            kilometraje_vehiculo,
+            contador_vehiculo,
             observaciones,
             fecha_evento
         } = validation.data;
@@ -66,7 +66,7 @@ export async function POST(req: NextRequest) {
                     tipo_evento: 'DESECHO',
                     neumatico_id,
                     fecha_evento: fecha_evento || new Date(),
-                    kilometraje_vehiculo,
+                    contador_vehiculo,
                     motivo_desecho_id: motivo_id,
                     notas: observaciones,
                     creado_por: session.user.id,
@@ -79,10 +79,7 @@ export async function POST(req: NextRequest) {
                     estado_actual: 'DESECHADO',
                     ubicacion_vehiculo_id: null,
                     ubicacion_posicion_id: null,
-                    ubicacion_almacen_id: null,
-                    fecha_desecho: fecha_evento || new Date(),
-                    activo: false,
-                    actualizado_en: new Date(),
+                    ubicacion_almacen_id: null
                 },
             });
         });
