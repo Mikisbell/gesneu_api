@@ -1,5 +1,3 @@
-import { prisma } from '@/lib/prisma';
-
 export type AuditAction = 'CREATE' | 'UPDATE' | 'DELETE' | 'LOGIN' | 'LOGOUT' | 'VIEW' | 'ERROR';
 
 interface CreateAuditLogParams {
@@ -10,6 +8,10 @@ interface CreateAuditLogParams {
     ipAddress?: string;
 }
 
+/**
+ * Audit log creation - Currently disabled as auditLog model doesn't exist in simplified schema
+ * TODO: Re-implement when audit logging is added back to schema
+ */
 export async function createAuditLog({
     userId,
     action,
@@ -17,18 +19,9 @@ export async function createAuditLog({
     details,
     ipAddress,
 }: CreateAuditLogParams) {
-    try {
-        await prisma.auditLog.create({
-            data: {
-                user_id: userId,
-                action,
-                resource,
-                details: details || {},
-                ip_address: ipAddress,
-            },
-        });
-    } catch (error) {
-        console.error('Error creating audit log:', error);
-        // Don't throw error to avoid blocking the main operation
+    // No-op - audit logging disabled in simplified schema
+    // Logs to console instead for development
+    if (process.env.NODE_ENV === 'development') {
+        console.log('Audit Log:', { userId, action, resource, details, ipAddress });
     }
 }
