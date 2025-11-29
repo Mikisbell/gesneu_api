@@ -141,7 +141,7 @@ export default function RotacionPage() {
             if (posicionId === sourceTire.posicion.id) {
                 // Deselect
                 setSourceTire(null);
-                toast({ description: "Selección cancelada" });
+                toast({ title: "Cancelado", description: "Selección cancelada" });
                 return;
             }
 
