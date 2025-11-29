@@ -64,6 +64,9 @@ export class NeumaticoService {
                 case 'INSPECCION':
                     result = await this._handleInspeccion(evento, userId, tx);
                     break;
+                case 'ROTACION':
+                    result = await this._handleRotacion(evento, userId, tx);
+                    break;
                 // Add other cases here as they are implemented
                 default:
                     throw new Error(`Evento ${tipo_evento} no soportado aún.`);
@@ -376,5 +379,111 @@ export class NeumaticoService {
         }
 
         return nuevoEvento;
+    }
+
+    private async _handleRotacion(evento: any, userId: string, tx: any) {
+        const { neumatico_id, vehiculo_id, posicion_montaje_id, kilometraje_vehiculo, profundidad_remanente, presion_psi, observaciones } = evento;
+        const now = new Date();
+
+        // 1. Validate Primary Tire (Tire A)
+        const neumatico = await tx.neumatico.findUnique({
+            where: { id: neumatico_id },
+            include: { modelo: true }
+        });
+
+        if (!neumatico) throw new Error('Neumático no encontrado');
+        if (neumatico.estado_actual !== 'INSTALADO') throw new Error('El neumático debe estar INSTALADO para rotarse');
+        if (!neumatico.ubicacion_vehiculo_id) throw new Error('El neumático no está asignado a ningún vehículo');
+
+        const currentPosId = neumatico.ubicacion_posicion_id;
+        const targetPosId = posicion_montaje_id;
+
+        if (!targetPosId) throw new Error('Debe especificar la posición de destino para la rotación');
+        if (currentPosId === targetPosId) throw new Error('La posición de destino es la misma que la actual');
+
+        // 2. Validate Target Position
+        // Check if there is a tire in the target position (Tire B)
+        const neumaticoEnDestino = await tx.neumatico.findFirst({
+            where: {
+                ubicacion_posicion_id: targetPosId,
+                activo: true,
+                estado_actual: 'INSTALADO',
+                // Ensure it's on the same vehicle if we assume intra-vehicle rotation
+                ubicacion_vehiculo_id: neumatico.ubicacion_vehiculo_id
+            }
+        });
+
+        // 3. Create Event for Tire A
+        const eventoRotacion = await tx.eventoNeumatico.create({
+            data: {
+                tipo_evento: 'ROTACION',
+                neumatico_id,
+                fecha_evento: now,
+                kilometraje_vehiculo,
+                profundidad_remanente,
+                presion_psi,
+                vehiculo_id: neumatico.ubicacion_vehiculo_id,
+                posicion_montaje_id: targetPosId, // New position
+                notas: observaciones,
+                creado_por: userId,
+            },
+        });
+
+        // 4. Update Tire A
+        await tx.neumatico.update({
+            where: { id: neumatico_id },
+            data: {
+                ubicacion_posicion_id: targetPosId,
+                profundidad_actual_mm: profundidad_remanente,
+                presion_actual_psi: presion_psi,
+                actualizado_en: now,
+            },
+        });
+
+        // 5. Handle Swap (if Tire B exists)
+        if (neumaticoEnDestino) {
+            // Create Event for Tire B (Swap)
+            await tx.eventoNeumatico.create({
+                data: {
+                    tipo_evento: 'ROTACION',
+                    neumatico_id: neumaticoEnDestino.id,
+                    fecha_evento: now,
+                    kilometraje_vehiculo, // Same mileage
+                    vehiculo_id: neumatico.ubicacion_vehiculo_id,
+                    posicion_montaje_id: currentPosId, // Moves to A's old position
+                    notas: `Rotación automática (intercambio con ${neumatico.numero_serie})`,
+                    creado_por: userId,
+                },
+            });
+
+            // Update Tire B
+            await tx.neumatico.update({
+                where: { id: neumaticoEnDestino.id },
+                data: {
+                    ubicacion_posicion_id: currentPosId,
+                    actualizado_en: now,
+                },
+            });
+        }
+
+        // 6. Update Odometer (once per operation)
+        if (kilometraje_vehiculo && neumatico.ubicacion_vehiculo_id) {
+            await tx.registroOdometro.create({
+                data: {
+                    vehiculo_id: neumatico.ubicacion_vehiculo_id,
+                    kilometraje: kilometraje_vehiculo,
+                    fecha_registro: now,
+                    registrado_por: userId,
+                    notas: `Rotación de neumáticos`,
+                },
+            });
+
+            await tx.vehiculo.update({
+                where: { id: neumatico.ubicacion_vehiculo_id },
+                data: { kilometraje_actual: kilometraje_vehiculo }
+            });
+        }
+
+        return eventoRotacion;
     }
 }
