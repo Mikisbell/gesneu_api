@@ -271,14 +271,13 @@ export class NeumaticoService {
                 orderBy: { fecha_evento: 'desc' }
             });
 
-            const lastInstalacion = eventos[0]; // Latest first
-            if (lastInstalacion?.kilometraje_vehiculo) {
-                let kmRecorrido = kilometraje_vehiculo - lastInstalacion.kilometraje_vehiculo;
+            if (instalacionEvento?.kilometraje_vehiculo) {
+                kmRecorrido = kilometraje_vehiculo - instalacionEvento.kilometraje_vehiculo;
                 // 🚨 CRITICAL FIX: Throw error instead of silently setting to 0
                 if (kmRecorrido < 0) {
                     throw new Error(
                         `Kilometraje inválido: El kilometraje actual (${kilometraje_vehiculo}) es menor que ` +
-                        `el de la última instalación (${lastInstalacion.kilometraje_vehiculo}). ` +
+                        `el de la última instalación (${instalacionEvento.kilometraje_vehiculo}). ` +
                         `Verifique el odómetro del vehículo.`
                     );
                 }
