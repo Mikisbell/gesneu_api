@@ -194,18 +194,19 @@ export default function DesechoPage() {
                                     <span className="text-muted-foreground">Profundidad:</span>
                                     <span className="ml-2">{selectedTire.profundidad_actual_mm || 'N/A'} mm</span>
                                 </div>
-
-                                {isTireInstalled && (
-                                    <div className="mt-4 p-4 bg-destructive/10 text-destructive rounded-lg border border-destructive/20 flex gap-2">
-                                        <AlertTriangle className="h-4 w-4 mt-0.5 flex-shrink-0" />
-                                        <p className="text-sm">
-                                            Este neumático está instalado en un vehículo. Debe desmontarlo antes de desecharlo.
-                                        </p>
-                                    </div>
-                                )}
                             </div>
+
+                            {isTireInstalled && (
+                                <div className="mt-4 p-4 bg-destructive/10 text-destructive rounded-lg border border-destructive/20 flex gap-2">
+                                    <AlertTriangle className="h-4 w-4 mt-0.5 flex-shrink-0" />
+                                    <p className="text-sm">
+                                        Este neumático está instalado en un vehículo. Debe desmontarlo antes de desecharlo.
+                                    </p>
+                                </div>
+                            )}
+                        </div>
                     )}
-                        </CardContent>
+                </CardContent>
             </Card>
 
             {/* Disposal Form */}
