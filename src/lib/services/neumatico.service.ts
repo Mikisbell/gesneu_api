@@ -212,7 +212,6 @@ export class NeumaticoService {
                 ubicacion_posicion_id: posicion_montaje_id || null,
                 profundidad_actual_mm: profundidad_remanente,
                 presion_actual_psi: presion_psi,
-                fecha_instalacion: now,
                 actualizado_en: now
             }
         });
@@ -239,7 +238,7 @@ export class NeumaticoService {
         if (neumatico.estado_actual !== EstadoNeumaticoEnum.INSTALADO) throw BusinessError.badRequest('Neumático no instalado');
 
         let kmRecorrido = 0;
-        if (neumatico.fecha_instalacion && contador_vehiculo && neumatico.ubicacion_vehiculo_id) {
+        if (contador_vehiculo && neumatico.ubicacion_vehiculo_id) {
             const instEvento = await tx.eventoNeumatico.findFirst({ where: { neumatico_id, tipo_evento: TipoEventoNeumaticoEnum.INSTALACION }, orderBy: { fecha_evento: 'desc' } });
             if (instEvento?.contador_vehiculo) {
                 kmRecorrido = contador_vehiculo - instEvento.contador_vehiculo;
