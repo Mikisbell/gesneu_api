@@ -174,7 +174,7 @@ export class NeumaticoService {
     }
 
     private async _handleInstalacion(evento: EventoNeumaticoCreate, userId: string, tx: TxClient) {
-        const { neumatico_id, vehiculo_id, posicion_montaje_id, kilometraje_vehiculo, profundidad_remanente, presion_psi, observaciones } = evento;
+        const { neumatico_id, vehiculo_id, posicion_montaje_id, contador_vehiculo, profundidad_remanente, presion_psi, observaciones } = evento;
         const now = new Date(evento.fecha_evento || new Date());
 
         if (!neumatico_id || !vehiculo_id) throw BusinessError.badRequest('Faltan datos instalación');
@@ -199,7 +199,7 @@ export class NeumaticoService {
         const nuevoEvento = await tx.eventoNeumatico.create({
             data: {
                 tipo_evento: TipoEventoNeumaticoEnum.INSTALACION,
-                neumatico_id, fecha_evento: now, kilometraje_vehiculo, profundidad_remanente, presion_psi, vehiculo_id, posicion_montaje_id, notas: observaciones, creado_por: userId
+                neumatico_id, fecha_evento: now, contador_vehiculo, profundidad_remanente, presion_psi, vehiculo_id, posicion_montaje_id, notas: observaciones, creado_por: userId
             }
         });
 
@@ -221,16 +221,16 @@ export class NeumaticoService {
             data: { neumatico_id, estado_anterior: neumatico.estado_actual, estado_nuevo: EstadoNeumaticoEnum.INSTALADO, fecha_cambio: now, motivo: `Montaje en ${vehiculo.placa}`, creado_por: userId }
         });
 
-        if (kilometraje_vehiculo) {
-            await tx.registroOdometro.create({ data: { vehiculo_id, kilometraje: kilometraje_vehiculo, fecha_registro: now, registrado_por: userId, notas: `Montaje ${neumatico.numero_serie}` } });
-            await tx.vehiculo.update({ where: { id: vehiculo_id }, data: { kilometraje_actual: kilometraje_vehiculo } });
+        if (contador_vehiculo) {
+            await tx.registroOdometro.create({ data: { vehiculo_id, kilometraje: contador_vehiculo, fecha_registro: now, registrado_por: userId, notas: `Montaje ${neumatico.numero_serie}` } });
+            await tx.vehiculo.update({ where: { id: vehiculo_id }, data: { kilometraje_actual: contador_vehiculo } });
         }
 
         return nuevoEvento;
     }
 
     private async _handleDesmontaje(evento: EventoNeumaticoCreate, userId: string, tx: TxClient) {
-        const { neumatico_id, kilometraje_vehiculo, profundidad_remanente, presion_psi, observaciones, estado_neumatico_resultante, almacen_destino_id, motivo_desecho_id } = evento;
+        const { neumatico_id, contador_vehiculo, profundidad_remanente, presion_psi, observaciones, estado_neumatico_resultante, almacen_destino_id, motivo_desecho_id } = evento;
         const now = new Date(evento.fecha_evento || new Date());
 
         if (!neumatico_id) throw BusinessError.badRequest('ID de neumático requerido');
@@ -239,11 +239,11 @@ export class NeumaticoService {
         if (neumatico.estado_actual !== EstadoNeumaticoEnum.INSTALADO) throw BusinessError.badRequest('Neumático no instalado');
 
         let kmRecorrido = 0;
-        if (neumatico.fecha_instalacion && kilometraje_vehiculo && neumatico.ubicacion_vehiculo_id) {
+        if (neumatico.fecha_instalacion && contador_vehiculo && neumatico.ubicacion_vehiculo_id) {
             const instEvento = await tx.eventoNeumatico.findFirst({ where: { neumatico_id, tipo_evento: TipoEventoNeumaticoEnum.INSTALACION }, orderBy: { fecha_evento: 'desc' } });
-            if (instEvento?.kilometraje_vehiculo) {
-                kmRecorrido = kilometraje_vehiculo - instEvento.kilometraje_vehiculo;
-                if (kmRecorrido < 0) throw BusinessError.badRequest(`KM actual (${kilometraje_vehiculo}) menor al de instalación (${instEvento.kilometraje_vehiculo})`);
+            if (instEvento?.contador_vehiculo) {
+                kmRecorrido = contador_vehiculo - instEvento.contador_vehiculo;
+                if (kmRecorrido < 0) throw BusinessError.badRequest(`KM actual (${contador_vehiculo}) menor al de instalación (${instEvento.contador_vehiculo})`);
             }
         }
 
@@ -254,7 +254,7 @@ export class NeumaticoService {
         const nuevoEvento = await tx.eventoNeumatico.create({
             data: {
                 tipo_evento: TipoEventoNeumaticoEnum.DESMONTAJE,
-                neumatico_id, fecha_evento: now, kilometraje_vehiculo, profundidad_remanente, presion_psi, vehiculo_id: neumatico.ubicacion_vehiculo_id, posicion_montaje_id: neumatico.ubicacion_posicion_id, almacen_destino_id, motivo_desecho_id, notas: observaciones, creado_por: userId
+                neumatico_id, fecha_evento: now, contador_vehiculo, profundidad_remanente, presion_psi, vehiculo_id: neumatico.ubicacion_vehiculo_id, posicion_montaje_id: neumatico.ubicacion_posicion_id, almacen_destino_id, motivo_desecho_id, notas: observaciones, creado_por: userId
             }
         });
 
@@ -277,16 +277,16 @@ export class NeumaticoService {
             data: { neumatico_id, estado_anterior: neumatico.estado_actual, estado_nuevo: nuevoEstado, fecha_cambio: now, motivo: 'Desmontaje', creado_por: userId }
         });
 
-        if (kilometraje_vehiculo && neumatico.ubicacion_vehiculo_id) {
-            await tx.registroOdometro.create({ data: { vehiculo_id: neumatico.ubicacion_vehiculo_id, kilometraje: kilometraje_vehiculo, fecha_registro: now, registrado_por: userId, notas: `Desmontaje ${neumatico.numero_serie}` } });
-            await tx.vehiculo.update({ where: { id: neumatico.ubicacion_vehiculo_id }, data: { kilometraje_actual: kilometraje_vehiculo } });
+        if (contador_vehiculo && neumatico.ubicacion_vehiculo_id) {
+            await tx.registroOdometro.create({ data: { vehiculo_id: neumatico.ubicacion_vehiculo_id, kilometraje: contador_vehiculo, fecha_registro: now, registrado_por: userId, notas: `Desmontaje ${neumatico.numero_serie}` } });
+            await tx.vehiculo.update({ where: { id: neumatico.ubicacion_vehiculo_id }, data: { kilometraje_actual: contador_vehiculo } });
         }
 
         return nuevoEvento;
     }
 
     private async _handleInspeccion(evento: EventoNeumaticoCreate, userId: string, tx: TxClient) {
-        const { neumatico_id, profundidad_remanente, presion_psi, kilometraje_vehiculo, observaciones } = evento;
+        const { neumatico_id, profundidad_remanente, presion_psi, contador_vehiculo, observaciones } = evento;
         const now = new Date(evento.fecha_evento || new Date());
 
         if (!neumatico_id) throw BusinessError.badRequest('ID de neumático requerido');
@@ -296,7 +296,7 @@ export class NeumaticoService {
         const nuevoEvento = await tx.eventoNeumatico.create({
             data: {
                 tipo_evento: TipoEventoNeumaticoEnum.INSPECCION,
-                neumatico_id, fecha_evento: now, kilometraje_vehiculo, profundidad_remanente, presion_psi, notas: observaciones, creado_por: userId
+                neumatico_id, fecha_evento: now, contador_vehiculo, profundidad_remanente, presion_psi, notas: observaciones, creado_por: userId
             }
         });
 
@@ -312,7 +312,7 @@ export class NeumaticoService {
     }
 
     private async _handleRotacion(evento: EventoNeumaticoCreate, userId: string, tx: TxClient) {
-        const { neumatico_id, posicion_montaje_id, kilometraje_vehiculo, observaciones } = evento;
+        const { neumatico_id, posicion_montaje_id, contador_vehiculo, observaciones } = evento;
         const now = new Date(evento.fecha_evento || new Date());
 
         if (!neumatico_id) throw BusinessError.badRequest('ID de neumático requerido');
@@ -339,7 +339,7 @@ export class NeumaticoService {
         const eventoRotacion = await tx.eventoNeumatico.create({
             data: {
                 tipo_evento: TipoEventoNeumaticoEnum.ROTACION,
-                neumatico_id, fecha_evento: now, kilometraje_vehiculo, vehiculo_id: neumatico.ubicacion_vehiculo_id, posicion_montaje_id: destinoPosId, notas: observaciones, creado_por: userId
+                neumatico_id, fecha_evento: now, contador_vehiculo, vehiculo_id: neumatico.ubicacion_vehiculo_id, posicion_montaje_id: destinoPosId, notas: observaciones, creado_por: userId
             }
         });
 
@@ -347,7 +347,7 @@ export class NeumaticoService {
 
         if (neumáticoEnDestino && origenPosId) {
             await tx.eventoNeumatico.create({
-                data: { tipo_evento: TipoEventoNeumaticoEnum.ROTACION, neumatico_id: neumáticoEnDestino.id, fecha_evento: now, kilometraje_vehiculo, vehiculo_id: neumatico.ubicacion_vehiculo_id, posicion_montaje_id: origenPosId, notas: `Intercambio con ${neumatico.numero_serie}`, creado_por: userId }
+                data: { tipo_evento: TipoEventoNeumaticoEnum.ROTACION, neumatico_id: neumáticoEnDestino.id, fecha_evento: now, contador_vehiculo, vehiculo_id: neumatico.ubicacion_vehiculo_id, posicion_montaje_id: origenPosId, notas: `Intercambio con ${neumatico.numero_serie}`, creado_por: userId }
             });
             await tx.neumatico.update({ where: { id: neumáticoEnDestino.id }, data: { ubicacion_posicion_id: origenPosId, actualizado_en: now } });
         }
