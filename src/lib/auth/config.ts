@@ -2,6 +2,7 @@ import type { NextAuthConfig } from 'next-auth';
 import Credentials from 'next-auth/providers/credentials';
 import * as bcrypt from 'bcryptjs';
 import { prisma } from '@/lib/prisma';
+import { SYSTEM_ROLES } from './permissions';
 
 export const authOptions: NextAuthConfig = {
   providers: [
@@ -19,7 +20,7 @@ export const authOptions: NextAuthConfig = {
         const identifier = credentials.identifier as string;
         const password = credentials.password as string;
 
-        // Try to find user by email or username
+        // Buscar usuario (sin include porque rol está en la tabla misma)
         const usuario = await prisma.usuario.findFirst({
           where: {
             OR: [
@@ -29,13 +30,8 @@ export const authOptions: NextAuthConfig = {
           }
         });
 
-        if (!usuario) {
-          throw new Error('Usuario no encontrado');
-        }
-
-        // Check if user is active
-        if (!usuario.activo) {
-          throw new Error('Usuario inactivo. Contacte al administrador');
+        if (!usuario || !usuario.activo) {
+          throw new Error('Usuario no encontrado o inactivo');
         }
 
         const passwordMatch = await bcrypt.compare(
@@ -47,18 +43,18 @@ export const authOptions: NextAuthConfig = {
           throw new Error('Contraseña incorrecta');
         }
 
-        // Map rol enum to permissions
-        const permissions = usuario.rol === 'ADMIN' ? ['*'] :
-          usuario.rol === 'GESTOR' ? ['read:*', 'write:catalogos', 'write:neumaticos'] :
-            ['read:*']; // OPERADOR
+        // Obtener permisos basados en el ENUM del rol usando SYSTEM_ROLES
+        const roleDefinition = SYSTEM_ROLES[usuario.rol as keyof typeof SYSTEM_ROLES];
+        const permisos = roleDefinition ? roleDefinition.permisos : [];
+        const roleName = roleDefinition ? roleDefinition.nombre : usuario.rol;
 
         return {
           id: usuario.id,
           name: usuario.nombre_completo,
           email: usuario.email,
           username: usuario.username,
-          roles: [usuario.rol], // Use actual rol from enum
-          permissions
+          roles: [roleName],
+          permissions: permisos
         };
       }
     })

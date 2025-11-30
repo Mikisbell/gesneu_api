@@ -6,8 +6,14 @@ declare global {
   var prisma: PrismaClient | undefined
 }
 
+// Configuración robusta para Supabase
+const connectionString = process.env.DATABASE_URL;
+
 const pool = new Pool({
-  connectionString: process.env.DATABASE_URL,
+  connectionString,
+  // SSL importante para Supabase en producción
+  ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : undefined,
+  max: 10, // Límite de conexiones
 })
 
 const adapter = new PrismaPg(pool)
@@ -22,4 +28,5 @@ export const prisma =
 if (process.env.NODE_ENV !== 'production') {
   global.prisma = prisma
 }
+
 export default prisma
