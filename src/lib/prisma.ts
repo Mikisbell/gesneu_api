@@ -12,7 +12,8 @@ const connectionString = process.env.DATABASE_URL;
 const pool = new Pool({
   connectionString,
   // SSL importante para Supabase en producción
-  ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : undefined,
+  // SSL es requerido por Supabase incluso en desarrollo
+  ssl: { rejectUnauthorized: false },
   max: 10, // Límite de conexiones
 })
 
