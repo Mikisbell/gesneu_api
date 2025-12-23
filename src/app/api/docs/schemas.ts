@@ -670,4 +670,33 @@ export { }
  *         fecha_evento:
  *           type: string
  *           format: date-time
+ *     CPKMetricsDTO:
+ *       type: object
+ *       properties:
+ *         neumatico_id:
+ *           type: string
+ *           format: uuid
+ *         numero_serie:
+ *           type: string
+ *         cpk:
+ *           type: number
+ *           description: Costo por Kilómetro
+ *         kilometraje_total:
+ *           type: number
+ *         costo_total:
+ *           type: number
+ *         desglose:
+ *           type: object
+ *           properties:
+ *             compra:
+ *               type: number
+ *             reparaciones:
+ *               type: number
+ *             reencauches:
+ *               type: number
+ *             otros:
+ *               type: number
+ *         moneda:
+ *           type: string
+ *           example: "USD"
  */

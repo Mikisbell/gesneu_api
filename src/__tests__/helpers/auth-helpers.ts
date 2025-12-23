@@ -128,3 +128,59 @@ export function mockAuth(session: Session | null) {
     }
     return auth;
 }
+import { prisma } from '@/lib/prisma'; // Ensure this import exists or add it
+
+// ... existing code ...
+
+/**
+ * DB Helpers
+ */
+export async function clearDatabase() {
+    await prisma.eventoNeumatico.deleteMany();
+    await prisma.neumatico.deleteMany();
+    await prisma.modeloNeumatico.deleteMany();
+    await prisma.fabricanteNeumatico.deleteMany();
+    await prisma.usuario.deleteMany();
+}
+
+export async function createTestUser(overrides = {}) {
+    return await prisma.usuario.create({
+        data: {
+            username: 'testuser_' + Date.now(),
+            email: 'test_' + Date.now() + '@example.com',
+            password_hash: 'hashed_password',
+            nombre_completo: 'Test User',
+            rol: 'ADMIN',
+            ...overrides
+        }
+    });
+}
+
+export async function createTestNeumatico(overrides: any = {}) {
+    const fabricante = await prisma.fabricanteNeumatico.create({
+        data: { nombre: 'Michelin ' + Date.now() }
+    });
+
+    const modelo = await prisma.modeloNeumatico.create({
+        data: {
+            nombre: 'X Multi Z ' + Date.now(),
+            medida: '295/80R22.5',
+            profundidad_inicial_mm: 18.5,
+            fabricante_id: fabricante.id,
+            reencauches_maximos: 2
+        }
+    });
+
+    return await prisma.neumatico.create({
+        data: {
+            numero_serie: 'NEU-' + Date.now(),
+            modelo_id: modelo.id,
+            profundidad_inicial_mm: 18.5,
+            profundidad_actual_mm: 18.5,
+            estado_actual: 'EN_STOCK',
+            costo_compra: 0,
+            kilometraje_acumulado: 0,
+            ...overrides
+        }
+    });
+}
