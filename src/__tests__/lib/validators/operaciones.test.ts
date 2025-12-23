@@ -14,7 +14,7 @@ describe('Operations Validation Schemas', () => {
                 neumatico_id: '550e8400-e29b-41d4-a716-446655440000',
                 vehiculo_id: '550e8400-e29b-41d4-a716-446655440001',
                 posicion_id: '550e8400-e29b-41d4-a716-446655440002',
-                kilometraje_vehiculo: 50000,
+                contador_vehiculo: 50000,
                 presion_psi: 110
             };
 
@@ -27,19 +27,19 @@ describe('Operations Validation Schemas', () => {
                 neumatico_id: 'not-a-uuid',
                 vehiculo_id: '550e8400-e29b-41d4-a716-446655440001',
                 posicion_id: '550e8400-e29b-41d4-a716-446655440002',
-                kilometraje_vehiculo: 50000
+                contador_vehiculo: 50000
             };
 
             const result = MontajeNeumaticoSchema.safeParse(invalidData);
             expect(result.success).toBe(false);
         });
 
-        it('should reject negative kilometraje', () => {
+        it('should reject negative contador', () => {
             const invalidData = {
                 neumatico_id: '550e8400-e29b-41d4-a716-446655440000',
                 vehiculo_id: '550e8400-e29b-41d4-a716-446655440001',
                 posicion_id: '550e8400-e29b-41d4-a716-446655440002',
-                kilometraje_vehiculo: -100
+                contador_vehiculo: -100
             };
 
             const result = MontajeNeumaticoSchema.safeParse(invalidData);
@@ -51,7 +51,7 @@ describe('Operations Validation Schemas', () => {
                 neumatico_id: '550e8400-e29b-41d4-a716-446655440000',
                 vehiculo_id: '550e8400-e29b-41d4-a716-446655440001',
                 posicion_id: '550e8400-e29b-41d4-a716-446655440002',
-                kilometraje_vehiculo: 50000,
+                contador_vehiculo: 50000,
                 presion_psi: 200
             };
 
@@ -65,7 +65,7 @@ describe('Operations Validation Schemas', () => {
             const validData = {
                 neumatico_id: '550e8400-e29b-41d4-a716-446655440000',
                 destino: 'STOCK',
-                kilometraje_vehiculo: 60000,
+                contador_vehiculo: 60000,
                 almacen_destino_id: '550e8400-e29b-41d4-a716-446655440003'
             };
 
@@ -77,7 +77,7 @@ describe('Operations Validation Schemas', () => {
             const validData = {
                 neumatico_id: '550e8400-e29b-41d4-a716-446655440000',
                 destino: 'DESECHO',
-                kilometraje_vehiculo: 60000,
+                contador_vehiculo: 60000,
                 motivo_id: '550e8400-e29b-41d4-a716-446655440003'
             };
 
@@ -89,7 +89,7 @@ describe('Operations Validation Schemas', () => {
             const invalidData = {
                 neumatico_id: '550e8400-e29b-41d4-a716-446655440000',
                 destino: 'STOCK',
-                kilometraje_vehiculo: 60000
+                contador_vehiculo: 60000
             };
 
             const result = DesmontajeNeumaticoSchema.safeParse(invalidData);
@@ -100,7 +100,7 @@ describe('Operations Validation Schemas', () => {
             const invalidData = {
                 neumatico_id: '550e8400-e29b-41d4-a716-446655440000',
                 destino: 'DESECHO',
-                kilometraje_vehiculo: 60000
+                contador_vehiculo: 60000
             };
 
             const result = DesmontajeNeumaticoSchema.safeParse(invalidData);
@@ -111,7 +111,7 @@ describe('Operations Validation Schemas', () => {
             const invalidData = {
                 neumatico_id: '550e8400-e29b-41d4-a716-446655440000',
                 destino: 'INVALID_DESTINO',
-                kilometraje_vehiculo: 60000
+                contador_vehiculo: 60000
             };
 
             const result = DesmontajeNeumaticoSchema.safeParse(invalidData);
@@ -123,7 +123,7 @@ describe('Operations Validation Schemas', () => {
         it('should validate correct rotacion data', () => {
             const validData = {
                 vehiculo_id: '550e8400-e29b-41d4-a716-446655440001',
-                kilometraje_vehiculo: 70000,
+                contador_vehiculo: 70000,
                 movimientos: [
                     {
                         neumatico_id: '550e8400-e29b-41d4-a716-446655440000',
@@ -143,7 +143,7 @@ describe('Operations Validation Schemas', () => {
         it('should reject less than 2 movimientos', () => {
             const invalidData = {
                 vehiculo_id: '550e8400-e29b-41d4-a716-446655440001',
-                kilometraje_vehiculo: 70000,
+                contador_vehiculo: 70000,
                 movimientos: [
                     {
                         neumatico_id: '550e8400-e29b-41d4-a716-446655440000',
@@ -159,7 +159,7 @@ describe('Operations Validation Schemas', () => {
         it('should reject duplicate neumatico IDs', () => {
             const invalidData = {
                 vehiculo_id: '550e8400-e29b-41d4-a716-446655440001',
-                kilometraje_vehiculo: 70000,
+                contador_vehiculo: 70000,
                 movimientos: [
                     {
                         neumatico_id: '550e8400-e29b-41d4-a716-446655440000',
@@ -179,7 +179,7 @@ describe('Operations Validation Schemas', () => {
         it('should reject duplicate posicion_destino IDs', () => {
             const invalidData = {
                 vehiculo_id: '550e8400-e29b-41d4-a716-446655440001',
-                kilometraje_vehiculo: 70000,
+                contador_vehiculo: 70000,
                 movimientos: [
                     {
                         neumatico_id: '550e8400-e29b-41d4-a716-446655440000',

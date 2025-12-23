@@ -63,7 +63,7 @@ describe('Catálogos API Integration Tests', () => {
                 (auth as jest.Mock).mockResolvedValue(mockSessions.consultor);
                 const req = new NextRequest(`${BASE_URL}/almacenes`, {
                     method: 'POST',
-                    body: JSON.stringify({ nombre: 'Test', codigo: 'TEST' })
+                    body: JSON.stringify({ nombre: '[TEST] Almacen Consultor' })
                 });
                 const res = await POST_ALMACENES(req);
                 expect(res.status).toBe(403);
@@ -73,7 +73,7 @@ describe('Catálogos API Integration Tests', () => {
                 (auth as jest.Mock).mockResolvedValue(mockSessions.operador);
                 const req = new NextRequest(`${BASE_URL}/almacenes`, {
                     method: 'POST',
-                    body: JSON.stringify({ nombre: 'Test', codigo: 'TEST' })
+                    body: JSON.stringify({ nombre: '[TEST] Almacen Operador' })
                 });
                 const res = await POST_ALMACENES(req);
                 expect(res.status).toBe(403);
@@ -83,7 +83,7 @@ describe('Catálogos API Integration Tests', () => {
                 (auth as jest.Mock).mockResolvedValue(mockSessions.gestor);
                 const req = new NextRequest(`${BASE_URL}/almacenes`, {
                     method: 'POST',
-                    body: JSON.stringify({ nombre: 'Test Almacen', codigo: 'TEST-001' })
+                    body: JSON.stringify({ nombre: `[TEST] Almacen Gestor ${Date.now()}` })
                 });
                 const res = await POST_ALMACENES(req);
                 expect([400, 201, 409]).toContain(res.status);
@@ -139,7 +139,7 @@ describe('Catálogos API Integration Tests', () => {
                 (auth as jest.Mock).mockResolvedValue(mockSessions.consultor);
                 const req = new NextRequest(`${BASE_URL}/proveedores`, {
                     method: 'POST',
-                    body: JSON.stringify({ nombre: 'Test', tipo: 'DISTRIBUIDOR' })
+                    body: JSON.stringify({ nombre: '[TEST] Proveedor', tipo: 'FABRICANTE' })
                 });
                 const res = await POST_PROVEEDORES(req);
                 expect(res.status).toBe(403);
@@ -150,9 +150,9 @@ describe('Catálogos API Integration Tests', () => {
                 const req = new NextRequest(`${BASE_URL}/proveedores`, {
                     method: 'POST',
                     body: JSON.stringify({
-                        tipo: 'DISTRIBUIDOR',
-                        nombre: 'Test Proveedor',
-                        ruc: 'TEST123456'
+                        tipo: 'FABRICANTE',
+                        nombre: `[TEST] Proveedor ${Date.now()}`,
+                        ruc: `TEST${Date.now()}`.substring(0, 20)
                     })
                 });
                 const res = await POST_PROVEEDORES(req);

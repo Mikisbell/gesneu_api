@@ -221,8 +221,8 @@ export class NeumaticoService {
         });
 
         if (contador_vehiculo) {
-            await tx.registroOdometro.create({ data: { vehiculo_id, kilometraje: contador_vehiculo, fecha_registro: now, registrado_por: userId, notas: `Montaje ${neumatico.numero_serie}` } });
-            await tx.vehiculo.update({ where: { id: vehiculo_id }, data: { kilometraje_actual: contador_vehiculo } });
+            await tx.registroContador.create({ data: { vehiculo_id, valor: contador_vehiculo, fecha_registro: now, notas: `Montaje ${neumatico.numero_serie}` } });
+            await tx.vehiculo.update({ where: { id: vehiculo_id }, data: { contador_actual: contador_vehiculo } });
         }
 
         return nuevoEvento;
@@ -246,7 +246,7 @@ export class NeumaticoService {
             }
         }
 
-        const nuevoEstado = estado_neumatico_resultante || EstadoNeumaticoEnum.EN_STOCK;
+        const nuevoEstado = (estado_neumatico_resultante || EstadoNeumaticoEnum.EN_STOCK) as EstadoNeumaticoEnum;
         if (nuevoEstado === EstadoNeumaticoEnum.EN_STOCK && !almacen_destino_id) throw BusinessError.badRequest('Requiere almacén destino');
         if (nuevoEstado === EstadoNeumaticoEnum.DESECHADO && !motivo_desecho_id) throw BusinessError.badRequest('Requiere motivo desecho');
 
@@ -267,7 +267,6 @@ export class NeumaticoService {
                 profundidad_actual_mm: profundidad_remanente,
                 presion_actual_psi: presion_psi,
                 kilometraje_acumulado: { increment: kmRecorrido },
-                fecha_desecho: nuevoEstado === EstadoNeumaticoEnum.DESECHADO ? now : null,
                 actualizado_en: now
             }
         });
@@ -277,8 +276,8 @@ export class NeumaticoService {
         });
 
         if (contador_vehiculo && neumatico.ubicacion_vehiculo_id) {
-            await tx.registroOdometro.create({ data: { vehiculo_id: neumatico.ubicacion_vehiculo_id, kilometraje: contador_vehiculo, fecha_registro: now, registrado_por: userId, notas: `Desmontaje ${neumatico.numero_serie}` } });
-            await tx.vehiculo.update({ where: { id: neumatico.ubicacion_vehiculo_id }, data: { kilometraje_actual: contador_vehiculo } });
+            await tx.registroContador.create({ data: { vehiculo_id: neumatico.ubicacion_vehiculo_id, valor: contador_vehiculo, fecha_registro: now, notas: `Desmontaje ${neumatico.numero_serie}` } });
+            await tx.vehiculo.update({ where: { id: neumatico.ubicacion_vehiculo_id }, data: { contador_actual: contador_vehiculo } });
         }
 
         return nuevoEvento;
@@ -455,7 +454,7 @@ export class NeumaticoService {
             data: { tipo_evento: TipoEventoNeumaticoEnum.DESECHO, neumatico_id, fecha_evento: now, motivo_desecho_id, notas: observaciones, creado_por: userId }
         });
 
-        await tx.neumatico.update({ where: { id: neumatico_id }, data: { estado_actual: EstadoNeumaticoEnum.DESECHADO, ubicacion_almacen_id: null, ubicacion_vehiculo_id: null, ubicacion_posicion_id: null, fecha_desecho: now, actualizado_en: now } });
+        await tx.neumatico.update({ where: { id: neumatico_id }, data: { estado_actual: EstadoNeumaticoEnum.DESECHADO, ubicacion_almacen_id: null, ubicacion_vehiculo_id: null, ubicacion_posicion_id: null, actualizado_en: now } });
         await tx.historialEstadoNeumatico.create({ data: { neumatico_id, estado_anterior: neumatico.estado_actual, estado_nuevo: EstadoNeumaticoEnum.DESECHADO, fecha_cambio: now, motivo: 'Baja definitiva', creado_por: userId } });
     }
 }

@@ -42,7 +42,7 @@ export function createMockSession(options: MockSessionOptions = {}): Session {
  */
 export const mockSessions = {
     admin: createMockSession({
-        userId: 'admin-user-id',
+        userId: '00000000-0000-0000-0000-000000000001',
         username: 'admin',
         email: 'admin@example.com',
         roles: ['ADMINISTRADOR'],
@@ -50,7 +50,7 @@ export const mockSessions = {
     }),
 
     gestor: createMockSession({
-        userId: 'gestor-user-id',
+        userId: '00000000-0000-0000-0000-000000000002',
         username: 'gestor',
         email: 'gestor@example.com',
         roles: ['GESTOR'],
@@ -78,7 +78,7 @@ export const mockSessions = {
     }),
 
     operador: createMockSession({
-        userId: 'operador-user-id',
+        userId: '00000000-0000-0000-0000-000000000003',
         username: 'operador',
         email: 'operador@example.com',
         roles: ['OPERADOR'],
@@ -96,7 +96,7 @@ export const mockSessions = {
     }),
 
     consultor: createMockSession({
-        userId: 'consultor-user-id',
+        userId: '00000000-0000-0000-0000-000000000004',
         username: 'consultor',
         email: 'consultor@example.com',
         roles: ['CONSULTOR'],

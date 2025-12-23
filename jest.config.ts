@@ -5,6 +5,12 @@ const config: Config = {
     preset: 'ts-jest',
     testEnvironment: 'node',
 
+    // Run tests sequentially to avoid DB connection conflicts
+    maxWorkers: 1,
+
+    // Global teardown to ensure DB connections are closed
+    globalTeardown: '<rootDir>/jest.teardown.ts',
+
     // Root directory
     rootDir: '.',
 
@@ -57,6 +63,12 @@ const config: Config = {
 
     // Clear mocks between tests
     clearMocks: true,
+
+    // Timeout for tests (30s for remote DB latency)
+    testTimeout: 30000,
+
+    // Force exit after tests complete (handles async DB connections)
+    forceExit: true,
 
     // Verbose output
     verbose: true

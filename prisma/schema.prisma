@@ -116,8 +116,26 @@ model Neumatico {
   ubicacion_vehiculo     Vehiculo?           @relation(fields: [ubicacion_vehiculo_id], references: [id])
   ubicacion_posicion     PosicionNeumatico?  @relation(fields: [ubicacion_posicion_id], references: [id])
   eventos                EventoNeumatico[]
+  historial_estados      HistorialEstadoNeumatico[]
 
   @@map("neumaticos")
+}
+
+// --- HISTORIAL DE ESTADOS (Audit Trail) ---
+
+model HistorialEstadoNeumatico {
+  id              String              @id @default(uuid()) @db.Uuid
+  neumatico_id    String              @db.Uuid
+  estado_anterior EstadoNeumaticoEnum
+  estado_nuevo    EstadoNeumaticoEnum
+  fecha_cambio    DateTime            @db.Timestamptz(6)
+  motivo          String?
+  creado_por      String?             @db.Uuid
+  creado_en       DateTime            @default(now()) @db.Timestamptz(6)
+
+  neumatico       Neumatico           @relation(fields: [neumatico_id], references: [id])
+
+  @@map("historial_estado_neumatico")
 }
 
 model EventoNeumatico {

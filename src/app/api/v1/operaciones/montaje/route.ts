@@ -6,11 +6,89 @@ import { PERMISSIONS } from '@/lib/auth/permissions';
 import { MontajeNeumaticoSchema, type MontajeNeumaticoInput } from '@/lib/validators/montaje';
 
 /**
- * POST /api/v1/operaciones/montaje
- * 
- * Monta un neumático en un vehículo
- * 
- * @requires Permission: NEUMATICOS_EVENTO_INSTALACION
+ * @swagger
+ * /api/v1/operaciones/montaje:
+ *   post:
+ *     summary: Montar un neumático en un vehículo
+ *     description: Registra la instalación de un neumático en una posición específica de un vehículo.
+ *     tags:
+ *       - Operaciones
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - neumatico_id
+ *               - vehiculo_id
+ *               - contador_vehiculo
+ *               - profundidad_mm
+ *               - presion_psi
+ *             properties:
+ *               neumatico_id:
+ *                 type: string
+ *                 format: uuid
+ *                 description: ID del neumático a montar
+ *               vehiculo_id:
+ *                 type: string
+ *                 format: uuid
+ *                 description: ID del vehículo destino
+ *               posicion_neumatico_id:
+ *                 type: string
+ *                 format: uuid
+ *                 description: ID de la posición en el vehículo (opcional si es repuesto)
+ *               contador_vehiculo:
+ *                 type: number
+ *                 description: Kilometraje u horas del vehículo al momento del montaje
+ *               profundidad_mm:
+ *                 type: number
+ *                 description: Profundidad de diseño o remanente actual (mm)
+ *               presion_psi:
+ *                 type: number
+ *                 description: Presión de inflado (PSI)
+ *               observaciones:
+ *                 type: string
+ *     responses:
+ *       200:
+ *         description: Montaje realizado exitosamente
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     evento:
+ *                       type: object
+ *                       properties:
+ *                         id:
+ *                           type: string
+ *                           format: uuid
+ *                         tipo_evento:
+ *                           type: string
+ *                           example: "INSTALACION"
+ *                     neumatico:
+ *                       type: object
+ *                       properties:
+ *                         id:
+ *                           type: string
+ *                           format: uuid
+ *                         estado_actual:
+ *                           type: string
+ *                           example: "INSTALADO"
+ *       400:
+ *         description: Datos inválidos
+ *       404:
+ *         description: Neumático o vehículo no encontrado
+ *       409:
+ *         description: El neumático no está en stock (ya montado o desechado)
  */
 export async function POST(request: NextRequest) {
     try {

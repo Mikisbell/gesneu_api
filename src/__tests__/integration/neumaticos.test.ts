@@ -59,15 +59,29 @@ describe('Neumáticos API Integration Tests', () => {
             expect(res.status).toBe(403);
         });
 
+        // TODO: Requiere investigación - el servicio devuelve 500 a pesar de datos válidos
         it('should create a neumatico if user is authorized (ADMIN)', async () => {
-            (auth as jest.Mock).mockResolvedValue(mockSessions.admin);
+            // Get real admin user from DB
+            const adminUser = await prisma.usuario.findFirst({
+                where: { username: 'admin' }
+            });
+            if (!adminUser) throw new Error('Admin user not found in DB');
+
+            // Mock session with REAL user ID
+            (auth as jest.Mock).mockResolvedValue({
+                ...mockSessions.admin,
+                user: {
+                    ...mockSessions.admin.user,
+                    id: adminUser.id
+                }
+            });
 
             // Create dependencies
             const timestamp = Date.now();
             let fabricante;
             try {
                 fabricante = await prisma.fabricanteNeumatico.create({
-                    data: { nombre: `Michelin Test ${timestamp}`, pais_origen: 'Francia' }
+                    data: { nombre: `Michelin Test ${timestamp}` }
                 });
             } catch (e) {
                 console.error('Error creating fabricante:', e);
@@ -76,7 +90,6 @@ describe('Neumáticos API Integration Tests', () => {
 
             let modelo;
             try {
-                console.log('Fabricante ID:', fabricante.id);
                 modelo = await prisma.modeloNeumatico.create({
                     data: {
                         fabricante_id: fabricante.id,
@@ -86,21 +99,22 @@ describe('Neumáticos API Integration Tests', () => {
                     }
                 });
             } catch (e) {
-                const fs = require('fs');
-                fs.writeFileSync('error.log', JSON.stringify(e, null, 2));
-                console.log('Error creating modelo:', JSON.stringify(e, null, 2));
+                console.error('Error creating modelo:', e);
                 throw e;
             }
 
+            // Get existing almacen (from seed)
+            const almacen = await prisma.almacen.findFirst();
+            if (!almacen) {
+                throw new Error('No almacen found. Run seed first.');
+            }
+
             const newNeumatico = {
-                numero_serie: 'TEST-NEW-123',
+                numero_serie: `TEST-NEW-${timestamp}`,
                 modelo_id: modelo.id,
                 dot: '2024',
-                estado_actual: 'EN_STOCK',
                 profundidad_inicial_mm: 18.0,
-                profundidad_actual_mm: 18.0,
-                presion_actual_psi: 110.0,
-                fecha_compra: new Date().toISOString(),
+                ubicacion_almacen_id: almacen.id,
                 costo_compra: 450.00
             };
 
@@ -109,12 +123,6 @@ describe('Neumáticos API Integration Tests', () => {
                 body: JSON.stringify(newNeumatico)
             });
             const res = await POST(req);
-
-            // Debug if fails
-            if (res.status !== 201) {
-                const err = await res.json();
-                console.error('Create failed:', err);
-            }
 
             expect(res.status).toBe(201);
             const data = await res.json();
