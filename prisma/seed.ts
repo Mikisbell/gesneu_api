@@ -1,5 +1,8 @@
 import 'dotenv/config'
-import { prisma } from '../src/lib/prisma';
+import { PrismaClient } from '@prisma/client';
+
+// Use simple PrismaClient without pg adapter for seed (works in CI without SSL)
+const prisma = new PrismaClient();
 import {
     TipoMedicionEnum,
     TipoEventoNeumaticoEnum,
