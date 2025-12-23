@@ -6,14 +6,17 @@ declare global {
   var prisma: PrismaClient | undefined
 }
 
-// Configuración robusta para Supabase
+// Configuración robusta para Supabase y CI
 const connectionString = process.env.DATABASE_URL;
+
+// SSL es requerido por Supabase pero NO por Postgres local en CI
+const isLocalhost = connectionString?.includes('localhost') || connectionString?.includes('127.0.0.1');
+const isCI = process.env.CI === 'true';
+const useSSL = !isLocalhost && !isCI;
 
 const pool = new Pool({
   connectionString,
-  // SSL importante para Supabase en producción
-  // SSL es requerido por Supabase incluso en desarrollo
-  ssl: { rejectUnauthorized: false },
+  ssl: useSSL ? { rejectUnauthorized: false } : false,
   max: 10, // Límite de conexiones
 })
 
