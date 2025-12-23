@@ -65,12 +65,12 @@ jobs:
           DATABASE_URL: "postgresql://postgres:password@localhost:5432/gesneu_test?schema=public"
           DIRECT_URL: "postgresql://postgres:password@localhost:5432/gesneu_test?schema=public"
 
-      # NOTE: Seed deshabilitado temporalmente - tests crean sus propios datos con beforeAll
-      # - name: Seed Database
-      #   run: npx ts-node --compiler-options "{\"module\":\"CommonJS\"}" prisma/seed.ts
-      #   env:
-      #     DATABASE_URL: "postgresql://postgres:password@localhost:5432/gesneu_test?schema=public"
-      #     DIRECT_URL: "postgresql://postgres:password@localhost:5432/gesneu_test?schema=public"
+      - name: Seed Database
+        run: npx ts-node --compiler-options "{\"module\":\"CommonJS\"}" prisma/seed.ts
+        continue-on-error: true
+        env:
+          DATABASE_URL: "postgresql://postgres:password@localhost:5432/gesneu_test?schema=public"
+          DIRECT_URL: "postgresql://postgres:password@localhost:5432/gesneu_test?schema=public"
 
       - name: Run Tests
         run: npm test
