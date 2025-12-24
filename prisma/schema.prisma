@@ -212,6 +212,7 @@ model PosicionNeumatico {
   configuracion_eje_id String             @db.Uuid
   numero_posicion      Int
   lado_vehiculo        LadoVehiculoEnum
+  permite_reencauchado Boolean            @default(true)
   configuracion_eje    ConfiguracionEje   @relation(fields: [configuracion_eje_id], references: [id])
   neumaticos           Neumatico[]
   eventos              EventoNeumatico[]

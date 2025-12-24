@@ -142,6 +142,26 @@ async function validateMontaje(data: MontajeNeumaticoInput) {
         throw new Error('Vehículo no encontrado');
     }
 
+    // 4. NUEVO: Validar política de reencauchados por posición
+    if (data.posicion_neumatico_id && neumatico.es_reencauchado) {
+        const posicion = await prisma.posicionNeumatico.findUnique({
+            where: { id: data.posicion_neumatico_id },
+            include: { configuracion_eje: true }
+        });
+
+        if (posicion) {
+            // Verificar restricción a nivel de posición
+            if (!posicion.permite_reencauchado) {
+                throw new Error(`Posición ${posicion.numero_posicion} (${posicion.lado_vehiculo}) no permite neumáticos reencauchados`);
+            }
+
+            // Verificar restricción a nivel de eje (ConfiguracionEje)
+            if (!posicion.configuracion_eje.permite_reencauchados) {
+                throw new Error(`Eje ${posicion.configuracion_eje.tipo_eje} no permite neumáticos reencauchados`);
+            }
+        }
+    }
+
     return { neumatico, vehiculo };
 }
 
