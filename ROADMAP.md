@@ -1,162 +1,106 @@
 # 🚀 ROADMAP - GesNeu API
 
-> **Stack Tecnológico**: Next.js 14 + TypeScript + Prisma + PostgreSQL (Supabase)  
-> **Última Actualización**: 2025-12-22  
+> **Stack Tecnológico**: Next.js 16 + TypeScript + Prisma 7 + PostgreSQL (Supabase)  
+> **Última Actualización**: 2025-12-24  
 > **Basado en**: Requerimientos de Sistema API Ges_Neu_Final.pdf v2.1
 
 ---
 
-## 📊 Estado Actual
+## 📊 Estado Actual (Post-Auditoría)
 
-| Área | Completado | Pendiente |
-|------|------------|-----------|
-| **Infraestructura** | ✅ API Routes, Prisma, Auth | OpenAPI docs |
-| **CRUD Base** | ✅ Neumáticos, Vehículos, Catálogos | - |
-| **Operaciones** | ✅ Montaje, Desmontaje, Rotación | Inspecciones programadas |
-| **Historial** | ✅ EventoNeumatico, HistorialEstado | - |
-| **Tests** | ✅ 84/92 (8 skipped) | Seed data para E2E |
-| **KPIs/Reportes** | ⚠️ Parcial | Cpk, Alertas, Dashboard |
+| Fase | Estado | Completado | Pendiente |
+|------|--------|------------|-----------|
+| **Fase 1** | ✅ 85% | CRUD, Auth, Eventos | Audit logging, RBAC UI |
+| **Fase 2** | ✅ 100% | CPK, Desgaste, Comparativo | - |
+| **Fase 3** | ✅ 100% | Alertas, Dashboard alertas | Notificaciones email |
+| **Fase 4** | ✅ 100% | Políticas reencauchado | - |
+| **Fase 5** | ✅ 100% | Reportes, CSV, Dashboard visual | - |
+| **Fase 6** | ⏳ 0% | - | IoT/TPMS, Webhooks |
+
+### Tests
+- **Passing**: 22+ tests
+- **Gaps**: Falta test específico para "bloquear reencauchado en direccional"
 
 ---
 
-## 🎯 Fases del Roadmap
+## 🎯 Fases Completadas
 
-### Fase 1: Estabilización y Calidad (1-2 semanas)
+### ✅ Fase 1: Infraestructura Base
+- [x] Next.js App Router + API Routes
+- [x] Prisma ORM + Supabase PostgreSQL
+- [x] NextAuth (JWT)
+- [x] CRUD: Neumáticos, Vehículos, Almacenes, Catálogos
+- [x] Sistema de Eventos (`EventoNeumatico`)
+- [x] OpenAPI/Swagger auto-generado
+- [ ] **Pendiente**: Audit logging completo (`updated_by`, `deleted_by`)
+- [ ] **Pendiente**: RBAC dinámico en UI
 
-**Objetivo**: Asegurar que la base actual es sólida antes de agregar funcionalidades.
+### ✅ Fase 2: KPIs y Métricas
+- [x] `GET /api/v1/reportes/cpk` - Costo por kilómetro
+- [x] `GET /api/v1/reportes/desgaste` - Tasa de desgaste
+- [x] `GET /api/v1/reportes/comparativo-marcas` - Ranking CPK por marca
+- [x] 8 tests unitarios
+
+### ✅ Fase 3: Sistema de Alertas
+- [x] Modelo `Alerta` con tipos y severidades
+- [x] Trigger: Profundidad < 4mm → CRITICAL
+- [x] Trigger: Reencauches >= máximo → WARNING
+- [x] `GET /api/v1/alertas` con filtros
+- [x] `POST /api/v1/alertas/generar`
+- [x] 4 tests unitarios
+
+### ✅ Fase 4: Políticas de Seguridad
+- [x] Campo `permite_reencauchado` en `PosicionNeumatico`
+- [x] Validación en `/operaciones/montaje`
+- [x] `GET/PATCH /api/v1/configuracion/posiciones/:id/politica`
+- [x] 7 tests E2E de montaje
+
+### ✅ Fase 5: Dashboard y Reportes
+- [x] `GET /api/v1/dashboard/inventario`
+- [x] `GET /api/v1/dashboard/rendimiento`
+- [x] `GET /api/v1/dashboard/desechos`
+- [x] `GET /api/v1/dashboard/exportar?tipo=X` (CSV)
+- [x] **UI Dashboard** en `/panel` con Chart.js
+- [x] 3 tests unitarios
+
+---
+
+## ⏳ Fase 6: Integraciones (Futuro)
 
 | Prioridad | Tarea | Descripción |
 |-----------|-------|-------------|
-| 🔴 Alta | **Seed Data** | Crear script de seeding para tests E2E y desarrollo |
-| 🔴 Alta | **Documentación OpenAPI** | Agregar decoradores/comments para generar Swagger automático |
-| 🟡 Media | **Limpiar MD obsoletos** | Eliminar docs que mencionan Python/FastAPI |
-| 🟡 Media | **Auditoría de seguridad** | Rotar credenciales expuestas, revisar RLS Supabase |
+| 🟡 Media | **API para TPMS** | Recibir datos de sensores de presión/temperatura |
+| 🟢 Baja | **Webhooks** | Notificar a ERP sobre eventos críticos |
+| 🟢 Baja | **Email/SMS** | Alertas críticas a gerentes |
 
 ---
 
-### Fase 2: KPIs y Cálculos de Negocio (2-3 semanas)
+## 🔴 Gaps Identificados (ver TECHNICAL_DEBT.md)
 
-**Objetivo**: Implementar métricas críticas para optimización de costos.
-
-| Prioridad | Tarea | Descripción |
-|-----------|-------|-------------|
-| 🔴 Alta | **Cálculo Cpk** | `costo_total / kilometraje_acumulado` por neumático |
-| 🔴 Alta | **Desgaste promedio** | `(profundidad_inicial - profundidad_actual) / km` |
-| 🟡 Media | **Comparativo marcas** | Endpoint para comparar Cpk por fabricante/modelo |
-| 🟡 Media | **Historial de costos** | Tracking de costo_compra + reparaciones + reencauches |
-
-**Endpoints a crear:**
-```
-GET /api/v1/reportes/cpk?neumatico_id=...
-GET /api/v1/reportes/desgaste?vehiculo_id=...
-GET /api/v1/reportes/comparativo-marcas
-```
+1. **RBAC en UI**: Ocultar/deshabilitar botones según rol
+2. **Audit Logging**: Campos `updated_by`, `deleted_by` + triggers
+3. **Diagrama ER**: No existe documentación visual del modelo
+4. **Tests de seguridad**: Test explícito para regla de vida
+5. **Multi-tenant**: No hay soporte para múltiples empresas
 
 ---
 
-### Fase 3: Sistema de Alertas (2 semanas)
+## ✅ Criterios de Éxito (Actualizado)
 
-**Objetivo**: Prevención proactiva de riesgos de seguridad.
-
-| Prioridad | Tarea | Descripción |
-|-----------|-------|-------------|
-| 🔴 Alta | **Modelo Alerta** | Nueva tabla `alertas` con tipos y severidades |
-| 🔴 Alta | **Trigger profundidad** | Alerta cuando `profundidad_actual_mm < 4` |
-| 🟡 Media | **Alerta reencauche** | Cuando `num_reencauches >= reencauches_maximos` |
-| 🟡 Media | **Dashboard alertas** | Endpoint GET /api/v1/alertas con filtros |
-| 🟢 Baja | **Notificaciones** | Webhook/Email para alertas críticas |
-
-**Schema propuesto:**
-```prisma
-model Alerta {
-  id            String   @id @default(uuid())
-  tipo          TipoAlertaEnum
-  severidad     SeveridadEnum
-  neumatico_id  String?
-  vehiculo_id   String?
-  mensaje       String
-  leida         Boolean  @default(false)
-  creada_en     DateTime @default(now())
-}
-```
-
----
-
-### Fase 4: Políticas de Seguridad por Posición (1-2 semanas)
-
-**Objetivo**: Garantizar cumplimiento de normativas de neumáticos reencauchados.
-
-| Prioridad | Tarea | Descripción |
-|-----------|-------|-------------|
-| 🔴 Alta | **Restricciones posición** | Campo `permite_reencauchado` en PosicionNeumatico |
-| 🔴 Alta | **Validación montaje** | Bloquear montaje de reencauchado en posición restringida |
-| 🟡 Media | **Configuración por tipo vehículo** | Diferentes políticas por tipo de unidad |
-
----
-
-### Fase 5: Reportes y Dashboard (2-3 semanas)
-
-**Objetivo**: Proveer información consolidada para toma de decisiones.
-
-| Prioridad | Tarea | Descripción |
-|-----------|-------|-------------|
-| 🟡 Media | **Reporte inventario** | Stock por almacén, estado, modelo |
-| 🟡 Media | **Reporte rendimiento** | Top/Bottom neumáticos por Cpk |
-| 🟡 Media | **Reporte desechos** | Análisis de causas de desecho |
-| 🟢 Baja | **Exportación CSV/Excel** | Exportar reportes a formatos comunes |
-| 🟢 Baja | **UI Dashboard** | Página de visualización de KPIs (opcional) |
-
----
-
-### Fase 6: Integraciones (Futuro)
-
-**Objetivo**: Conectar con sistemas externos.
-
-| Prioridad | Tarea | Descripción |
-|-----------|-------|-------------|
-| 🟢 Baja | **API para IoT** | Endpoints para recibir datos de sensores TPMS |
-| 🟢 Baja | **Webhook ERP** | Notificar a ERP sobre eventos críticos |
-| 🟢 Baja | **Import masivo** | Carga inicial de datos desde Excel/CSV |
-
----
-
-## 📋 Resumen de Prioridades
-
-```mermaid
-gantt
-    title Roadmap GesNeu API
-    dateFormat  YYYY-MM-DD
-    section Fase 1
-    Seed Data           :a1, 2025-01-06, 3d
-    OpenAPI Docs        :a2, after a1, 5d
-    section Fase 2
-    Cálculo Cpk         :b1, 2025-01-15, 5d
-    Comparativo Marcas  :b2, after b1, 5d
-    section Fase 3
-    Sistema Alertas     :c1, 2025-02-01, 10d
-    section Fase 4
-    Políticas Posición  :d1, 2025-02-15, 7d
-    section Fase 5
-    Reportes            :e1, 2025-02-22, 14d
-```
-
----
-
-## ✅ Criterios de Éxito
-
-- [ ] Tests: 100% passing (incluyendo E2E con seed data)
-- [ ] Cpk calculable para cualquier neumático
-- [ ] Alertas activas para profundidad mínima
-- [ ] Políticas de posición funcionando
-- [ ] Al menos 3 reportes operativos disponibles
-- [ ] Documentación OpenAPI completa
+- [x] CPK calculable para cualquier neumático
+- [x] Alertas activas para profundidad mínima
+- [x] Políticas de posición funcionando
+- [x] Al menos 3 reportes operativos disponibles
+- [x] Documentación OpenAPI completa
+- [x] Dashboard visual funcional
+- [ ] Audit logging completo
+- [ ] RBAC dinámico en frontend
+- [ ] Tests para reglas de seguridad (100% cobertura)
 
 ---
 
 ## 📝 Notas
 
-1. **Stack Migrado**: El documento original menciona Python/FastAPI, pero la implementación actual usa **Next.js 14 + TypeScript + Prisma**. Este roadmap está adaptado al stack actual.
-
-2. **Prioridad de Seguridad**: Las alertas de profundidad mínima son críticas para evitar accidentes.
-
-3. **Datos de Prueba**: Antes de avanzar con nuevas features, es esencial tener seed data para desarrollo y testing.
+1. **Stack Actual**: Next.js 16, Prisma 7, TypeScript 5
+2. **Deploy**: Vercel + Supabase (us-west-2)
+3. **Repositorio**: github.com/Mikisbell/gesneu_api
