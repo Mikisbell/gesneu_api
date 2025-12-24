@@ -1,5 +1,6 @@
 import { prisma } from '@/lib/prisma';
 import { TipoAlertaEnum, SeveridadAlertaEnum } from '@prisma/client';
+import { EmailService } from './email.service';
 
 export interface AlertaFilters {
     tipo?: TipoAlertaEnum;
@@ -73,8 +74,10 @@ export class AlertasService {
         });
 
         let count = 0;
+        const alertasCreadas: any[] = [];
+
         for (const n of neumaticosCriticos) {
-            await prisma.alerta.create({
+            const alerta = await prisma.alerta.create({
                 data: {
                     tipo: TipoAlertaEnum.PROFUNDIDAD_MINIMA,
                     severidad: SeveridadAlertaEnum.CRITICAL,
@@ -83,7 +86,17 @@ export class AlertasService {
                     mensaje: `Neumático ${n.numero_serie} tiene profundidad ${n.profundidad_actual_mm?.toFixed(1)}mm (mínimo: ${PROFUNDIDAD_MINIMA}mm)`
                 }
             });
+            alertasCreadas.push({
+                ...alerta,
+                neumatico: n,
+                vehiculo: n.ubicacion_vehiculo
+            });
             count++;
+        }
+
+        // Enviar emails para alertas críticas
+        if (alertasCreadas.length > 0) {
+            await this.enviarNotificacionesEmail(alertasCreadas);
         }
 
         return count;
@@ -164,5 +177,53 @@ export class AlertasService {
             where: { id: alertaId },
             data: { resuelta: true, leida: true }
         });
+    }
+
+    /**
+     * Envía notificaciones por email para alertas críticas
+     */
+    private async enviarNotificacionesEmail(alertas: any[]): Promise<void> {
+        // Obtener usuarios con rol ADMIN o GESTOR
+        const destinatarios = await prisma.usuario.findMany({
+            where: {
+                activo: true,
+                rol: { in: ['ADMIN', 'GESTOR'] },
+                NOT: { email: '' }
+            },
+            select: { email: true, nombre_completo: true }
+        });
+
+        if (destinatarios.length === 0) {
+            console.log('[AlertasService] No hay destinatarios para emails');
+            return;
+        }
+
+        const recipients = destinatarios.map(d => ({
+            email: d.email!,
+            nombre: d.nombre_completo || undefined
+        }));
+
+        // Enviar un email por cada alerta crítica
+        for (const alerta of alertas) {
+            if (alerta.severidad !== SeveridadAlertaEnum.CRITICAL) continue;
+
+            try {
+                await EmailService.sendAlertNotification(recipients, {
+                    tipo: alerta.tipo,
+                    severidad: 'CRITICA',
+                    mensaje: alerta.mensaje,
+                    neumatico: alerta.neumatico ? {
+                        numero_serie: alerta.neumatico.numero_serie,
+                        profundidad_mm: alerta.neumatico.profundidad_actual_mm
+                    } : undefined,
+                    vehiculo: alerta.vehiculo ? {
+                        placa: alerta.vehiculo.placa
+                    } : undefined
+                });
+            } catch (error) {
+                console.error('[AlertasService] Error enviando email:', error);
+                // No fallar si el email no se puede enviar
+            }
+        }
     }
 }

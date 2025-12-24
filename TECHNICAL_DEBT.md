@@ -49,18 +49,21 @@
 
 ---
 
-### 4. Mapa Visual de Ejes
-**Requerimiento DR**: RF12 - "Visualizar un diagrama de los neumáticos de un vehículo."
+### ~~4. Mapa Visual de Ejes~~ ✅ RESUELTO
+**Estado**: Completado en commit `ab42c1b8`
 
-**Estado actual**:
-- Datos disponibles en `PosicionNeumatico`
-- No hay componente visual de ejes
+**Implementado**:
+- Endpoint `GET /api/v1/vehiculos/:id/montaje`
+- Componente `<VehicleAxleMap>` con glassmorphism
+- Componente `<TireSlot>` con estados visuales
+- Página demo `/mapa-ejes`
 
-**Solución propuesta**:
-- Componente `<VehicleAxleMap vehiculoId={...} />`
-- SVG interactivo mostrando posiciones
-
-**Esfuerzo**: 2-3 días
+**Diseño Premium 2025**:
+- Glassmorphism + backdrop blur
+- Micro-animaciones (pulse, shake)
+- Color coding (OK/Warning/Critical)
+- Tooltips interactivos
+- Responsive + Dark mode
 
 ---
 
