@@ -7,26 +7,17 @@
 
 ## 🔴 Prioridad Alta (Seguridad/Compliance)
 
-### 1. Audit Logging Incompleto
-**Requerimiento DR**: "Se implementarán mecanismos robustos a nivel de base de datos, como pgaudit."
+### ~~1. Audit Logging Incompleto~~ ✅ RESUELTO
+**Estado**: Completado en commit `82362815`
 
-**Estado actual**:
-- Solo `creado_por` en algunas tablas
-- No hay `updated_by`, `deleted_by`
-- No hay triggers de auditoría en PostgreSQL
+**Campos agregados a modelos principales**:
+- `actualizado_por` (UUID)
+- `eliminado_por` (UUID)
+- `eliminado_en` (DateTime, soft delete)
 
-**Impacto**: No cumple SOC 2, ISO 27001
+**Modelos actualizados**: Neumatico, Vehiculo, Almacen, Proveedor
 
-**Solución propuesta**:
-```prisma
-// Agregar a todos los modelos principales
-actualizado_por  String?  @db.Uuid
-eliminado_por    String?  @db.Uuid
-eliminado_en     DateTime?
-```
-+ Trigger en Supabase para registrar cambios
-
-**Esfuerzo**: 1-2 días
+---
 
 ---
 
