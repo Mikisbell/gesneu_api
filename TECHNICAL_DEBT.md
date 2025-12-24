@@ -30,26 +30,17 @@ eliminado_en     DateTime?
 
 ---
 
-### 2. Test de Regla de Seguridad
-**Requerimiento DR**: RF16, RF39 - Validaciones operativas críticas
+### ~~2. Test de Regla de Seguridad~~ ✅ RESUELTO
+**Estado**: Completado en commit `5dfac84b`
 
-**Estado actual**:
-- Validación implementada en `montaje/route.ts`
-- No hay test explícito para "bloquear reencauchado en eje direccional"
+**Tests creados**: `src/__tests__/security/retread-policy.test.ts`
+- ✅ Bloquear reencauchado en eje direccional
+- ✅ Permitir neumático nuevo en eje direccional
+- ✅ Permitir reencauchado en eje tracción
+- ✅ Bloquear cuando posicion.permite_reencauchado = false
+- ✅ Verificar documentación en código
 
-**Impacto**: Regla de vida sin cobertura de regresión
-
-**Solución propuesta**:
-```typescript
-// src/__tests__/security/retread-policy.test.ts
-describe('Retread Safety Policy', () => {
-  it('should BLOCK retread tire on steering axle', async () => {...});
-  it('should ALLOW retread tire on traction axle', async () => {...});
-  it('should BLOCK when position.permite_reencauchado = false', async () => {...});
-});
-```
-
-**Esfuerzo**: 3-4 horas
+---
 
 ---
 

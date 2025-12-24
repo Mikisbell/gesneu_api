@@ -58,6 +58,11 @@ model Vehiculo {
   
   activo           Boolean          @default(true)
   creado_en        DateTime         @default(now()) @db.Timestamptz(6)
+  actualizado_en   DateTime?        @db.Timestamptz(6)
+  creado_por       String?          @db.Uuid
+  actualizado_por  String?          @db.Uuid  // 📋 Auditoría
+  eliminado_por    String?          @db.Uuid  // 📋 Auditoría
+  eliminado_en     DateTime?        @db.Timestamptz(6) // 📋 Soft Delete
 
   // Relaciones
   tipo_vehiculo         TipoVehiculo      @relation(fields: [tipo_vehiculo_id], references: [id])
@@ -110,6 +115,9 @@ model Neumatico {
   creado_en              DateTime            @default(now()) @db.Timestamptz(6)
   actualizado_en         DateTime?           @db.Timestamptz(6)
   creado_por             String?             @db.Uuid
+  actualizado_por        String?             @db.Uuid  // 📋 Auditoría
+  eliminado_por          String?             @db.Uuid  // 📋 Auditoría
+  eliminado_en           DateTime?           @db.Timestamptz(6) // 📋 Soft Delete
 
   // Relaciones
   modelo                 ModeloNeumatico     @relation(fields: [modelo_id], references: [id])
@@ -242,22 +250,36 @@ model ModeloNeumatico {
 }
 
 model Almacen {
-  id        String            @id @default(uuid()) @db.Uuid
-  nombre    String            @db.VarChar(100)
-  tipo      String?           @default("PRINCIPAL") // "PRINCIPAL", "TRANSITORIO", "SCRAP"
-  ubicacion String?
-  eventos   EventoNeumatico[]
-  neumaticos Neumatico[]
+  id              String            @id @default(uuid()) @db.Uuid
+  nombre          String            @db.VarChar(100)
+  tipo            String?           @default("PRINCIPAL") // "PRINCIPAL", "TRANSITORIO", "SCRAP"
+  ubicacion       String?
+  activo          Boolean           @default(true)
+  creado_en       DateTime          @default(now()) @db.Timestamptz(6)
+  actualizado_en  DateTime?         @db.Timestamptz(6)
+  creado_por      String?           @db.Uuid
+  actualizado_por String?           @db.Uuid
+  eliminado_por   String?           @db.Uuid
+  eliminado_en    DateTime?         @db.Timestamptz(6)
+  eventos         EventoNeumatico[]
+  neumaticos      Neumatico[]
 
   @@map("almacenes")
 }
 
 model Proveedor {
-  id      String            @id @default(uuid()) @db.Uuid
-  nombre  String            @db.VarChar(200)
-  ruc     String?           @unique @db.VarChar(20)
-  tipo    TipoProveedorEnum
-  eventos EventoNeumatico[]
+  id              String            @id @default(uuid()) @db.Uuid
+  nombre          String            @db.VarChar(200)
+  ruc             String?           @unique @db.VarChar(20)
+  tipo            TipoProveedorEnum
+  activo          Boolean           @default(true)
+  creado_en       DateTime          @default(now()) @db.Timestamptz(6)
+  actualizado_en  DateTime?         @db.Timestamptz(6)
+  creado_por      String?           @db.Uuid
+  actualizado_por String?           @db.Uuid
+  eliminado_por   String?           @db.Uuid
+  eliminado_en    DateTime?         @db.Timestamptz(6)
+  eventos         EventoNeumatico[]
 
   @@map("proveedores")
 }
