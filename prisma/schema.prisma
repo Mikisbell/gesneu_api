@@ -65,6 +65,7 @@ model Vehiculo {
   neumaticos_instalados Neumatico[]
   eventos               EventoNeumatico[]
   registros_contador    RegistroContador[]
+  alertas               Alerta[]
 
   @@map("vehiculos")
 }
@@ -117,6 +118,7 @@ model Neumatico {
   ubicacion_posicion     PosicionNeumatico?  @relation(fields: [ubicacion_posicion_id], references: [id])
   eventos                EventoNeumatico[]
   historial_estados      HistorialEstadoNeumatico[]
+  alertas                Alerta[]
 
   @@map("neumaticos")
 }
@@ -338,4 +340,36 @@ enum TipoProveedorEnum {
   SERVICIO_REPARACION
   SERVICIO_REENCAUCHE
   OTRO
+}
+
+// --- ALERTAS ---
+
+enum TipoAlertaEnum {
+  PROFUNDIDAD_MINIMA
+  REENCAUCHE_MAXIMO
+  DESGASTE_IRREGULAR
+  VENCIMIENTO_DOT
+}
+
+enum SeveridadAlertaEnum {
+  INFO
+  WARNING
+  CRITICAL
+}
+
+model Alerta {
+  id            String              @id @default(uuid()) @db.Uuid
+  tipo          TipoAlertaEnum
+  severidad     SeveridadAlertaEnum
+  neumatico_id  String?             @db.Uuid
+  vehiculo_id   String?             @db.Uuid
+  mensaje       String
+  leida         Boolean             @default(false)
+  resuelta      Boolean             @default(false)
+  creada_en     DateTime            @default(now()) @db.Timestamptz(6)
+
+  neumatico     Neumatico?          @relation(fields: [neumatico_id], references: [id])
+  vehiculo      Vehiculo?           @relation(fields: [vehiculo_id], references: [id])
+
+  @@map("alertas")
 }
