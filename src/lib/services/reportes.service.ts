@@ -28,6 +28,24 @@ export interface WearRateMetrics {
     estado: 'OPTIMO' | 'NORMAL' | 'CRITICO';
 }
 
+export interface BrandCPKStats {
+    fabricante_id: string;
+    fabricante_nombre: string;
+    cpk_promedio: number;
+    cpk_minimo: number;
+    cpk_maximo: number;
+    total_neumaticos: number;
+    kilometraje_total: number;
+    costo_total: number;
+}
+
+export interface BrandComparisonResult {
+    marcas: BrandCPKStats[];
+    mejor_marca: string | null;
+    peor_marca: string | null;
+    fecha_calculo: string;
+}
+
 export class ReportesService {
     /**
      * Calcula el Costo Por Kilómetro (CPK) de un neumático específico.
@@ -150,5 +168,104 @@ export class ReportesService {
             estado
         };
     }
-}
 
+    /**
+     * Compara el CPK promedio entre diferentes fabricantes/marcas.
+     * Agrupa todos los neumáticos con kilometraje > 0 por fabricante.
+     */
+    async getComparativoMarcas(): Promise<BrandComparisonResult> {
+        // Obtener todos los neumáticos con km > 0 y sus fabricantes
+        const neumaticos = await prisma.neumatico.findMany({
+            where: {
+                kilometraje_acumulado: { gt: 0 }
+            },
+            include: {
+                modelo: {
+                    include: {
+                        fabricante: true
+                    }
+                },
+                eventos: {
+                    where: {
+                        costo_evento: { not: null }
+                    },
+                    select: {
+                        tipo_evento: true,
+                        costo_evento: true
+                    }
+                }
+            }
+        });
+
+        // Agrupar por fabricante
+        const fabricantesMap = new Map<string, {
+            id: string;
+            nombre: string;
+            cpks: number[];
+            kmTotal: number;
+            costoTotal: number;
+        }>();
+
+        for (const n of neumaticos) {
+            const fabricante = n.modelo.fabricante;
+            if (!fabricante) continue;
+
+            // Calcular CPK individual
+            const costoCompra = Number(n.costo_compra?.toString() ?? 0);
+            let costoEventos = 0;
+            n.eventos.forEach(e => {
+                costoEventos += Number(e.costo_evento?.toString() ?? 0);
+            });
+            const costoTotal = costoCompra + costoEventos;
+            const km = n.kilometraje_acumulado || 0;
+            const cpk = km > 0 ? costoTotal / km : 0;
+
+            // Agregar a mapa
+            if (!fabricantesMap.has(fabricante.id)) {
+                fabricantesMap.set(fabricante.id, {
+                    id: fabricante.id,
+                    nombre: fabricante.nombre,
+                    cpks: [],
+                    kmTotal: 0,
+                    costoTotal: 0
+                });
+            }
+
+            const fab = fabricantesMap.get(fabricante.id)!;
+            fab.cpks.push(cpk);
+            fab.kmTotal += km;
+            fab.costoTotal += costoTotal;
+        }
+
+        // Convertir a array de estadísticas
+        const marcas: BrandCPKStats[] = [];
+        for (const [, fab] of fabricantesMap) {
+            if (fab.cpks.length === 0) continue;
+
+            const cpkPromedio = fab.cpks.reduce((a, b) => a + b, 0) / fab.cpks.length;
+            const cpkMinimo = Math.min(...fab.cpks);
+            const cpkMaximo = Math.max(...fab.cpks);
+
+            marcas.push({
+                fabricante_id: fab.id,
+                fabricante_nombre: fab.nombre,
+                cpk_promedio: Number(cpkPromedio.toFixed(4)),
+                cpk_minimo: Number(cpkMinimo.toFixed(4)),
+                cpk_maximo: Number(cpkMaximo.toFixed(4)),
+                total_neumaticos: fab.cpks.length,
+                kilometraje_total: fab.kmTotal,
+                costo_total: Number(fab.costoTotal.toFixed(2))
+            });
+        }
+
+        // Ordenar por CPK promedio (menor es mejor)
+        marcas.sort((a, b) => a.cpk_promedio - b.cpk_promedio);
+
+        return {
+            marcas,
+            mejor_marca: marcas.length > 0 ? marcas[0].fabricante_nombre : null,
+            peor_marca: marcas.length > 0 ? marcas[marcas.length - 1].fabricante_nombre : null,
+            fecha_calculo: new Date().toISOString()
+        };
+    }
+}

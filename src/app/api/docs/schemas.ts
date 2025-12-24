@@ -725,4 +725,38 @@ export { }
  *         estado:
  *           type: string
  *           enum: [OPTIMO, NORMAL, CRITICO]
+ *     BrandComparisonResultDTO:
+ *       type: object
+ *       properties:
+ *         marcas:
+ *           type: array
+ *           items:
+ *             type: object
+ *             properties:
+ *               fabricante_id:
+ *                 type: string
+ *                 format: uuid
+ *               fabricante_nombre:
+ *                 type: string
+ *               cpk_promedio:
+ *                 type: number
+ *               cpk_minimo:
+ *                 type: number
+ *               cpk_maximo:
+ *                 type: number
+ *               total_neumaticos:
+ *                 type: integer
+ *               kilometraje_total:
+ *                 type: number
+ *               costo_total:
+ *                 type: number
+ *         mejor_marca:
+ *           type: string
+ *           nullable: true
+ *         peor_marca:
+ *           type: string
+ *           nullable: true
+ *         fecha_calculo:
+ *           type: string
+ *           format: date-time
  */

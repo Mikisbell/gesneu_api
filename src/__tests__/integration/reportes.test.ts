@@ -150,3 +150,43 @@ describe('ReportesService: Desgaste Promedio', () => {
         expect(metrics.vida_restante_estimada_km).toBe(25000);
     });
 });
+
+describe('ReportesService: Comparativo Marcas', () => {
+    const service = new ReportesService();
+
+    beforeAll(async () => {
+        await clearTestData();
+    });
+
+    afterAll(async () => {
+        await clearTestData();
+        await prisma.$disconnect();
+    });
+
+    it('debería agrupar CPKs por fabricante correctamente', async () => {
+        // Crear neumáticos de diferentes fabricantes
+        const n1 = await createTestNeumatico({
+            costo_compra: 500,
+            kilometraje_acumulado: 1000
+        });
+        const n2 = await createTestNeumatico({
+            costo_compra: 600,
+            kilometraje_acumulado: 1200
+        });
+
+        const result = await service.getComparativoMarcas();
+
+        expect(result.marcas.length).toBeGreaterThanOrEqual(1);
+        expect(result.fecha_calculo).toBeDefined();
+    });
+
+    it('debería retornar lista vacía si no hay neumáticos con km > 0', async () => {
+        await clearTestData();
+
+        const result = await service.getComparativoMarcas();
+
+        expect(result.marcas).toEqual([]);
+        expect(result.mejor_marca).toBeNull();
+        expect(result.peor_marca).toBeNull();
+    });
+});
