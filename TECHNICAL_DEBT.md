@@ -37,21 +37,15 @@
 
 ## 🟡 Prioridad Media (UX/Funcionalidad)
 
-### 3. RBAC Dinámico en UI
-**Requerimiento DR**: "El botón 'Eliminar' debe estar oculto para usuarios con rol 'Gerente de Flota'."
+### ~~3. RBAC Dinámico en UI~~ ✅ RESUELTO
+**Estado**: Completado en commit `64570202`
 
-**Estado actual**:
-- Backend valida permisos (`requirePermission`)
-- Frontend no oculta elementos
+**Implementado**:
+- Endpoint `GET /api/v1/auth/me` con permisos
+- Hook `usePermissions()` para React
+- Componentes `<PermissionGate>` y `<RoleGate>`
 
-**Solución propuesta**:
-```typescript
-// Hook usePermissions
-const { canDelete } = usePermissions();
-{canDelete && <Button>Eliminar</Button>}
-```
-
-**Esfuerzo**: 1 día
+---
 
 ---
 
