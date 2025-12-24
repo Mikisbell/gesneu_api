@@ -94,3 +94,59 @@ describe('ReportesService: CPK', () => {
         await expect(service.getCPK('00000000-0000-0000-0000-000000000000')).rejects.toThrow('Neumático no encontrado');
     });
 });
+
+describe('ReportesService: Desgaste Promedio', () => {
+    const service = new ReportesService();
+
+    beforeAll(async () => {
+        await clearTestData();
+    });
+
+    afterAll(async () => {
+        await clearTestData();
+        await prisma.$disconnect();
+    });
+
+    it('debería calcular desgaste en mm/1000km correctamente', async () => {
+        // Neumático con 18mm inicial, 14mm actual, 10000 km
+        // Desgaste = (18 - 14) / 10000 * 1000 = 0.4 mm/1000km
+        const neumatico = await createTestNeumatico({
+            profundidad_inicial_mm: 18,
+            profundidad_actual_mm: 14,
+            kilometraje_acumulado: 10000
+        });
+
+        const metrics = await service.getDesgastePromedio(neumatico.id);
+
+        expect(metrics.desgaste_mm_por_1000km).toBe(0.4);
+        expect(metrics.desgaste_total_mm).toBe(4);
+        expect(metrics.estado).toBe('OPTIMO'); // 14mm > 70% de 18mm (12.6mm)
+    });
+
+    it('debería detectar estado CRITICO cuando profundidad <= 4mm', async () => {
+        const neumatico = await createTestNeumatico({
+            profundidad_inicial_mm: 18,
+            profundidad_actual_mm: 3.5,
+            kilometraje_acumulado: 50000
+        });
+
+        const metrics = await service.getDesgastePromedio(neumatico.id);
+
+        expect(metrics.estado).toBe('CRITICO');
+    });
+
+    it('debería estimar vida restante en km', async () => {
+        // 18mm inicial, 14mm actual, 10000 km = 0.4mm/1000km
+        // Restante: 14 - 4 = 10mm
+        // Vida restante: 10 / 0.4 * 1000 = 25000 km
+        const neumatico = await createTestNeumatico({
+            profundidad_inicial_mm: 18,
+            profundidad_actual_mm: 14,
+            kilometraje_acumulado: 10000
+        });
+
+        const metrics = await service.getDesgastePromedio(neumatico.id);
+
+        expect(metrics.vida_restante_estimada_km).toBe(25000);
+    });
+});

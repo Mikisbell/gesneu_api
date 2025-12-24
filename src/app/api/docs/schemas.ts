@@ -699,4 +699,30 @@ export { }
  *         moneda:
  *           type: string
  *           example: "USD"
+ *     WearRateMetricsDTO:
+ *       type: object
+ *       properties:
+ *         neumatico_id:
+ *           type: string
+ *           format: uuid
+ *         numero_serie:
+ *           type: string
+ *         desgaste_mm_por_1000km:
+ *           type: number
+ *           description: Desgaste en milímetros por cada 1000 km recorridos
+ *         profundidad_inicial_mm:
+ *           type: number
+ *         profundidad_actual_mm:
+ *           type: number
+ *         desgaste_total_mm:
+ *           type: number
+ *         kilometraje_total:
+ *           type: number
+ *         vida_restante_estimada_km:
+ *           type: number
+ *           nullable: true
+ *           description: Kilómetros estimados hasta profundidad mínima (4mm)
+ *         estado:
+ *           type: string
+ *           enum: [OPTIMO, NORMAL, CRITICO]
  */

@@ -16,6 +16,18 @@ export interface CPKMetrics {
     moneda: string;
 }
 
+export interface WearRateMetrics {
+    neumatico_id: string;
+    numero_serie: string;
+    desgaste_mm_por_1000km: number;
+    profundidad_inicial_mm: number;
+    profundidad_actual_mm: number;
+    desgaste_total_mm: number;
+    kilometraje_total: number;
+    vida_restante_estimada_km: number | null;
+    estado: 'OPTIMO' | 'NORMAL' | 'CRITICO';
+}
+
 export class ReportesService {
     /**
      * Calcula el Costo Por Kilómetro (CPK) de un neumático específico.
@@ -83,4 +95,60 @@ export class ReportesService {
             moneda: 'USD' // Asumimos USD por simplificación, podría ser configurable
         };
     }
+
+    /**
+     * Calcula el Desgaste Promedio de un neumático.
+     * Fórmula: (profundidad_inicial - profundidad_actual) / km * 1000 = mm por cada 1000 km
+     */
+    async getDesgastePromedio(neumaticoId: string): Promise<WearRateMetrics> {
+        const neumatico = await prisma.neumatico.findUnique({
+            where: { id: neumaticoId }
+        });
+
+        if (!neumatico) {
+            throw new Error('Neumático no encontrado');
+        }
+
+        const profundidadInicial = neumatico.profundidad_inicial_mm || 0;
+        const profundidadActual = neumatico.profundidad_actual_mm ?? profundidadInicial;
+        const kilometrajeTotal = neumatico.kilometraje_acumulado || 0;
+
+        const desgasteTotal = profundidadInicial - profundidadActual;
+
+        // Desgaste en mm por cada 1000 km
+        let desgastePor1000km = 0;
+        if (kilometrajeTotal > 0) {
+            desgastePor1000km = (desgasteTotal / kilometrajeTotal) * 1000;
+        }
+
+        // Estimar vida restante (profundidad mínima segura = 4mm)
+        const PROFUNDIDAD_MINIMA = 4;
+        const profundidadRestante = profundidadActual - PROFUNDIDAD_MINIMA;
+        let vidaRestanteKm: number | null = null;
+
+        if (desgastePor1000km > 0 && profundidadRestante > 0) {
+            vidaRestanteKm = (profundidadRestante / desgastePor1000km) * 1000;
+        }
+
+        // Determinar estado
+        let estado: 'OPTIMO' | 'NORMAL' | 'CRITICO' = 'NORMAL';
+        if (profundidadActual <= PROFUNDIDAD_MINIMA) {
+            estado = 'CRITICO';
+        } else if (profundidadActual >= profundidadInicial * 0.7) {
+            estado = 'OPTIMO';
+        }
+
+        return {
+            neumatico_id: neumatico.id,
+            numero_serie: neumatico.numero_serie,
+            desgaste_mm_por_1000km: Number(desgastePor1000km.toFixed(3)),
+            profundidad_inicial_mm: profundidadInicial,
+            profundidad_actual_mm: profundidadActual,
+            desgaste_total_mm: Number(desgasteTotal.toFixed(2)),
+            kilometraje_total: kilometrajeTotal,
+            vida_restante_estimada_km: vidaRestanteKm ? Math.round(vidaRestanteKm) : null,
+            estado
+        };
+    }
 }
+
