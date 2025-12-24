@@ -29,6 +29,19 @@ export interface CreateNeumaticoDTO {
     fecha_compra?: Date;
 }
 
+export interface EventoCompraInput {
+    numero_serie: string;
+    modelo_id: string;
+    dot: string;
+    profundidad_inicial: number;
+    almacen_destino_id: string;
+    costo_compra?: number;
+    fecha_evento?: Date | string;
+    proveedor_id?: string;
+    observaciones?: string;
+    medida?: string;
+}
+
 // DTO para actualización
 export interface UpdateNeumaticoDTO {
     estado_actual?: string;

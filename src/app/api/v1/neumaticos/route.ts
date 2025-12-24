@@ -2,6 +2,7 @@ import { NextRequest } from 'next/server'
 import { NeumaticoService } from '@/lib/services/neumatico.service'
 import { ApiResponseHelper } from '@/lib/utils/api-response'
 import { CreateNeumaticoDTO } from '@/types/domain/neumatico.types'
+import { CreateNeumaticoSchema } from '@/lib/validators/neumatico.validator'
 import { requireAuth, requirePermission } from '@/lib/auth/authorization'
 import { PERMISSIONS } from '@/lib/auth/permissions'
 
@@ -143,8 +144,17 @@ export async function POST(request: NextRequest) {
         }
 
         // 3. Business logic
-        const body = await request.json() as CreateNeumaticoDTO
-        const neumatico = await service.create(body, session.user.id)
+        const json = await request.json();
+        // ✅ Validate input with Zod to prevent Mass Assignment
+        const validated = CreateNeumaticoSchema.parse(json);
+
+        // Convert Zod types to Domain DTO types (Date string to Date object)
+        const body: CreateNeumaticoDTO = {
+            ...validated,
+            fecha_compra: validated.fecha_compra ? new Date(validated.fecha_compra) : undefined
+        };
+
+        const neumatico = await service.create(body, session.user.id);
         return ApiResponseHelper.created(neumatico, 'Neumático creado exitosamente')
     } catch (error) {
         return ApiResponseHelper.handleError(error)

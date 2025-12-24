@@ -87,5 +87,9 @@ export const authOptions: NextAuthConfig = {
       return session;
     }
   },
-  secret: process.env.NEXTAUTH_SECRET || 'development-secret-change-in-production'
+  secret: process.env.NEXTAUTH_SECRET
 };
+
+if (!process.env.NEXTAUTH_SECRET) {
+  throw new Error('FATAL: NEXTAUTH_SECRET no está definido en variables de entorno');
+}

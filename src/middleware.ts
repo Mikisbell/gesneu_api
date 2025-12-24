@@ -27,6 +27,20 @@ export async function middleware(request: NextRequest) {
         return NextResponse.redirect(loginUrl)
     }
 
+    // Protect API routes
+    if (request.nextUrl.pathname.startsWith('/api') && !token) {
+        // Allow public API routes if needed (e.g. webhooks, auth endpoints)
+        const isPublicApi = request.nextUrl.pathname.startsWith('/api/v1/auth') ||
+            request.nextUrl.pathname.startsWith('/api/v1/health');
+
+        if (!isPublicApi) {
+            return NextResponse.json(
+                { error: 'Unauthorized', message: 'No autenticado: Token requerido' },
+                { status: 401 }
+            );
+        }
+    }
+
     return NextResponse.next()
 }
 
@@ -34,5 +48,6 @@ export const config = {
     matcher: [
         '/dashboard/:path*',
         '/login',
+        '/api/:path*'
     ],
 }

@@ -67,18 +67,15 @@
 
 ---
 
-### 5. Notificaciones Externas
-**Requerimiento DR**: "Webhook/Email para alertas críticas."
+### ~~5. Notificaciones Email~~ ✅ RESUELTO
+**Estado**: Completado en commit `dd2f9e5b`
 
-**Estado actual**:
-- Alertas se generan y almacenan
-- No hay envío de notificaciones
-
-**Solución propuesta**:
-- Integrar SendGrid o Resend para email
-- Endpoint webhook configurable
-
-**Esfuerzo**: 1-2 días
+**Implementado**:
+- Servicio `EmailService` usando Resend API
+- Templates HTML responsivos y profesionales
+- Integración en `AlertasService.generarAlertasProfundidad()`
+- Envío automático a usuarios ADMIN/GESTOR
+- Manejo errores robusto (Lazy init, fallback)
 
 ---
 

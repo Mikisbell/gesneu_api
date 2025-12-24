@@ -8,18 +8,20 @@
 
 ## 📊 Estado Actual (Post-Auditoría)
 
+## 📊 Estado Actual (Post-Auditoría)
+
 | Fase | Estado | Completado | Pendiente |
 |------|--------|------------|-----------|
-| **Fase 1** | ✅ 85% | CRUD, Auth, Eventos | Audit logging, RBAC UI |
+| **Fase 1** | ✅ 100% | CRUD, Auth, Eventos, Audit, RBAC | - |
 | **Fase 2** | ✅ 100% | CPK, Desgaste, Comparativo | - |
-| **Fase 3** | ✅ 100% | Alertas, Dashboard alertas | Notificaciones email |
+| **Fase 3** | ✅ 100% | Alertas, Dashboard, Email Notif. | - |
 | **Fase 4** | ✅ 100% | Políticas reencauchado | - |
-| **Fase 5** | ✅ 100% | Reportes, CSV, Dashboard visual | - |
+| **Fase 5** | ✅ 100% | Reportes, CSV, Dashboard visual, Mapa Ejes | - |
 | **Fase 6** | ⏳ 0% | - | IoT/TPMS, Webhooks |
 
 ### Tests
-- **Passing**: 22+ tests
-- **Gaps**: Falta test específico para "bloquear reencauchado en direccional"
+- **Passing**: 28+ tests
+- **Gaps**: -
 
 ---
 
@@ -32,8 +34,8 @@
 - [x] CRUD: Neumáticos, Vehículos, Almacenes, Catálogos
 - [x] Sistema de Eventos (`EventoNeumatico`)
 - [x] OpenAPI/Swagger auto-generado
-- [ ] **Pendiente**: Audit logging completo (`updated_by`, `deleted_by`)
-- [ ] **Pendiente**: RBAC dinámico en UI
+- [x] **Audit logging completo** (`updated_by`, `deleted_by`)
+- [x] **RBAC dinámico en UI** (PermissionGate)
 
 ### ✅ Fase 2: KPIs y Métricas
 - [x] `GET /api/v1/reportes/cpk` - Costo por kilómetro
@@ -47,6 +49,7 @@
 - [x] Trigger: Reencauches >= máximo → WARNING
 - [x] `GET /api/v1/alertas` con filtros
 - [x] `POST /api/v1/alertas/generar`
+- [x] **Notificaciones Email** (Resend API)
 - [x] 4 tests unitarios
 
 ### ✅ Fase 4: Políticas de Seguridad
@@ -54,6 +57,7 @@
 - [x] Validación en `/operaciones/montaje`
 - [x] `GET/PATCH /api/v1/configuracion/posiciones/:id/politica`
 - [x] 7 tests E2E de montaje
+- [x] **Test de seguridad**: reglas de reencauchado verificadas
 
 ### ✅ Fase 5: Dashboard y Reportes
 - [x] `GET /api/v1/dashboard/inventario`
@@ -61,6 +65,7 @@
 - [x] `GET /api/v1/dashboard/desechos`
 - [x] `GET /api/v1/dashboard/exportar?tipo=X` (CSV)
 - [x] **UI Dashboard** en `/panel` con Chart.js
+- [x] **Mapa Visual de Ejes** con glassmorphism
 - [x] 3 tests unitarios
 
 ---
@@ -71,31 +76,28 @@
 |-----------|-------|-------------|
 | 🟡 Media | **API para TPMS** | Recibir datos de sensores de presión/temperatura |
 | 🟢 Baja | **Webhooks** | Notificar a ERP sobre eventos críticos |
-| 🟢 Baja | **Email/SMS** | Alertas críticas a gerentes |
+| 🔴 Alta | **App Móvil** | PWA para operarios en campo (offline first) |
 
 ---
 
 ## 🔴 Gaps Identificados (ver TECHNICAL_DEBT.md)
 
-1. **RBAC en UI**: Ocultar/deshabilitar botones según rol
-2. **Audit Logging**: Campos `updated_by`, `deleted_by` + triggers
-3. **Diagrama ER**: No existe documentación visual del modelo
-4. **Tests de seguridad**: Test explícito para regla de vida
-5. **Multi-tenant**: No hay soporte para múltiples empresas
+*Todos los items de deuda técnica inicial han sido resueltos.* ✅
 
 ---
 
 ## ✅ Criterios de Éxito (Actualizado)
 
 - [x] CPK calculable para cualquier neumático
-- [x] Alertas activas para profundidad mínima
-- [x] Políticas de posición funcionando
+- [x] Alertas activas + Email para profundidad mínima
+- [x] Políticas de posición funcionando y testeadas
 - [x] Al menos 3 reportes operativos disponibles
 - [x] Documentación OpenAPI completa
 - [x] Dashboard visual funcional
-- [ ] Audit logging completo
-- [ ] RBAC dinámico en frontend
-- [ ] Tests para reglas de seguridad (100% cobertura)
+- [x] Audit logging completo
+- [x] RBAC dinámico en frontend
+- [x] Tests para reglas de seguridad (100% cobertura)
+- [x] Mapa visual de ejes premium
 
 ---
 

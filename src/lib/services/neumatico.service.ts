@@ -1,5 +1,5 @@
 import { NeumaticoRepository } from '@/lib/repositories/neumatico.repository';
-import { CreateNeumaticoDTO, UpdateNeumaticoDTO, INeumatico, NeumaticoFilters } from '@/types/domain/neumatico.types';
+import { CreateNeumaticoDTO, UpdateNeumaticoDTO, INeumatico, NeumaticoFilters, EventoCompraInput } from '@/types/domain/neumatico.types';
 import { prisma } from '@/lib/prisma';
 import { EventoNeumaticoCreate } from '@/lib/validators/evento-neumatico';
 import { TipoEventoNeumaticoEnum, EstadoNeumaticoEnum, Prisma } from '@prisma/client';
@@ -70,7 +70,7 @@ export class NeumaticoService {
             switch (tipo_evento) {
                 // ✅ FIX CRÍTICO 1: El evento COMPRA ahora es ciudadano de primera clase
                 case TipoEventoNeumaticoEnum.COMPRA:
-                    result = await this._handleCompra(evento as any, userId, tx);
+                    result = await this._handleCompra(evento as unknown as EventoCompraInput, userId, tx);
                     break;
                 case TipoEventoNeumaticoEnum.INSTALACION:
                     result = await this._handleInstalacion(evento, userId, tx);
@@ -109,15 +109,15 @@ export class NeumaticoService {
 
     // --- MANEJADORES PRIVADOS ---
 
-    private async _validateAndGetNeumatico(tx: TxClient, id: string, includes: any = {}) {
+    private async _validateAndGetNeumatico<T = Neumatico>(tx: TxClient, id: string, includes: any = {}): Promise<T> {
         const neumatico = await tx.neumatico.findUnique({ where: { id }, include: includes });
         if (!neumatico) throw BusinessError.notFound('Neumático', id);
-        if (!neumatico.activo) throw BusinessError.badRequest('El neumático no está activo');
-        return neumatico;
+        if (!(neumatico as any).activo) throw BusinessError.badRequest('El neumático no está activo');
+        return neumatico as unknown as T;
     }
 
     // ✅ LÓGICA DE COMPRA (Nacimiento del neumático)
-    private async _handleCompra(evento: any, userId: string, tx: TxClient) {
+    private async _handleCompra(evento: EventoCompraInput, userId: string, tx: TxClient) {
         // Extraemos todos los datos posibles del evento
         // Mapeamos observaciones (del DTO) a notas (del código del usuario)
         const {
@@ -150,7 +150,7 @@ export class NeumaticoService {
                 ubicacion_almacen_id: almacen_destino_id,
                 fecha_compra: now,
                 costo_compra: costo_compra ? new Prisma.Decimal(costo_compra) : undefined,
-                // creado_por: userId, // No existe en el modelo Neumatico según schema.prisma
+                creado_por: userId,
                 activo: true
             }
         });
@@ -394,11 +394,10 @@ export class NeumaticoService {
 
         if (!neumatico_id) throw BusinessError.badRequest('ID de neumático requerido');
 
-        const neumatico = await this._validateAndGetNeumatico(tx, neumatico_id, { modelo: true });
+        const neumatico = await this._validateAndGetNeumatico<Prisma.NeumaticoGetPayload<{ include: { modelo: true } }>>(tx, neumatico_id, { modelo: true });
         if (neumatico.estado_actual !== EstadoNeumaticoEnum.EN_STOCK) throw BusinessError.badRequest('Debe estar en STOCK');
 
-        // Validación de Tipo (Casteo seguro gracias a Prisma)
-        const modelo = neumatico.modelo as any; // Prisma lo trae, pero forzamos acceso por si acaso
+        const modelo = neumatico.modelo;
         if (modelo && neumatico.reencauches_realizados >= modelo.reencauches_maximos) throw BusinessError.conflict(`Límite reencauches alcanzado (${modelo.reencauches_maximos})`);
 
         await tx.eventoNeumatico.create({
@@ -433,6 +432,7 @@ export class NeumaticoService {
                 kilometraje_acumulado: 0, // Reset para nueva vida
                 es_reencauchado: true,
                 reencauches_realizados: { increment: 1 },
+                vida_actual: { increment: 1 },
                 actualizado_en: now
             }
         });
