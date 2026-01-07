@@ -3,7 +3,7 @@ import { Permission } from "@/lib/auth/permissions"
 
 export function usePermission() {
     const { data: session, status } = useSession()
-    const permissions = session?.user?.permissions || []
+    const permissions = (session?.user as any)?.permissions || []
 
     /**
      * Check if user has a specific permission
