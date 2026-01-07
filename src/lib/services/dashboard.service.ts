@@ -219,4 +219,26 @@ export class DashboardService {
             })).sort((a, b) => a.mes.localeCompare(b.mes))
         };
     }
+    async getGeneralStats() {
+        // Ejecutar counts en paralelo para performance
+        const [totalNeumaticos, vehiculosActivos, alertasPendientes, operacionesHoy] = await Promise.all([
+            prisma.neumatico.count({ where: { activo: true } }),
+            prisma.vehiculo.count({ where: { activo: true } }),
+            prisma.alerta.count({ where: { leida: false } }),
+            prisma.eventoNeumatico.count({
+                where: {
+                    fecha_evento: {
+                        gte: new Date(new Date().setHours(0, 0, 0, 0))
+                    }
+                }
+            })
+        ]);
+
+        return {
+            totalNeumaticos,
+            vehiculosActivos,
+            alertasPendientes,
+            operacionesHoy
+        };
+    }
 }
