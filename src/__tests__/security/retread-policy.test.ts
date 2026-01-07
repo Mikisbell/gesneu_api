@@ -7,6 +7,7 @@
  * Esta regla previene accidentes por fallo de neumático en eje de dirección.
  */
 
+import { describe, it, expect, beforeAll, afterAll } from '@jest/globals';
 import { prisma } from '@/lib/prisma';
 
 describe('Retread Safety Policy', () => {
@@ -26,21 +27,21 @@ describe('Retread Safety Policy', () => {
         // Limpiar datos de prueba previos
         await prisma.eventoNeumatico.deleteMany({ where: { notas: { contains: 'TEST_SECURITY' } } });
         await prisma.neumatico.deleteMany({ where: { numero_serie: { startsWith: 'SEC-TEST' } } });
-        await prisma.posicionNeumatico.deleteMany({ where: { numero_posicion: { gte: 900 } } });
+        await prisma.posicionNeumatico.deleteMany({ where: { posicion_relativa: { gte: 900 } } });
         await prisma.configuracionEje.deleteMany({ where: { numero_eje: { gte: 90 } } });
 
         // Crear fabricante y modelo
         const fabricante = await prisma.fabricanteNeumatico.upsert({
-            where: { nombre: 'TEST_SECURITY_FAB' },
+            where: { codigo_abreviado: 'TST' },
             update: {},
-            create: { nombre: 'TEST_SECURITY_FAB' }
+            create: { nombre: 'TEST_SECURITY_FAB', codigo_abreviado: 'TST' }
         });
 
         const modelo = await prisma.modeloNeumatico.create({
             data: {
-                nombre: 'TEST_SECURITY_MODEL_' + Date.now(),
+                nombre_modelo: 'TEST_SECURITY_MODEL_' + Date.now(),
                 medida: '295/80R22.5',
-                profundidad_inicial_mm: 18,
+                profundidad_original_mm: 18,
                 fabricante_id: fabricante.id,
                 reencauches_maximos: 2
             }
@@ -60,8 +61,9 @@ describe('Retread Safety Policy', () => {
             data: {
                 tipo_vehiculo_id: tipoVehiculoId,
                 numero_eje: 91,
+                nombre_eje: 'Eje Dirección Test',
+                numero_posiciones: 2,
                 tipo_eje: 'DIRECCION',
-                posiciones_neumatico: 2,
                 permite_reencauchados: false // 🚫 NO permite reencauchados
             }
         });
@@ -71,8 +73,9 @@ describe('Retread Safety Policy', () => {
             data: {
                 tipo_vehiculo_id: tipoVehiculoId,
                 numero_eje: 92,
+                nombre_eje: 'Eje Tracción Test',
+                numero_posiciones: 4,
                 tipo_eje: 'TRACCION',
-                posiciones_neumatico: 4,
                 permite_reencauchados: true // ✅ SÍ permite reencauchados
             }
         });
@@ -82,8 +85,9 @@ describe('Retread Safety Policy', () => {
         const posDireccion = await prisma.posicionNeumatico.create({
             data: {
                 configuracion_eje_id: ejesDireccionId,
-                numero_posicion: 901,
-                lado_vehiculo: 'IZQUIERDO',
+                posicion_relativa: 901,
+                codigo_posicion: '901I',
+                lado: 'IZQUIERDO',
                 permite_reencauchado: true // Aunque la posición lo permita, el eje no
             }
         });
@@ -92,8 +96,9 @@ describe('Retread Safety Policy', () => {
         const posTraccion = await prisma.posicionNeumatico.create({
             data: {
                 configuracion_eje_id: ejeTraccionId,
-                numero_posicion: 902,
-                lado_vehiculo: 'IZQUIERDO',
+                posicion_relativa: 902,
+                codigo_posicion: '902I',
+                lado: 'IZQUIERDO',
                 permite_reencauchado: true // ✅ Posición y eje permiten
             }
         });
@@ -102,8 +107,9 @@ describe('Retread Safety Policy', () => {
         const posBloqueada = await prisma.posicionNeumatico.create({
             data: {
                 configuracion_eje_id: ejeTraccionId,
-                numero_posicion: 903,
-                lado_vehiculo: 'DERECHO',
+                posicion_relativa: 903,
+                codigo_posicion: '903D',
+                lado: 'DERECHO',
                 permite_reencauchado: false // 🚫 Posición bloqueada específicamente
             }
         });
@@ -111,14 +117,15 @@ describe('Retread Safety Policy', () => {
 
         // Crear vehículo
         const vehiculo = await prisma.vehiculo.upsert({
-            where: { codigo_interno: 'SEC-TEST-001' },
+            where: { numero_economico: 'SEC-TEST-001' },
             update: {},
             create: {
-                codigo_interno: 'SEC-TEST-001',
                 placa: 'SEC-001',
                 tipo_vehiculo_id: tipoVehiculoId,
                 marca: 'TEST',
-                modelo: 'SECURITY'
+                modelo_vehiculo: 'SECURITY',
+                numero_economico: 'SEC-TEST-001',
+                empresa_id: '00000000-0000-0000-0000-000000000000'
             }
         });
         vehiculoId = vehiculo.id;
@@ -130,9 +137,10 @@ describe('Retread Safety Policy', () => {
                 modelo_id: modeloId,
                 estado_actual: 'EN_STOCK',
                 profundidad_inicial_mm: 18,
-                profundidad_actual_mm: 18,
-                es_reencauchado: false,
-                costo_compra: 500
+                profundidad_remanente_actual_mm: 18,
+                costo_compra: 500,
+                fecha_compra: new Date(),
+                empresa_id: '00000000-0000-0000-0000-000000000000'
             }
         });
         neumaticoNuevoId = neumaticoNuevo.id;
@@ -144,10 +152,11 @@ describe('Retread Safety Policy', () => {
                 modelo_id: modeloId,
                 estado_actual: 'EN_STOCK',
                 profundidad_inicial_mm: 15,
-                profundidad_actual_mm: 15,
+                profundidad_remanente_actual_mm: 15,
                 es_reencauchado: true,
-                reencauches_realizados: 1,
-                costo_compra: 200
+                costo_compra: 200,
+                fecha_compra: new Date(),
+                empresa_id: '00000000-0000-0000-0000-000000000000'
             }
         });
         neumaticoReencauchadoId = neumaticoReencauchado.id;
@@ -157,7 +166,7 @@ describe('Retread Safety Policy', () => {
         // Limpiar datos de prueba
         await prisma.eventoNeumatico.deleteMany({ where: { notas: { contains: 'TEST_SECURITY' } } });
         await prisma.neumatico.deleteMany({ where: { numero_serie: { startsWith: 'SEC-TEST' } } });
-        await prisma.posicionNeumatico.deleteMany({ where: { numero_posicion: { gte: 900 } } });
+        await prisma.posicionNeumatico.deleteMany({ where: { posicion_relativa: { gte: 900 } } });
         await prisma.configuracionEje.deleteMany({ where: { numero_eje: { gte: 90 } } });
         await prisma.vehiculo.deleteMany({ where: { codigo_interno: 'SEC-TEST-001' } });
         await prisma.$disconnect();

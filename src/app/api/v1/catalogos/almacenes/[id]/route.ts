@@ -134,7 +134,7 @@ export async function PUT(
       where: { id: (await params).id },
       data: {
         nombre: body.nombre,
-        ubicacion: body.ubicacion,
+        direccion: body.direccion || body.ubicacion,
         tipo: body.tipo
       }
     })

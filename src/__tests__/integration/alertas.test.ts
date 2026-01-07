@@ -16,9 +16,9 @@ async function createTestNeumatico(overrides: any = {}) {
 
     const modelo = await prisma.modeloNeumatico.create({
         data: {
-            nombre: 'TestModel_' + Date.now(),
+            nombre_modelo: 'TestModel_' + Date.now(),
             medida: '295/80R22.5',
-            profundidad_inicial_mm: 18,
+            profundidad_original_mm: 18,
             fabricante_id: fabricante.id,
             reencauches_maximos: 2
         }
@@ -28,8 +28,8 @@ async function createTestNeumatico(overrides: any = {}) {
         data: {
             numero_serie: 'TEST-' + Date.now(),
             modelo_id: modelo.id,
-            profundidad_inicial_mm: 18,
-            profundidad_actual_mm: 18,
+            profundidad_original_mm: 18,
+            profundidad_remanente_actual_mm: 18,
             estado_actual: 'EN_STOCK',
             costo_compra: 0,
             kilometraje_acumulado: 0,
@@ -56,7 +56,7 @@ describe('AlertasService', () => {
         it('debería generar alerta CRITICAL cuando profundidad < 4mm', async () => {
             // Crear neumático con profundidad crítica
             await createTestNeumatico({
-                profundidad_actual_mm: 3.5,
+                profundidad_remanente_actual_mm: 3.5,
                 activo: true
             });
 

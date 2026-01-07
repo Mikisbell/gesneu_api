@@ -5,6 +5,7 @@ import { CSS } from '@dnd-kit/utilities';
 import { INeumatico } from '@/types/domain/neumatico.types';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
+import { toNumber } from '@/lib/utils/decimal';
 
 interface DraggableTireProps {
     neumatico: INeumatico;
@@ -58,15 +59,15 @@ export function DraggableTire({ neumatico }: DraggableTireProps) {
                             </span>
                         )}
                     </div>
-                    <p className="text-xs text-slate-500 mt-0.5">{neumatico.modelo?.nombre}</p>
+                    <p className="text-xs text-slate-500 mt-0.5">{neumatico.modelo?.nombre_modelo}</p>
                 </div>
 
                 {/* Indicador de Profundidad */}
                 <Badge variant="outline" className={cn(
                     "text-[10px] h-5",
-                    (neumatico.profundidad_actual_mm || 0) < 5 ? "border-red-200 bg-red-50 text-red-700" : "border-slate-200"
+                    toNumber(neumatico.profundidad_remanente_actual_mm) < 5 ? "border-red-200 bg-red-50 text-red-700" : "border-slate-200"
                 )}>
-                    {neumatico.profundidad_actual_mm}mm
+                    {toNumber(neumatico.profundidad_remanente_actual_mm)}mm
                 </Badge>
             </div>
 

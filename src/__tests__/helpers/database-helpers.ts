@@ -51,7 +51,7 @@ export async function cleanTestData() {
 
     // Delete test models
     await prisma.modeloNeumatico.deleteMany({
-        where: { nombre: { endsWith: 'Test' } }
+        where: { nombre_modelo: { endsWith: 'Test' } }
     });
 
     // Delete test manufacturers
@@ -78,7 +78,7 @@ export async function createTestNeumatico(overrides: any = {}) {
             dot: '2024',
             estado_actual: 'EN_STOCK',
             profundidad_inicial_mm: 20,
-            profundidad_actual_mm: 20,
+            profundidad_remanente_actual_mm: 20,
             activo: true,
             ...overrides
         }

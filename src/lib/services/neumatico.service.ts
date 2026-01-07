@@ -2,8 +2,9 @@ import { NeumaticoRepository } from '@/lib/repositories/neumatico.repository';
 import { CreateNeumaticoDTO, UpdateNeumaticoDTO, INeumatico, NeumaticoFilters, EventoCompraInput } from '@/types/domain/neumatico.types';
 import { prisma } from '@/lib/prisma';
 import { EventoNeumaticoCreate } from '@/lib/validators/evento-neumatico';
-import { TipoEventoNeumaticoEnum, EstadoNeumaticoEnum, Prisma } from '@prisma/client';
+import { TipoEventoNeumaticoEnum, EstadoNeumaticoEnum, Prisma, Neumatico } from '@prisma/client';
 import { BusinessError } from '@/lib/errors/business.error';
+import { toNumber } from '@/lib/utils/decimal';
 
 // Tipado seguro para la transacción
 type TxClient = Prisma.TransactionClient;
@@ -64,7 +65,7 @@ export class NeumaticoService {
     async registrarEvento(evento: EventoNeumaticoCreate, userId: string): Promise<any> {
         const { tipo_evento } = evento;
 
-        return await prisma.$transaction(async (tx) => {
+        const transactionResult = await prisma.$transaction(async (tx) => {
             let result;
 
             switch (tipo_evento) {
@@ -105,6 +106,89 @@ export class NeumaticoService {
 
             return result;
         });
+
+        // ✅ WEBHOOK INTEGRATION (Fire & Forget)
+        // Se ejecuta fuera de la transacción para asegurar que el evento ya se persistió
+        this.dispatchWebhookIfConfigured(tipo_evento, transactionResult, userId).catch(err =>
+            console.error('[NeumaticoService] Webhook dispatch error:', err)
+        );
+
+        return transactionResult;
+    }
+
+    /**
+     * Dispara webhooks para eventos configurados
+     */
+    private async dispatchWebhookIfConfigured(tipo: string, result: any, userId: string) {
+        // Mapeo de eventos que interesan a webhooks
+        const INTERESTING_EVENTS: string[] = [
+            'DESECHO',
+            'REENCAUCHE_SALIDA',
+            'INSTALACION',
+            'DESMONTAJE'
+        ];
+
+        if (!INTERESTING_EVENTS.includes(tipo)) return;
+
+        // Normalizar objeto evento
+        let evento = result;
+        let neumaticoId = result.neumatico_id;
+
+        // Caso especial COMPRA devuelve { neumatico, evento }
+        if (tipo === TipoEventoNeumaticoEnum.COMPRA) {
+            evento = result.evento;
+            neumaticoId = result.neumatico.id;
+        }
+
+        // Enriquecer datos para el payload (Webhooks externos suelen necesitar strings leibles, no solo UUIDs)
+        // Hacemos una consulta ligera para obtener códigos/placas
+        const details = await prisma.eventoNeumatico.findUnique({
+            where: { id: evento.id },
+            include: {
+                neumatico: { select: { numero_serie: true, modelo: { select: { nombre_modelo: true } } } },
+                vehiculo: { select: { placa: true, numero_economico: true } },
+                motivo_desecho: { select: { nombre: true } },
+                almacen_destino: { select: { nombre: true } }
+            }
+        });
+
+        if (!details) return;
+
+        const payload = {
+            tipo_evento: tipo,
+            fecha: new Date().toISOString(),
+            neumatico: {
+                id: details.neumatico_id,
+                serie: details.neumatico.numero_serie || 'S/N',
+                modelo: details.neumatico.modelo.nombre_modelo
+            },
+            vehiculo: details.vehiculo ? {
+                placa: details.vehiculo.placa,
+                codigo: details.vehiculo.numero_economico
+            } : undefined,
+            detalle: {
+                motivo: details.motivo_desecho?.nombre,
+                destino: details.almacen_destino?.nombre,
+                costo: details.costo_evento,
+                profundidad: details.profundidad_remanente,
+                km: details.contador_vehiculo
+            },
+            usuario_id: userId
+        };
+
+        // Dynamic import to avoid circular dependency if any (though Service -> Validator -> Prisma is fine)
+        const { WebhookService } = require('./webhook.service');
+        const webhookService = new WebhookService();
+
+        // Mapear enum de Prisma (TipoEventoNeumaticoEnum) a WebhookEventType
+        // El enum WebhookEventType en schema tiene nombres específicos
+        let webhookEvent = 'ALL_EVENTS';
+        if (tipo === TipoEventoNeumaticoEnum.DESECHO) webhookEvent = 'DESECHO';
+        if (tipo === TipoEventoNeumaticoEnum.REENCAUCHE_SALIDA) webhookEvent = 'REENCAUCHE_SALIDA';
+        if (tipo === TipoEventoNeumaticoEnum.INSTALACION) webhookEvent = 'INSTALACION';
+        if (tipo === TipoEventoNeumaticoEnum.DESMONTAJE) webhookEvent = 'DESMONTAJE';
+
+        await webhookService.dispatch(webhookEvent, payload);
     }
 
     // --- MANEJADORES PRIVADOS ---
@@ -134,18 +218,19 @@ export class NeumaticoService {
             throw BusinessError.badRequest('Faltan datos obligatorios para COMPRA (serie, modelo, dot, profundidad, almacén)');
         }
 
-        const existing = await tx.neumatico.findUnique({ where: { numero_serie } });
+        const existing = await tx.neumatico.findFirst({ where: { numero_serie } });
         if (existing) throw BusinessError.conflict(`El neumático ${numero_serie} ya existe`);
 
         // 1. Crear el Neumático
         const nuevoNeumatico = await tx.neumatico.create({
             data: {
+                empresa_id: "00000000-0000-0000-0000-000000000000",
                 numero_serie,
                 modelo_id,
                 dot,
                 // Si la medida no viene en el evento, se confía en que el modelo la tiene (se resolverá en lecturas con include)
                 profundidad_inicial_mm: profundidad_inicial,
-                profundidad_actual_mm: profundidad_inicial,
+                profundidad_remanente_actual_mm: profundidad_inicial,
                 estado_actual: EstadoNeumaticoEnum.EN_STOCK,
                 ubicacion_almacen_id: almacen_destino_id,
                 fecha_compra: now,
@@ -210,7 +295,7 @@ export class NeumaticoService {
                 ubicacion_almacen_id: null,
                 ubicacion_vehiculo_id: vehiculo_id,
                 ubicacion_posicion_id: posicion_montaje_id || null,
-                profundidad_actual_mm: profundidad_remanente,
+                profundidad_remanente_actual_mm: profundidad_remanente,
                 presion_actual_psi: presion_psi,
                 actualizado_en: now
             }
@@ -222,7 +307,7 @@ export class NeumaticoService {
 
         if (contador_vehiculo) {
             await tx.registroContador.create({ data: { vehiculo_id, valor: contador_vehiculo, fecha_registro: now, notas: `Montaje ${neumatico.numero_serie}` } });
-            await tx.vehiculo.update({ where: { id: vehiculo_id }, data: { contador_actual: contador_vehiculo } });
+            await tx.vehiculo.update({ where: { id: vehiculo_id }, data: { odometro_actual: contador_vehiculo } });
         }
 
         return nuevoEvento;
@@ -241,8 +326,9 @@ export class NeumaticoService {
         if (contador_vehiculo && neumatico.ubicacion_vehiculo_id) {
             const instEvento = await tx.eventoNeumatico.findFirst({ where: { neumatico_id, tipo_evento: TipoEventoNeumaticoEnum.INSTALACION }, orderBy: { fecha_evento: 'desc' } });
             if (instEvento?.contador_vehiculo) {
-                kmRecorrido = contador_vehiculo - instEvento.contador_vehiculo;
-                if (kmRecorrido < 0) throw BusinessError.badRequest(`KM actual (${contador_vehiculo}) menor al de instalación (${instEvento.contador_vehiculo})`);
+                const contadorInstalacion = toNumber(instEvento.contador_vehiculo);
+                kmRecorrido = contador_vehiculo - contadorInstalacion;
+                if (kmRecorrido < 0) throw BusinessError.badRequest(`KM actual (${contador_vehiculo}) menor al de instalación (${contadorInstalacion})`);
             }
         }
 
@@ -264,7 +350,7 @@ export class NeumaticoService {
                 ubicacion_almacen_id: almacen_destino_id || null,
                 ubicacion_vehiculo_id: null,
                 ubicacion_posicion_id: null,
-                profundidad_actual_mm: profundidad_remanente,
+                profundidad_remanente_actual_mm: profundidad_remanente,
                 presion_actual_psi: presion_psi,
                 kilometraje_acumulado: { increment: kmRecorrido },
                 actualizado_en: now
@@ -277,7 +363,7 @@ export class NeumaticoService {
 
         if (contador_vehiculo && neumatico.ubicacion_vehiculo_id) {
             await tx.registroContador.create({ data: { vehiculo_id: neumatico.ubicacion_vehiculo_id, valor: contador_vehiculo, fecha_registro: now, notas: `Desmontaje ${neumatico.numero_serie}` } });
-            await tx.vehiculo.update({ where: { id: neumatico.ubicacion_vehiculo_id }, data: { contador_actual: contador_vehiculo } });
+            await tx.vehiculo.update({ where: { id: neumatico.ubicacion_vehiculo_id }, data: { odometro_actual: contador_vehiculo } });
         }
 
         return nuevoEvento;
@@ -301,7 +387,7 @@ export class NeumaticoService {
         await tx.neumatico.update({
             where: { id: neumatico_id },
             data: {
-                profundidad_actual_mm: profundidad_remanente ?? undefined,
+                profundidad_remanente_actual_mm: profundidad_remanente ?? undefined,
                 presion_actual_psi: presion_psi ?? undefined,
                 actualizado_en: now
             }
@@ -383,7 +469,7 @@ export class NeumaticoService {
             data: { tipo_evento: TipoEventoNeumaticoEnum.REPARACION_SALIDA, neumatico_id, fecha_evento: now, almacen_destino_id, costo_evento: costo_evento ? new Prisma.Decimal(costo_evento) : undefined, profundidad_remanente, notas: observaciones, creado_por: userId }
         });
 
-        await tx.neumatico.update({ where: { id: neumatico_id }, data: { estado_actual: EstadoNeumaticoEnum.EN_STOCK, ubicacion_almacen_id: almacen_destino_id, profundidad_actual_mm: profundidad_remanente, actualizado_en: now } });
+        await tx.neumatico.update({ where: { id: neumatico_id }, data: { estado_actual: EstadoNeumaticoEnum.EN_STOCK, ubicacion_almacen_id: almacen_destino_id, profundidad_remanente_actual_mm: profundidad_remanente, actualizado_en: now } });
         await tx.historialEstadoNeumatico.create({ data: { neumatico_id, estado_anterior: EstadoNeumaticoEnum.EN_REPARACION, estado_nuevo: EstadoNeumaticoEnum.EN_STOCK, fecha_cambio: now, motivo: 'Retorno reparación', creado_por: userId } });
         return nuevoEvento;
     }
@@ -427,7 +513,7 @@ export class NeumaticoService {
             data: {
                 estado_actual: EstadoNeumaticoEnum.EN_STOCK,
                 ubicacion_almacen_id: almacen_destino_id,
-                profundidad_actual_mm: profundidad_remanente,
+                profundidad_remanente_actual_mm: profundidad_remanente,
                 profundidad_inicial_mm: profundidad_remanente, // Nuevo inicio
                 kilometraje_acumulado: 0, // Reset para nueva vida
                 es_reencauchado: true,

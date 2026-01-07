@@ -53,6 +53,7 @@ export const authOptions: NextAuthConfig = {
           name: usuario.nombre_completo,
           email: usuario.email,
           username: usuario.username,
+          empresa_id: usuario.empresa_id, // Critical for RLS
           roles: [roleName],
           permissions: permisos
         };
@@ -72,6 +73,7 @@ export const authOptions: NextAuthConfig = {
       if (user) {
         token.id = user.id;
         token.username = (user as any).username;
+        token.empresa_id = (user as any).empresa_id;
         token.roles = (user as any).roles;
         token.permissions = (user as any).permissions;
       }
@@ -81,6 +83,7 @@ export const authOptions: NextAuthConfig = {
       if (session.user) {
         session.user.id = token.id as string;
         (session.user as any).username = token.username;
+        (session.user as any).empresa_id = token.empresa_id;
         (session.user as any).roles = token.roles;
         (session.user as any).permissions = token.permissions;
       }

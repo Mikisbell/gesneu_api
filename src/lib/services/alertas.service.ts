@@ -49,7 +49,7 @@ export class AlertasService {
 
     /**
      * Genera alertas de profundidad mínima.
-     * Crea alerta CRITICAL para neumáticos con profundidad_actual_mm < 4
+     * Crea alerta CRITICAL para neumáticos con profundidad_remanente_actual_mm < 4
      */
     async generarAlertasProfundidad(): Promise<number> {
         const PROFUNDIDAD_MINIMA = 4;
@@ -57,7 +57,7 @@ export class AlertasService {
         // Buscar neumáticos críticos sin alerta activa
         const neumaticosCriticos = await prisma.neumatico.findMany({
             where: {
-                profundidad_actual_mm: { lt: PROFUNDIDAD_MINIMA },
+                profundidad_remanente_actual_mm: { lt: PROFUNDIDAD_MINIMA },
                 activo: true,
                 estado_actual: { not: 'DESECHADO' },
                 // Evitar duplicados: no crear si ya existe alerta no resuelta
@@ -83,7 +83,7 @@ export class AlertasService {
                     severidad: SeveridadAlertaEnum.CRITICAL,
                     neumatico_id: n.id,
                     vehiculo_id: n.ubicacion_vehiculo_id,
-                    mensaje: `Neumático ${n.numero_serie} tiene profundidad ${n.profundidad_actual_mm?.toFixed(1)}mm (mínimo: ${PROFUNDIDAD_MINIMA}mm)`
+                    mensaje: `Neumático ${n.numero_serie} tiene profundidad ${n.profundidad_remanente_actual_mm?.toFixed(1)}mm (mínimo: ${PROFUNDIDAD_MINIMA}mm)`
                 }
             });
             alertasCreadas.push({
@@ -143,6 +143,75 @@ export class AlertasService {
         }
 
         return count;
+    }
+
+    /**
+     * Genera alerta de presión baja.
+     * Se llama desde InspeccionService cuando presión < umbral mínimo.
+     */
+    async generarAlertaPresion(
+        neumaticoId: string,
+        presionActual: number,
+        presionMinima: number = 80 // PSI mínimo por defecto
+    ): Promise<boolean> {
+        // Solo generar si presión está por debajo del umbral
+        if (presionActual >= presionMinima) return false;
+
+        // Obtener datos del neumático
+        const neumatico = await prisma.neumatico.findUnique({
+            where: { id: neumaticoId },
+            select: {
+                numero_serie: true,
+                ubicacion_vehiculo_id: true,
+                ubicacion_vehiculo: { select: { placa: true } }
+            }
+        });
+
+        if (!neumatico) return false;
+
+        // Verificar si ya existe alerta no resuelta para este neumático
+        const alertaExistente = await prisma.alerta.findFirst({
+            where: {
+                neumatico_id: neumaticoId,
+                tipo: TipoAlertaEnum.PRESION_BAJA,
+                resuelta: false
+            }
+        });
+
+        if (alertaExistente) return false; // Ya tiene alerta activa
+
+        // Determinar severidad
+        const severidad = presionActual < (presionMinima * 0.7)
+            ? SeveridadAlertaEnum.CRITICAL
+            : SeveridadAlertaEnum.WARNING;
+
+        // Crear alerta
+        const alerta = await prisma.alerta.create({
+            data: {
+                tipo: TipoAlertaEnum.PRESION_BAJA,
+                severidad,
+                neumatico_id: neumaticoId,
+                vehiculo_id: neumatico.ubicacion_vehiculo_id,
+                mensaje: `Neumático ${neumatico.numero_serie} tiene presión ${presionActual.toFixed(1)} PSI (mínimo: ${presionMinima} PSI)`
+            }
+        });
+
+        const alertData = {
+            ...alerta,
+            neumatico: { numero_serie: neumatico.numero_serie },
+            vehiculo: neumatico.ubicacion_vehiculo
+        };
+
+        // Enviar email si es crítica
+        if (severidad === SeveridadAlertaEnum.CRITICAL) {
+            await this.enviarNotificacionesEmail([alertData]);
+
+            // WEBHOOK TRIGGER
+            const webhookService = new (require('./webhook.service').WebhookService)();
+            await webhookService.dispatch('ALERTA_CRITICAL', alertData);
+        }
+
+        return true;
     }
 
     /**
@@ -214,7 +283,7 @@ export class AlertasService {
                     mensaje: alerta.mensaje,
                     neumatico: alerta.neumatico ? {
                         numero_serie: alerta.neumatico.numero_serie,
-                        profundidad_mm: alerta.neumatico.profundidad_actual_mm
+                        profundidad_mm: alerta.neumatico.profundidad_remanente_actual_mm
                     } : undefined,
                     vehiculo: alerta.vehiculo ? {
                         placa: alerta.vehiculo.placa

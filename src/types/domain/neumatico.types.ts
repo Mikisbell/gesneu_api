@@ -4,7 +4,7 @@ import { Neumatico, Almacen, Vehiculo, PosicionNeumatico } from '@prisma/client'
 export interface INeumatico extends Neumatico {
     // Propiedades calculadas o relaciones opcionales pueden ir aquí
     modelo?: {
-        nombre: string;
+        nombre_modelo: string;
         medida: string;
         fabricante?: {
             nombre: string;
@@ -22,7 +22,7 @@ export interface CreateNeumaticoDTO {
     dot: string;
     estado_actual?: string;
     profundidad_inicial_mm: number;
-    profundidad_actual_mm?: number;
+    profundidad_remanente_actual_mm?: number;
     presion_actual_psi?: number;
     ubicacion_almacen_id?: string;
     costo_compra?: number;
@@ -45,7 +45,7 @@ export interface EventoCompraInput {
 // DTO para actualización
 export interface UpdateNeumaticoDTO {
     estado_actual?: string;
-    profundidad_actual_mm?: number;
+    profundidad_remanente_actual_mm?: number;
     presion_actual_psi?: number;
     kilometraje_acumulado?: number;
     vida_actual?: number;

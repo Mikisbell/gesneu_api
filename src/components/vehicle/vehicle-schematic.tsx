@@ -158,10 +158,10 @@ function DroppablePosition({ posicion, neumatico, eje, onClick, isInteractive }:
                             <div className="w-full h-1.5 bg-slate-700 rounded-full overflow-hidden mt-1">
                                 <div
                                     className={cn("h-full",
-                                        (neumatico.profundidad_actual_mm || 0) > 10 ? "bg-green-500" :
-                                            (neumatico.profundidad_actual_mm || 0) > 5 ? "bg-yellow-500" : "bg-red-500"
+                                        (neumatico.profundidad_remanente_actual_mm || 0) > 10 ? "bg-green-500" :
+                                            (neumatico.profundidad_remanente_actual_mm || 0) > 5 ? "bg-yellow-500" : "bg-red-500"
                                     )}
-                                    style={{ width: `${Math.min(((neumatico.profundidad_actual_mm || 0) / 20) * 100, 100)}%` }}
+                                    style={{ width: `${Math.min(((neumatico.profundidad_remanente_actual_mm || 0) / 20) * 100, 100)}%` }}
                                 />
                             </div>
                         </div>
@@ -173,7 +173,7 @@ function DroppablePosition({ posicion, neumatico, eje, onClick, isInteractive }:
                                 </Badge>
                             )}
                             <Badge variant="secondary" className="text-[8px] h-4 px-1 bg-slate-600 text-white border-none">
-                                {neumatico.profundidad_actual_mm}mm
+                                {neumatico.profundidad_remanente_actual_mm}mm
                             </Badge>
                         </div>
                     </>

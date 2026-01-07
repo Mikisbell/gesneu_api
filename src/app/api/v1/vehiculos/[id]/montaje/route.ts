@@ -3,6 +3,57 @@ import { ApiResponseHelper } from '@/lib/utils/api-response';
 import { requireAuth, requirePermission } from '@/lib/auth/authorization';
 import { PERMISSIONS } from '@/lib/auth/permissions';
 import { prisma } from '@/lib/prisma';
+import { toNumber } from '@/lib/utils/decimal';
+import { Prisma } from '@prisma/client';
+
+// Type for the rich vehicle query result
+type VehiculoWithMontaje = Prisma.VehiculoGetPayload<{
+    include: {
+        tipo_vehiculo: {
+            include: {
+                configuraciones: {
+                    include: {
+                        posiciones: {
+                            include: {
+                                neumaticos: {
+                                    include: { modelo: true }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+}>;
+
+// Type for transformed position data
+interface PosicionTransformada {
+    id: string;
+    numero_posicion: number;
+    lado: string;
+    permite_reencauchado: boolean;
+    estado: 'OK' | 'WARNING' | 'CRITICAL' | 'EMPTY';
+    neumatico: {
+        id: string;
+        numero_serie: string;
+        modelo: string;
+        medida: string;
+        profundidad_mm: Prisma.Decimal;
+        profundidad_porcentaje: number;
+        presion_psi: Prisma.Decimal | null;
+        es_reencauchado: boolean;
+        km_acumulado: Prisma.Decimal;
+    } | null;
+}
+
+// Type for transformed axle data
+interface EjeTransformado {
+    numero_eje: number;
+    tipo_eje: string;
+    permite_reencauchados: boolean;
+    posiciones: PosicionTransformada[];
+}
 
 /**
  * @swagger
@@ -51,8 +102,7 @@ export async function GET(
                                         }
                                     },
                                     orderBy: [
-                                        { lado_vehiculo: 'asc' },
-                                        { numero_posicion: 'asc' }
+                                        { posicion_relativa: 'asc' }
                                     ]
                                 }
                             },
@@ -61,18 +111,18 @@ export async function GET(
                     }
                 }
             }
-        });
+        }) as VehiculoWithMontaje | null;
 
         if (!vehiculo) {
             return ApiResponseHelper.notFound('Recurso no encontrado');
         }
 
         // Transformar datos para el componente visual
-        const ejes = vehiculo.tipo_vehiculo?.configuraciones.map(eje => ({
+        const ejes: EjeTransformado[] = vehiculo.tipo_vehiculo?.configuraciones.map((eje) => ({
             numero_eje: eje.numero_eje,
             tipo_eje: eje.tipo_eje,
             permite_reencauchados: eje.permite_reencauchados,
-            posiciones: eje.posiciones.map(pos => {
+            posiciones: eje.posiciones.map((pos): PosicionTransformada => {
                 const neumatico = pos.neumaticos[0]; // Solo uno puede estar instalado
 
                 // Calcular estado visual
@@ -80,8 +130,8 @@ export async function GET(
                 let profundidadPorcentaje = 0;
 
                 if (neumatico) {
-                    const profInicial = neumatico.profundidad_inicial_mm || 18;
-                    const profActual = neumatico.profundidad_actual_mm || 0;
+                    const profInicial = toNumber(neumatico.profundidad_inicial_mm, 18);
+                    const profActual = toNumber(neumatico.profundidad_remanente_actual_mm);
                     profundidadPorcentaje = Math.round((profActual / profInicial) * 100);
 
                     if (profActual < 4) {
@@ -95,16 +145,16 @@ export async function GET(
 
                 return {
                     id: pos.id,
-                    numero_posicion: pos.numero_posicion,
-                    lado: pos.lado_vehiculo,
+                    numero_posicion: pos.posicion_relativa,
+                    lado: pos.lado,
                     permite_reencauchado: pos.permite_reencauchado,
                     estado,
                     neumatico: neumatico ? {
                         id: neumatico.id,
-                        numero_serie: neumatico.numero_serie,
-                        modelo: neumatico.modelo?.nombre || 'N/A',
+                        numero_serie: neumatico.numero_serie || 'S/N',
+                        modelo: neumatico.modelo?.nombre_modelo || 'N/A',
                         medida: neumatico.modelo?.medida || 'N/A',
-                        profundidad_mm: neumatico.profundidad_actual_mm,
+                        profundidad_mm: neumatico.profundidad_remanente_actual_mm,
                         profundidad_porcentaje: profundidadPorcentaje,
                         presion_psi: neumatico.presion_actual_psi,
                         es_reencauchado: neumatico.es_reencauchado,
@@ -118,18 +168,18 @@ export async function GET(
             vehiculo: {
                 id: vehiculo.id,
                 placa: vehiculo.placa,
-                codigo_interno: vehiculo.codigo_interno,
+                codigo_interno: vehiculo.numero_economico || vehiculo.placa,
                 marca: vehiculo.marca,
-                modelo: vehiculo.modelo,
+                modelo: vehiculo.modelo_vehiculo,
                 tipo: vehiculo.tipo_vehiculo?.nombre
             },
             ejes,
             resumen: {
-                total_posiciones: ejes.reduce((acc, eje) => acc + eje.posiciones.length, 0),
-                montados: ejes.reduce((acc, eje) => acc + eje.posiciones.filter(p => p.neumatico).length, 0),
-                vacios: ejes.reduce((acc, eje) => acc + eje.posiciones.filter(p => !p.neumatico).length, 0),
-                criticos: ejes.reduce((acc, eje) => acc + eje.posiciones.filter(p => p.estado === 'CRITICAL').length, 0),
-                warnings: ejes.reduce((acc, eje) => acc + eje.posiciones.filter(p => p.estado === 'WARNING').length, 0)
+                total_posiciones: ejes.reduce((acc: number, eje: EjeTransformado) => acc + eje.posiciones.length, 0),
+                montados: ejes.reduce((acc: number, eje: EjeTransformado) => acc + eje.posiciones.filter((p: PosicionTransformada) => p.neumatico).length, 0),
+                vacios: ejes.reduce((acc: number, eje: EjeTransformado) => acc + eje.posiciones.filter((p: PosicionTransformada) => !p.neumatico).length, 0),
+                criticos: ejes.reduce((acc: number, eje: EjeTransformado) => acc + eje.posiciones.filter((p: PosicionTransformada) => p.estado === 'CRITICAL').length, 0),
+                warnings: ejes.reduce((acc: number, eje: EjeTransformado) => acc + eje.posiciones.filter((p: PosicionTransformada) => p.estado === 'WARNING').length, 0)
             }
         });
     } catch (error) {

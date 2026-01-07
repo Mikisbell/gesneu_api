@@ -1,5 +1,6 @@
 import { prisma } from '@/lib/prisma';
 import { TipoEventoNeumaticoEnum } from '@prisma/client';
+import { toNumber } from '@/lib/utils/decimal';
 
 export interface CPKMetrics {
     neumatico_id: string;
@@ -21,7 +22,7 @@ export interface WearRateMetrics {
     numero_serie: string;
     desgaste_mm_por_1000km: number;
     profundidad_inicial_mm: number;
-    profundidad_actual_mm: number;
+    profundidad_remanente_actual_mm: number;
     desgaste_total_mm: number;
     kilometraje_total: number;
     vida_restante_estimada_km: number | null;
@@ -90,7 +91,7 @@ export class ReportesService {
         });
 
         const costoTotal = costoCompra + costoReparaciones + costoReencauches + costoOtros;
-        const kilometrajeTotal = neumatico.kilometraje_acumulado || 0;
+        const kilometrajeTotal = toNumber(neumatico.kilometraje_acumulado);
 
         // Evitar división por cero
         let cpk = 0;
@@ -100,7 +101,7 @@ export class ReportesService {
 
         return {
             neumatico_id: neumatico.id,
-            numero_serie: neumatico.numero_serie,
+            numero_serie: neumatico.numero_serie || 'S/N',
             cpk: Number(cpk.toFixed(4)), // 4 decimales para precisión en centavos
             kilometraje_total: kilometrajeTotal,
             costo_total: Number(costoTotal.toFixed(2)),
@@ -127,9 +128,9 @@ export class ReportesService {
             throw new Error('Neumático no encontrado');
         }
 
-        const profundidadInicial = neumatico.profundidad_inicial_mm || 0;
-        const profundidadActual = neumatico.profundidad_actual_mm ?? profundidadInicial;
-        const kilometrajeTotal = neumatico.kilometraje_acumulado || 0;
+        const profundidadInicial = toNumber(neumatico.profundidad_inicial_mm);
+        const profundidadActual = toNumber(neumatico.profundidad_remanente_actual_mm, profundidadInicial);
+        const kilometrajeTotal = toNumber(neumatico.kilometraje_acumulado);
 
         const desgasteTotal = profundidadInicial - profundidadActual;
 
@@ -158,10 +159,10 @@ export class ReportesService {
 
         return {
             neumatico_id: neumatico.id,
-            numero_serie: neumatico.numero_serie,
+            numero_serie: neumatico.numero_serie || 'S/N',
             desgaste_mm_por_1000km: Number(desgastePor1000km.toFixed(3)),
             profundidad_inicial_mm: profundidadInicial,
-            profundidad_actual_mm: profundidadActual,
+            profundidad_remanente_actual_mm: profundidadActual,
             desgaste_total_mm: Number(desgasteTotal.toFixed(2)),
             kilometraje_total: kilometrajeTotal,
             vida_restante_estimada_km: vidaRestanteKm ? Math.round(vidaRestanteKm) : null,
@@ -217,7 +218,7 @@ export class ReportesService {
                 costoEventos += Number(e.costo_evento?.toString() ?? 0);
             });
             const costoTotal = costoCompra + costoEventos;
-            const km = n.kilometraje_acumulado || 0;
+            const km = toNumber(n.kilometraje_acumulado);
             const cpk = km > 0 ? costoTotal / km : 0;
 
             // Agregar a mapa
@@ -266,6 +267,97 @@ export class ReportesService {
             mejor_marca: marcas.length > 0 ? marcas[0].fabricante_nombre : null,
             peor_marca: marcas.length > 0 ? marcas[marcas.length - 1].fabricante_nombre : null,
             fecha_calculo: new Date().toISOString()
+        };
+    }
+
+    /**
+     * Obtiene el estado general de la flota.
+     * Vehículos activos, neumáticos instalados vs stock.
+     */
+    async getFlotaStatus() {
+        // Vehículos
+        const totalVehiculos = await prisma.vehiculo.count({ where: { activo: true } });
+
+        // Neumáticos
+        const totalNeumaticos = await prisma.neumatico.count({ where: { activo: true, estado_actual: { not: 'DESECHADO' } } });
+        const instalados = await prisma.neumatico.count({ where: { activo: true, estado_actual: 'INSTALADO' } });
+        const stock = await prisma.neumatico.count({ where: { activo: true, estado_actual: 'EN_STOCK' } });
+        const reencauche = await prisma.neumatico.count({ where: { activo: true, estado_actual: 'EN_REENCAUCHE' } });
+        const reparacion = await prisma.neumatico.count({ where: { activo: true, estado_actual: 'EN_REPARACION' } });
+
+        // Valor inventario (estimado)
+        const valorInventario = await prisma.neumatico.aggregate({
+            where: { activo: true, estado_actual: { not: 'DESECHADO' } },
+            _sum: { costo_compra: true }
+        });
+
+        return {
+            vehiculos: { total: totalVehiculos },
+            neumaticos: {
+                total: totalNeumaticos,
+                instalados,
+                stock,
+                reencauche,
+                reparacion,
+            },
+            valor_inventario: Number(valorInventario._sum.costo_compra || 0)
+        };
+    }
+
+    /**
+     * Obtiene el inventario detallado por almacén.
+     */
+    async getInventoryStatus() {
+        const almacenes = await prisma.almacen.findMany({
+            where: { activo: true },
+            include: {
+                _count: {
+                    select: {
+                        neumaticos: {
+                            where: { activo: true, estado_actual: { not: 'DESECHADO' } }
+                        }
+                    }
+                }
+            }
+        });
+
+        // Agrupación por fabricante (marca) para stock
+        // Prisma groupBy no soporta relaciones, lo hacemos en memoria (o raw query si fuera masivo)
+        const stockItems = await prisma.neumatico.findMany({
+            where: { estado_actual: 'EN_STOCK', activo: true },
+            select: {
+                modelo: {
+                    select: {
+                        fabricante: {
+                            select: { nombre: true }
+                        }
+                    }
+                }
+            }
+        });
+
+        const stockMap = new Map<string, number>();
+
+        for (const item of stockItems) {
+            const marca = item.modelo?.fabricante?.nombre || 'Desconocida';
+            stockMap.set(marca, (stockMap.get(marca) || 0) + 1);
+        }
+
+        const stockDetalle = Array.from(stockMap.entries()).map(([marca, cantidad]) => ({
+            marca,
+            cantidad
+        }));
+
+        // Ordenar por cantidad descendente
+        stockDetalle.sort((a, b) => b.cantidad - a.cantidad);
+
+        return {
+            almacenes: almacenes.map(a => ({
+                id: a.id,
+                nombre: a.nombre,
+                total_items: a._count.neumaticos
+            })),
+            stock_por_marca: stockDetalle
         };
     }
 }

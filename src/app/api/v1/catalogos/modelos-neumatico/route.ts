@@ -44,7 +44,7 @@ export async function GET(request: NextRequest) {
                 fabricante: true
             },
             orderBy: {
-                nombre: 'asc'
+                nombre_modelo: 'asc'
             }
         })
 

@@ -27,7 +27,7 @@ export const InspeccionNeumaticoResponseSchema = z.object({
         id: z.string().uuid(),
         numero_serie: z.string(),
         estado_actual: z.string(),
-        profundidad_actual_mm: z.number(),
+        profundidad_remanente_actual_mm: z.number(),
         presion_actual_psi: z.number(),
     }),
     alerta: z.object({

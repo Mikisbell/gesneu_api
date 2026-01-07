@@ -15,9 +15,9 @@ async function createTestNeumatico(overrides: any = {}) {
 
     const modelo = await prisma.modeloNeumatico.create({
         data: {
-            nombre: 'TestModel_' + Date.now(),
+            nombre_modelo: 'TestModel_' + Date.now(),
             medida: '295/80R22.5',
-            profundidad_inicial_mm: 18,
+            profundidad_original_mm: 18,
             fabricante_id: fabricante.id,
             reencauches_maximos: 2
         }
@@ -27,7 +27,7 @@ async function createTestNeumatico(overrides: any = {}) {
         data: {
             numero_serie: 'TEST-' + Date.now(),
             modelo_id: modelo.id,
-            profundidad_inicial_mm: 18,
+            profundidad_original_mm: 18,
             estado_actual: 'EN_STOCK',
             costo_compra: 0,
             kilometraje_acumulado: 0,
@@ -111,8 +111,8 @@ describe('ReportesService: Desgaste Promedio', () => {
         // Neumático con 18mm inicial, 14mm actual, 10000 km
         // Desgaste = (18 - 14) / 10000 * 1000 = 0.4 mm/1000km
         const neumatico = await createTestNeumatico({
-            profundidad_inicial_mm: 18,
-            profundidad_actual_mm: 14,
+            profundidad_original_mm: 18,
+            profundidad_remanente_actual_mm: 14,
             kilometraje_acumulado: 10000
         });
 
@@ -125,8 +125,8 @@ describe('ReportesService: Desgaste Promedio', () => {
 
     it('debería detectar estado CRITICO cuando profundidad <= 4mm', async () => {
         const neumatico = await createTestNeumatico({
-            profundidad_inicial_mm: 18,
-            profundidad_actual_mm: 3.5,
+            profundidad_original_mm: 18,
+            profundidad_remanente_actual_mm: 3.5,
             kilometraje_acumulado: 50000
         });
 
@@ -140,8 +140,8 @@ describe('ReportesService: Desgaste Promedio', () => {
         // Restante: 14 - 4 = 10mm
         // Vida restante: 10 / 0.4 * 1000 = 25000 km
         const neumatico = await createTestNeumatico({
-            profundidad_inicial_mm: 18,
-            profundidad_actual_mm: 14,
+            profundidad_original_mm: 18,
+            profundidad_remanente_actual_mm: 14,
             kilometraje_acumulado: 10000
         });
 

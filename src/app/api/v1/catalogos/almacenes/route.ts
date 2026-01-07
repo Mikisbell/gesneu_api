@@ -105,9 +105,11 @@ export async function POST(request: NextRequest) {
 
     const almacen = await prisma.almacen.create({
       data: {
+        codigo: body.codigo || 'ALM-' + Date.now(),
         nombre: body.nombre,
         tipo: body.tipo || 'PRINCIPAL',
-        ubicacion: body.ubicacion
+        direccion: body.direccion || body.ubicacion,
+        empresa_id: (session.user as any).empresa_id || '00000000-0000-0000-0000-000000000000'
       }
     })
 

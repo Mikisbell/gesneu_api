@@ -1,5 +1,6 @@
 import { prisma } from '@/lib/prisma';
 import { EstadoNeumaticoEnum } from '@prisma/client';
+import { toNumber } from '@/lib/utils/decimal';
 
 // ============ REPORTE INVENTARIO ============
 export interface InventarioFilters {
@@ -82,7 +83,7 @@ export class DashboardService {
         const neumaticos = await prisma.neumatico.findMany({
             where,
             include: {
-                modelo: { select: { id: true, nombre: true, medida: true } },
+                modelo: { select: { id: true, nombre_modelo: true, medida: true } },
                 ubicacion_almacen: { select: { id: true, nombre: true } }
             },
             take: 100
@@ -96,7 +97,11 @@ export class DashboardService {
                 detalleMap.set(key, {
                     almacen: n.ubicacion_almacen,
                     estado: n.estado_actual,
-                    modelo: n.modelo,
+                    modelo: n.modelo ? {
+                        id: n.modelo.id,
+                        nombre: n.modelo.nombre_modelo,
+                        medida: n.modelo.medida
+                    } : { id: '', nombre: 'N/A', medida: '' },
                     cantidad: 0
                 });
             }
@@ -128,7 +133,7 @@ export class DashboardService {
                 activo: true
             },
             include: {
-                modelo: { select: { nombre: true } },
+                modelo: { select: { nombre_modelo: true } },
                 eventos: {
                     where: { costo_evento: { not: null } },
                     select: { costo_evento: true }
@@ -139,15 +144,15 @@ export class DashboardService {
         // Calcular CPK para cada uno
         const conCpk: RendimientoNeumatico[] = neumaticos.map(n => {
             const costoCompra = Number(n.costo_compra?.toString() ?? 0);
-            const costoEventos = n.eventos.reduce((acc, e) =>
+            const costoEventos = n.eventos.reduce((acc: number, e: any) =>
                 acc + Number(e.costo_evento?.toString() ?? 0), 0);
-            const km = n.kilometraje_acumulado || 1;
+            const km = toNumber(n.kilometraje_acumulado, 1);
             const cpk = (costoCompra + costoEventos) / km;
 
             return {
                 neumatico_id: n.id,
-                numero_serie: n.numero_serie,
-                modelo: n.modelo.nombre,
+                numero_serie: n.numero_serie || 'S/N',
+                modelo: n.modelo?.nombre_modelo || 'Desconocido',
                 cpk: Number(cpk.toFixed(4)),
                 kilometraje: km,
                 estado: n.estado_actual

@@ -133,8 +133,8 @@ export default function InspeccionPage() {
                                         setSelectedNeumatico(neumatico);
                                         form.setValue('neumatico_id', neumatico.id);
                                         // Pre-fill current values if available
-                                        if (neumatico.profundidad_actual_mm) {
-                                            form.setValue('profundidad_mm', neumatico.profundidad_actual_mm);
+                                        if (neumatico.profundidad_remanente_actual_mm) {
+                                            form.setValue('profundidad_mm', neumatico.profundidad_remanente_actual_mm);
                                         }
                                         if (neumatico.presion_actual_psi) {
                                             form.setValue('presion_psi', neumatico.presion_actual_psi);

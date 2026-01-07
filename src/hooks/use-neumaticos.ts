@@ -6,7 +6,7 @@ interface Neumatico {
     numero_serie: string;
     modelo_id: string;
     estado_actual: EstadoNeumaticoEnum;
-    profundidad_actual_mm: number;
+    profundidad_remanente_actual_mm: number;
     ubicacion_almacen_id?: string;
     ubicacion_vehiculo_id?: string;
     ubicacion_posicion_id?: string;

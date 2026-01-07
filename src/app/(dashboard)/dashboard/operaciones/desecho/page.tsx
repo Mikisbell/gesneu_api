@@ -192,7 +192,7 @@ export default function DesechoPage() {
                                 </div>
                                 <div>
                                     <span className="text-muted-foreground">Profundidad:</span>
-                                    <span className="ml-2">{selectedTire.profundidad_actual_mm || 'N/A'} mm</span>
+                                    <span className="ml-2">{selectedTire.profundidad_remanente_actual_mm || 'N/A'} mm</span>
                                 </div>
                             </div>
 

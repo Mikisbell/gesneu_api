@@ -10,7 +10,7 @@ export class NeumaticoRepository extends BaseRepository<Neumatico, CreateNeumati
      */
     async findBySerie(numeroSerie: string): Promise<INeumatico | null> {
         try {
-            return await this.model.findUnique({
+            return await this.model.findFirst({
                 where: { numero_serie: numeroSerie },
                 include: {
                     modelo: {

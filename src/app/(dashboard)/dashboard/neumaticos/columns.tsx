@@ -79,7 +79,7 @@ export const getColumns = ({ onEdit }: GetColumnsProps): ColumnDef<NeumaticoWith
                             Copiar ID
                         </DropdownMenuItem>
                         <DropdownMenuSeparator />
-                        <DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => window.location.href = `/dashboard/neumaticos/${neumatico.id}`}>
                             <Eye className="mr-2 h-4 w-4" /> Ver Historial
                         </DropdownMenuItem>
                         <DropdownMenuItem onClick={() => onEdit(neumatico)}>

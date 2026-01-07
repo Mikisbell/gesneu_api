@@ -35,11 +35,11 @@ export const getColumns = ({ onEdit }: GetColumnsProps): ColumnDef<VehiculoWithR
         header: "Modelo",
     },
     {
-        accessorKey: "contador_actual",
+        accessorKey: "odometro_actual",
         header: ({ column }) => "Contador",
         cell: ({ row }) => {
             const vehiculo = row.original
-            const contador = vehiculo.contador_actual
+            const contador = vehiculo.odometro_actual
             const tipoMedicion = vehiculo.tipo_medicion
 
             if (!contador) return "-"

@@ -36,9 +36,10 @@ describe('POST /api/v1/operaciones/montaje - E2E (requires seed data)', () => {
                 placa: `TE2E-${Date.now().toString().slice(-6)}`,
                 tipo_vehiculo_id: tipoVehiculo.id,
                 marca: 'Test',
-                modelo: 'Test Model',
-                anio: 2024,
-                contador_actual: 50000,
+                modelo_vehiculo: 'Test Model',
+                numero_economico: `TE2E-${Date.now()}`,
+                empresa_id: '00000000-0000-0000-0000-000000000000',
+                odometro_actual: 50000,
             }
         });
 
@@ -57,11 +58,12 @@ describe('POST /api/v1/operaciones/montaje - E2E (requires seed data)', () => {
                 modelo_id: modelo.id,
                 dot: '1224',
                 estado_actual: 'EN_STOCK',
-                profundidad_inicial_mm: 20,
-                profundidad_actual_mm: 18,
+                profundidad_remanente_actual_mm: 18,
                 presion_actual_psi: 110,
                 kilometraje_acumulado: 0,
                 ubicacion_almacen_id: almacen.id,
+                fecha_compra: new Date(),
+                empresa_id: '00000000-0000-0000-0000-000000000000'
             }
         });
     });
@@ -129,7 +131,7 @@ describe('POST /api/v1/operaciones/montaje - E2E (requires seed data)', () => {
                         estado_actual: 'INSTALADO',
                         ubicacion_almacen_id: null,
                         ubicacion_vehiculo_id: montajeData.vehiculo_id,
-                        profundidad_actual_mm: montajeData.profundidad_mm,
+                        profundidad_remanente_actual_mm: montajeData.profundidad_mm,
                         presion_actual_psi: montajeData.presion_psi,
                         actualizado_en: new Date(),
                     }

@@ -81,7 +81,7 @@ export async function POST(req: NextRequest) {
                     estado_actual: 'EN_STOCK',
                     ubicacion_almacen_id: almacen_destino_id,
                     ...(profundidad_nueva_mm && {
-                        profundidad_actual_mm: profundidad_nueva_mm,
+                        profundidad_remanente_actual_mm: profundidad_nueva_mm,
                     }),
                     actualizado_en: new Date(),
                 },

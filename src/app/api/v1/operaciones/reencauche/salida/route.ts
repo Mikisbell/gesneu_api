@@ -83,7 +83,7 @@ export async function POST(req: NextRequest) {
                     es_reencauchado: true,
                     reencauches_realizados: { increment: 1 },
                     vida_actual: { increment: 1 },
-                    profundidad_actual_mm: profundidad_nueva_mm,
+                    profundidad_remanente_actual_mm: profundidad_nueva_mm,
                     actualizado_en: new Date(),
                 },
             });

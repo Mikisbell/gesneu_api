@@ -1,0 +1,16 @@
+{
+    "name": "GesNeu API",
+    "short_name": "GesNeu",
+    "description": "Sistema de Gestión de Neumáticos - Enterprise API",
+    "start_url": "/",
+    "display": "standalone",
+    "background_color": "#1e293b",
+    "theme_color": "#1e293b",
+    "icons": [
+        {
+            "src": "/icons/icon.svg",
+            "sizes": "any",
+            "type": "image/svg+xml"
+        }
+    ]
+}

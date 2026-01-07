@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { VehicleAxleMap } from '@/components/vehicles/VehicleAxleMap';
+import { InspectionModal } from '@/components/inspections/InspectionModal';
 
 interface VehiculoSimple {
     id: string;
@@ -11,10 +12,19 @@ interface VehiculoSimple {
     modelo: string;
 }
 
+interface SelectedTire {
+    id: string;
+    serial: string;
+}
+
 export default function MapaEjesPage() {
     const [vehiculos, setVehiculos] = useState<VehiculoSimple[]>([]);
     const [selectedId, setSelectedId] = useState<string | null>(null);
     const [loading, setLoading] = useState(true);
+
+    // Estado para modal de inspección
+    const [selectedTire, setSelectedTire] = useState<SelectedTire | null>(null);
+    const [isInspectionOpen, setIsInspectionOpen] = useState(false);
 
     useEffect(() => {
         fetchVehiculos();
@@ -37,10 +47,15 @@ export default function MapaEjesPage() {
         }
     }
 
-    function handleSlotClick(posicionId: string) {
-        // Aquí se podría abrir modal de montaje/desmontaje
-        console.log('Slot clicked:', posicionId);
-        alert(`Posición: ${posicionId}\nAquí se abriría el modal de montaje.`);
+    function handleSlotClick(posicionId: string, neaumaticoId?: string, serial?: string) {
+        if (neaumaticoId && serial) {
+            // Si hay neumático montado, abrir modal de inspección
+            setSelectedTire({ id: neaumaticoId, serial });
+            setIsInspectionOpen(true);
+        } else {
+            // Posición vacía - lógica de montaje (futuro)
+            alert(`Posición: ${posicionId}\nAquí se abriría el modal de montaje.`);
+        }
     }
 
     return (
@@ -88,11 +103,28 @@ export default function MapaEjesPage() {
                     <h3>💡 ¿Cómo usar?</h3>
                     <ul>
                         <li><strong>Hover</strong> sobre un neumático para ver detalles</li>
-                        <li><strong>Click</strong> en una posición para montar/desmontar</li>
+                        <li><strong>Click</strong> en un neumático montado para registrar inspección de presión</li>
                         <li>🟢 Verde = OK | 🟡 Amarillo = Advertencia | 🔴 Rojo = Crítico</li>
                     </ul>
                 </div>
             </main>
+
+            {/* Modal de Inspección */}
+            {selectedTire && (
+                <InspectionModal
+                    neumaticoId={selectedTire.id}
+                    serial={selectedTire.serial}
+                    isOpen={isInspectionOpen}
+                    onClose={() => {
+                        setIsInspectionOpen(false);
+                        setSelectedTire(null);
+                    }}
+                    onSuccess={() => {
+                        // Refrescar el mapa después de registrar lectura
+                        window.location.reload();
+                    }}
+                />
+            )}
 
             <style jsx>{`
                 .mapa-ejes-page {
@@ -234,3 +266,4 @@ export default function MapaEjesPage() {
         </div>
     );
 }
+

@@ -19,6 +19,13 @@ jobs:
           cache: 'npm'
       - name: Install dependencies
         run: npm ci
+      
+      - name: Type check
+        run: npx tsc --noEmit
+        
+      - name: Docs audit
+        run: npm run docs:audit
+      
       # NOTE: next lint tiene un bug en Next.js 16 con el parsing de argumentos
       # Descomentar cuando se resuelva o usar eslint directamente
       # - name: Lint
@@ -80,3 +87,41 @@ jobs:
           NEXTAUTH_SECRET: "super-secret-test-key-must-be-long-enough"
           NEXTAUTH_URL: "http://localhost:3000"
           CI: true
+
+  build:
+    name: Build
+    needs: test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+      - name: Install dependencies
+        run: npm ci
+      - name: Generate Prisma Client
+        run: npx prisma generate
+      - name: Build
+        run: npm run build
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          DIRECT_URL: ${{ secrets.DIRECT_URL }}
+          NEXTAUTH_SECRET: ${{ secrets.NEXTAUTH_SECRET }}
+          NEXTAUTH_URL: ${{ secrets.NEXTAUTH_URL }}
+
+  deploy:
+    name: Deploy to Vercel
+    needs: build
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    steps:
+      - uses: actions/checkout@v4
+      - name: Deploy to Vercel
+        uses: amondnet/vercel-action@v25
+        with:
+          vercel-token: ${{ secrets.VERCEL_TOKEN }}
+          vercel-org-id: ${{ secrets.VERCEL_ORG_ID }}
+          vercel-project-id: ${{ secrets.VERCEL_PROJECT_ID }}
+          vercel-args: '--prod'

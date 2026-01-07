@@ -163,9 +163,9 @@ export async function createTestNeumatico(overrides: any = {}) {
 
     const modelo = await prisma.modeloNeumatico.create({
         data: {
-            nombre: 'X Multi Z ' + Date.now(),
+            nombre_modelo: 'X Multi Z ' + Date.now(),
             medida: '295/80R22.5',
-            profundidad_inicial_mm: 18.5,
+            profundidad_original_mm: 18.5,
             fabricante_id: fabricante.id,
             reencauches_maximos: 2
         }
@@ -175,10 +175,10 @@ export async function createTestNeumatico(overrides: any = {}) {
         data: {
             numero_serie: 'NEU-' + Date.now(),
             modelo_id: modelo.id,
-            profundidad_inicial_mm: 18.5,
-            profundidad_actual_mm: 18.5,
+            profundidad_remanente_actual_mm: 18.5,
             estado_actual: 'EN_STOCK',
-            costo_compra: 0,
+            fecha_compra: new Date(),
+            empresa_id: '00000000-0000-0000-0000-000000000000',
             kilometraje_acumulado: 0,
             ...overrides
         }

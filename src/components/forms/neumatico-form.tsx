@@ -154,7 +154,7 @@ export function NeumaticoForm({ initialData, onSuccess }: NeumaticoFormProps) {
                                 <SelectContent>
                                     {modelos?.map((modelo) => (
                                         <SelectItem key={modelo.id} value={modelo.id}>
-                                            {modelo.nombre} ({modelo.medida})
+                                            {modelo.nombre_modelo} ({modelo.medida})
                                         </SelectItem>
                                     ))}
                                 </SelectContent>

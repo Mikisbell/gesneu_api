@@ -59,7 +59,7 @@ export async function PATCH(
             }
         });
 
-        return ApiResponseHelper.success(posicion, `Política actualizada para posición ${posicion.numero_posicion}`);
+        return ApiResponseHelper.success(posicion, `Política actualizada para posición ${posicion.posicion_relativa}`);
     } catch (error) {
         return ApiResponseHelper.handleError(error);
     }
@@ -114,8 +114,8 @@ export async function GET(
 
         return ApiResponseHelper.success({
             posicion_id: posicion.id,
-            numero_posicion: posicion.numero_posicion,
-            lado: posicion.lado_vehiculo,
+            numero_posicion: posicion.posicion_relativa,
+            lado: posicion.lado,
             permite_reencauchado: posicion.permite_reencauchado,
             eje: {
                 tipo: posicion.configuracion_eje.tipo_eje,

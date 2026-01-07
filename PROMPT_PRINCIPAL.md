@@ -24,8 +24,8 @@ Cada vez que te presente una idea, haz lo siguiente:
 
 | Aspecto | Detalle |
 |---------|---------|
-| **Stack** | Next.js 14 + TypeScript + Prisma ORM + Supabase PostgreSQL |
-| **Autenticación** | NextAuth.js v5 (beta) con JWT |
+| **Stack** | Next.js 16 + TypeScript + Prisma 7 + Supabase PostgreSQL |
+| **Autenticación** | NextAuth.js v5 (JWT) |
 | **Validación** | Zod schemas (DTOs) |
 | **Deploy** | Vercel (producción) |
 | **Puerto Local** | 3005 |
@@ -39,18 +39,36 @@ Cada vez que te presente una idea, haz lo siguiente:
 
 ---
 
-## 2. Antes de Programar
+## 2. Workflow Obligatorio ANTES de Cada Tarea ⚠️
 
+> **CRÍTICO**: Debes seguir esta secuencia SIEMPRE antes de cualquier trabajo significativo.
+
+### Paso 1: Leer Documentos de Gobernanza
+```
+1. PROMPT_PRINCIPAL.md  ← Este archivo (comportamiento)
+2. AGENT.md             ← Reglas técnicas OBLIGATORIAS
+```
+
+### Paso 2: Consultar Estado de Base de Datos
 ```bash
-# Paso 1: Verificar estado actual del proyecto
+# Entender dónde estamos parados
+npx prisma studio          # O consultar schema.prisma
+npx prisma migrate status  # Ver migraciones pendientes
+```
+
+### Paso 3: Revisar Documentación Relevante
+```bash
+npm run docs:audit         # Verificar documentación
+```
+
+### Paso 4: Verificar Estado del Código
+```bash
 npm run build && npm run lint
-
-# Paso 2: Ejecutar tests
 npm test
-
-# Paso 3: Verificar Prisma
 npx prisma validate
 ```
+
+**Solo después de completar estos pasos, proceder con la tarea.**
 
 ---
 
@@ -58,29 +76,17 @@ npx prisma validate
 
 | Orden | Archivo | Propósito |
 |-------|---------|-----------|
-| 1° | `PROMPT_PRINCIPAL.md` | Este archivo (reglas de comportamiento) |
-| 2° | `ARCHITECTURE.md` | Arquitectura completa del sistema |
-| 3° | `README.md` | Visión general y setup |
-| 4° | `prisma/schema.prisma` | Modelos de datos |
-| 5° | `src/lib/validators/` | Schemas Zod (DTOs) |
-| 6° | `src/app/api/v1/` | Endpoints actuales |
+| 1° | `PROMPT_PRINCIPAL.md` | Este archivo (comportamiento) |
+| 2° | `AGENT.md` | Gobernanza técnica para AI - **OBLIGATORIO** |
+| 3° | `docs/00_INDEX.md` | Índice de documentación |
+| 4° | `docs/01_ARQUITECTURA.md` | Arquitectura del sistema |
+| 5° | `docs/04_BASE_DATOS.md` | Schema y relaciones |
+| 6° | `prisma/schema.prisma` | Modelos de datos (fuente viva) |
+| 7° | `ROADMAP.md` | Planificación Q1 2026 |
 
 ---
 
-## 4. Workflow por Defecto
-
-Antes de cualquier cambio de código:
-
-1. **Entender** → Leer archivo(s) relevante(s) antes de modificar
-2. **Validar** → `npx prisma validate` si afecta modelos
-3. **Build** → `npm run build`
-4. **Lint** → `npm run lint`
-5. **Test** → `npm test`
-6. **Commit** → Con mensaje descriptivo en español
-
----
-
-## 5. Comandos Esenciales
+## 4. Comandos Esenciales
 
 ```bash
 # Desarrollo
@@ -90,17 +96,19 @@ npm run dev                 # Inicia en http://localhost:3005
 npm run build               # Build de producción
 npm run lint                # Linter (ESLint)
 npm test                    # Tests con Jest
+npm run docs:audit          # Auditar documentación
 
 # Prisma
 npx prisma validate         # Validar schema
 npx prisma generate         # Regenerar cliente
 npx prisma db push          # Aplicar cambios a DB (dev)
 npx prisma studio           # GUI para explorar datos
+npx prisma migrate status   # Ver estado de migraciones
 ```
 
 ---
 
-## 6. Estructura Crítica
+## 5. Estructura Crítica
 
 ```
 src/
@@ -108,32 +116,26 @@ src/
 │   └── api/v1/             # API Routes
 │       ├── neumaticos/
 │       ├── vehiculos/
-│       ├── operaciones/
-│       │   ├── montaje/
-│       │   ├── desmontaje/
-│       │   ├── rotacion/
-│       │   ├── inspeccion/
-│       │   ├── reparacion/
-│       │   ├── reencauche/
-│       │   └── desecho/
-│       ├── catalogos/
-│       └── usuarios/
+│       ├── dashboard/
+│       ├── alertas/
+│       ├── inspecciones/
+│       └── catalogos/
 ├── lib/
 │   ├── auth/               # NextAuth config + RBAC
 │   ├── validators/         # Zod schemas
 │   ├── services/           # Lógica de negocio
 │   └── prisma.ts           # Cliente Prisma singleton
+├── components/             # UI components
 └── __tests__/
     └── integration/        # Tests de endpoints
 ```
 
 ---
 
-## 7. Patrones de Código Obligatorios
+## 6. Patrones de Código Obligatorios
 
 ### API Route Handler
 ```typescript
-// Patrón estándar para endpoints
 export async function GET(request: NextRequest) {
   try {
     // 1. Autenticación
@@ -155,7 +157,6 @@ export async function GET(request: NextRequest) {
 
 ### Validación con Zod
 ```typescript
-// En src/lib/validators/
 export const createResourceSchema = z.object({
   campo_requerido: z.string().min(1),
   campo_opcional: z.string().optional(),
@@ -167,25 +168,25 @@ export type CreateResourceDTO = z.infer<typeof createResourceSchema>;
 
 ---
 
-## 8. Testing
+## 7. Testing
 
-### Ejecutar Tests
 ```bash
 npm test                           # Todos los tests
 npm test -- --watch                # Watch mode
 npm test -- neumaticos.test.ts     # Test específico
+npm run test:integration           # Solo integration
 ```
 
 ### Tests Existentes (`src/__tests__/integration/`)
 - `catalogos.test.ts` - Almacenes y proveedores
 - `neumaticos.test.ts` - CRUD neumáticos
-- `operaciones.test.ts` - Montaje, desmontaje, etc.
-- `usuarios.test.ts` - CRUD usuarios
 - `vehiculos.test.ts` - CRUD vehículos
+- `alertas.test.ts` - Sistema de alertas
+- `dashboard.test.ts` - KPIs y reportes
 
 ---
 
-## 9. Prohibiciones
+## 8. Prohibiciones
 
 ❌ NO hacer cambios grandes sin confirmar primero  
 ❌ NO ignorar warnings de lint o build  
@@ -194,25 +195,30 @@ npm test -- neumaticos.test.ts     # Test específico
 ❌ NO ser complaciente – CUESTIONAR y MEJORAR  
 ❌ NO modificar `prisma/schema.prisma` sin validar después  
 ❌ NO exponer credenciales en commits  
+❌ **NO empezar tarea sin leer AGENT.md primero**  
+❌ **NO empezar tarea sin verificar estado de BD**  
 
 ---
 
-## 10. Documentación Crítica del Proyecto
+## 9. Documentación del Proyecto
 
-> ⚠️ **ATENCIÓN**: Algunos archivos .md contienen información obsoleta de una versión anterior (FastAPI/Python). Prioriza siempre `ARCHITECTURE.md` y `README.md` como fuentes de verdad.
-
-| Archivo | Estado | Notas |
-|---------|--------|-------|
-| `ARCHITECTURE.md` | ✅ Actual | Fuente de verdad para arquitectura |
-| `README.md` | ✅ Actual | Setup y visión general |
-| `API_ENDPOINTS.md` | ✅ Actual | Lista de endpoints |
-| `RESUMEN_ANALISIS_COMPLETO.md` | ⚠️ Obsoleto | Referencias a Python - IGNORAR |
-| `ANALISIS_ESTADO_ACTUAL_SISTEMA.md` | ⚠️ Obsoleto | Aplica a versión FastAPI |
-| `PARTE_*.md` | ⚠️ Obsoleto | Análisis de arquitectura antigua |
+| Propósito | Ubicación |
+|-----------|-----------|
+| Arquitectura | `docs/01_ARQUITECTURA.md` |
+| Modelo de Negocio | `docs/02_MODELO_NEGOCIO.md` |
+| API Reference | `docs/03_API_REFERENCE.md` |
+| Base de Datos | `docs/04_BASE_DATOS.md` |
+| Seguridad | `docs/05_SEGURIDAD.md` |
+| Testing | `docs/06_TESTING.md` |
+| Deploy | `docs/07_DEPLOY.md` |
+| Changelog | `docs/99_CHANGELOG.md` |
+| Roadmap | `ROADMAP.md` |
+| Gobernanza AI | `AGENT.md` |
+| Docs archivados | `docs/archive/legacy-analysis/` |
 
 ---
 
-## 11. Variables de Entorno
+## 10. Variables de Entorno
 
 Copiar `.env.example` a `.env` y completar:
 
@@ -226,7 +232,7 @@ NEXT_PUBLIC_SUPABASE_URL=
 NEXT_PUBLIC_SUPABASE_ANON_KEY=
 SUPABASE_SERVICE_ROLE_KEY=
 
-# Auth (REQUERIDO)
+# Auth (REQUERIDO - SIN FALLBACK)
 NEXTAUTH_URL=http://localhost:3005
 NEXTAUTH_SECRET=
 
@@ -237,14 +243,15 @@ JWT_ALGORITHM=HS256
 
 ---
 
-## 12. Al Finalizar Sesión
+## 11. Al Finalizar Sesión
 
 1. ✅ Correr `npm run build && npm run lint`
 2. ✅ Correr `npm test`
-3. ✅ Commit y push con mensaje descriptivo
-4. ✅ Reportar qué se completó
+3. ✅ Correr `npm run docs:audit`
+4. ✅ Commit y push con mensaje descriptivo
+5. ✅ Reportar qué se completó
 
 ---
 
 *Este archivo es la autoridad máxima de comportamiento para este proyecto.*  
-*Última actualización: 2025-12-22*
+*Última actualización: 2025-12-25*

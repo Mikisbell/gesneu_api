@@ -30,7 +30,8 @@ export async function middleware(request: NextRequest) {
     // Protect API routes
     if (request.nextUrl.pathname.startsWith('/api') && !token) {
         // Allow public API routes if needed (e.g. webhooks, auth endpoints)
-        const isPublicApi = request.nextUrl.pathname.startsWith('/api/v1/auth') ||
+        const isPublicApi = request.nextUrl.pathname.startsWith('/api/auth') || // NextAuth routes
+            request.nextUrl.pathname.startsWith('/api/v1/auth') ||
             request.nextUrl.pathname.startsWith('/api/v1/health');
 
         if (!isPublicApi) {

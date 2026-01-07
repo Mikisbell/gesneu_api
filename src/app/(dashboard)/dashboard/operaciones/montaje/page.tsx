@@ -144,8 +144,8 @@ export default function MontajePage() {
         setSelectedPosition(foundPos);
         form.setValue('posicion_neumatico_id', posicionId);
         // Pre-fill mileage if available from vehicle
-        if (vehicleDetails?.contador_actual) {
-            form.setValue('contador_vehiculo', vehicleDetails.contador_actual);
+        if (vehicleDetails?.odometro_actual) {
+            form.setValue('contador_vehiculo', vehicleDetails.odometro_actual);
         }
         setIsDialogOpen(true);
     };
@@ -198,7 +198,7 @@ export default function MontajePage() {
                                     <div>
                                         <span className="font-semibold">
                                             {vehicleDetails.tipo_medicion === 'HOROMETRO' ? 'Horómetro:' : 'Km:'}
-                                        </span> {vehicleDetails.contador_actual?.toLocaleString() || '-'} {vehicleDetails.tipo_medicion === 'HOROMETRO' ? 'hrs' : 'km'}
+                                        </span> {vehicleDetails.odometro_actual?.toLocaleString() || '-'} {vehicleDetails.tipo_medicion === 'HOROMETRO' ? 'hrs' : 'km'}
                                     </div>
                                 </div>
                             )}

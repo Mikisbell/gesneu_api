@@ -93,9 +93,9 @@ describe('Neumáticos API Integration Tests', () => {
                 modelo = await prisma.modeloNeumatico.create({
                     data: {
                         fabricante_id: fabricante.id,
-                        nombre: `X Multi Z Test ${timestamp}`,
+                        nombre_modelo: `X Multi Z Test ${timestamp}`,
                         medida: '295/80R22.5',
-                        profundidad_inicial_mm: 18.0
+                        profundidad_original_mm: 18.0
                     }
                 });
             } catch (e) {
@@ -113,7 +113,7 @@ describe('Neumáticos API Integration Tests', () => {
                 numero_serie: `TEST-NEW-${timestamp}`,
                 modelo_id: modelo.id,
                 dot: '2024',
-                profundidad_inicial_mm: 18.0,
+                profundidad_original_mm: 18.0,
                 ubicacion_almacen_id: almacen.id,
                 costo_compra: 450.00
             };

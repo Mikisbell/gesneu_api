@@ -1,6 +1,6 @@
 import { z } from 'zod';
 
-// Enums basados en schema.prisma
+// Enums basados en schema.prisma - DEBE estar sincronizado con TipoEventoNeumaticoEnum en schema.prisma
 export const TipoEventoNeumaticoEnum = z.enum([
     'COMPRA',
     'INSTALACION',
@@ -12,14 +12,7 @@ export const TipoEventoNeumaticoEnum = z.enum([
     'REENCAUCHE_ENTRADA',
     'REENCAUCHE_SALIDA',
     'DESECHO',
-    'AJUSTE_INVENTARIO',
-    'TRANSFERENCIA_UBICACION',
-    'ASIGNACION_A_ALMACEN',
-    'VENTA',
-    'MOVIMIENTO_ENTRE_ALMACENES',
-    'BAJA_POR_ROBO_EXTRAVIO',
-    'DESMONTE_POR_FIN_VIDA_UTIL',
-    'DESMONTE_TEMPORAL'
+    'AJUSTE_INVENTARIO'
 ]);
 
 export const EstadoNeumaticoEnum = z.enum([

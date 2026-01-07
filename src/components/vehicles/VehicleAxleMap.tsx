@@ -46,7 +46,7 @@ interface MontajeResponse {
 
 interface VehicleAxleMapProps {
     vehiculoId: string;
-    onSlotClick?: (posicionId: string) => void;
+    onSlotClick?: (posicionId: string, neumaticoId?: string, serial?: string) => void;
 }
 
 export function VehicleAxleMap({ vehiculoId, onSlotClick }: VehicleAxleMapProps) {
@@ -155,7 +155,7 @@ export function VehicleAxleMap({ vehiculoId, onSlotClick }: VehicleAxleMapProps)
                                             estado={pos.estado}
                                             neumatico={pos.neumatico}
                                             permiteReencauchado={pos.permite_reencauchado}
-                                            onClick={onSlotClick}
+                                            onClick={(posId) => onSlotClick?.(posId, pos.neumatico?.id, pos.neumatico?.numero_serie)}
                                         />
                                     ))}
                                 </div>
@@ -183,7 +183,7 @@ export function VehicleAxleMap({ vehiculoId, onSlotClick }: VehicleAxleMapProps)
                                             estado={pos.estado}
                                             neumatico={pos.neumatico}
                                             permiteReencauchado={pos.permite_reencauchado}
-                                            onClick={onSlotClick}
+                                            onClick={(posId) => onSlotClick?.(posId, pos.neumatico?.id, pos.neumatico?.numero_serie)}
                                         />
                                     ))}
                                 </div>

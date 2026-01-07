@@ -9,10 +9,12 @@ export interface IVehiculo extends Vehiculo {
     };
     neumaticos_instalados?: {
         id: string;
-        numero_serie: string;
+        numero_serie: string | null;
         ubicacion_posicion?: {
             id: string;
-            numero_posicion: number;
+            posicion_relativa?: number;
+            codigo_posicion?: string;
+            numero_posicion?: number; // Keep for compatibility if strict mapping not done
         } | null;
     }[];
 }
@@ -25,7 +27,7 @@ export interface CreateVehiculoDTO {
     modelo: string;
     anio: number;
     tipo_medicion?: 'KILOMETRAJE' | 'HOROMETRO';
-    contador_actual?: number;
+    odometro_actual?: number;
     motor_serie?: string;
     chasis_serie?: string;
     activo?: boolean;
@@ -38,7 +40,7 @@ export interface UpdateVehiculoDTO {
     modelo?: string;
     anio?: number;
     tipo_medicion?: 'KILOMETRAJE' | 'HOROMETRO';
-    contador_actual?: number;
+    odometro_actual?: number;
     motor_serie?: string;
     chasis_serie?: string;
     activo?: boolean;

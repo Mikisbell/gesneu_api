@@ -150,8 +150,8 @@ export default function RotacionPage() {
             // Prepare form
             form.setValue('neumatico_id', sourceTire.id);
             form.setValue('posicion_montaje_id', posicionId);
-            if (vehicleDetails?.contador_actual) {
-                form.setValue('contador_vehiculo', vehicleDetails.contador_actual);
+            if (vehicleDetails?.odometro_actual) {
+                form.setValue('contador_vehiculo', vehicleDetails.odometro_actual);
             }
 
             setIsDialogOpen(true);

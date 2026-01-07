@@ -712,7 +712,7 @@ export { }
  *           description: Desgaste en milímetros por cada 1000 km recorridos
  *         profundidad_inicial_mm:
  *           type: number
- *         profundidad_actual_mm:
+ *         profundidad_remanente_actual_mm:
  *           type: number
  *         desgaste_total_mm:
  *           type: number

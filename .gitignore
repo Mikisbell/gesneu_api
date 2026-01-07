@@ -56,7 +56,8 @@ data/
 *.db
 *.sql
 !prisma/schema.prisma
-!prisma/migrations/*.sql
+!scripts/*.sql
+!prisma/migrations/**/*.sql
 *.sqlite3
 
 # Directorios de dependencias
