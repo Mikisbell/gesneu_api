@@ -115,7 +115,7 @@ export function Sidebar() {
     // Si está cargando auth, mostramos esqueleto o nada
     if (isLoading) return <div className="w-64 bg-gray-100 dark:bg-gray-900 border-r" />
 
-    const filterItems = (items: typeof catalogosItems) => {
+    const filterItems = (items: any[]) => {
         return items.filter(item => !item.permission || hasPermission(item.permission))
     }
 
