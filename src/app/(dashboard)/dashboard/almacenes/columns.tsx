@@ -27,7 +27,7 @@ export const getColumns = ({ onEdit }: GetColumnsProps): ColumnDef<Almacen>[] =>
         header: "Nombre",
     },
     {
-        accessorKey: "ubicacion",
+        accessorKey: "direccion",
         header: "Ubicación",
     },
     {
