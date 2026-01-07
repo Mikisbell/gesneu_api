@@ -31,7 +31,7 @@ export const getColumns = ({ onEdit }: GetColumnsProps): ColumnDef<VehiculoWithR
         header: "Marca",
     },
     {
-        accessorKey: "modelo",
+        accessorKey: "modelo_vehiculo",
         header: "Modelo",
     },
     {

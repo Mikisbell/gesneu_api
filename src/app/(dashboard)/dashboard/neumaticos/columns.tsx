@@ -25,7 +25,7 @@ export const getColumns = ({ onEdit }: GetColumnsProps): ColumnDef<NeumaticoWith
         cell: ({ row }) => <span className="font-medium">{row.getValue("numero_serie")}</span>,
     },
     {
-        accessorKey: "modelo.nombre",
+        accessorKey: "modelo.nombre_modelo",
         header: "Modelo",
     },
     {
