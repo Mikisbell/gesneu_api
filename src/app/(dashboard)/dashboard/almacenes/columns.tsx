@@ -15,9 +15,10 @@ import {
 
 interface GetColumnsProps {
     onEdit: (almacen: Almacen) => void
+    onDelete: (id: string) => void
 }
 
-export const getColumns = ({ onEdit }: GetColumnsProps): ColumnDef<Almacen>[] => [
+export const getColumns = ({ onEdit, onDelete }: GetColumnsProps): ColumnDef<Almacen>[] => [
     {
         accessorKey: "codigo",
         header: "Código",
@@ -63,7 +64,10 @@ export const getColumns = ({ onEdit }: GetColumnsProps): ColumnDef<Almacen>[] =>
                         <DropdownMenuItem onClick={() => onEdit(almacen)}>
                             <Pencil className="mr-2 h-4 w-4" /> Editar
                         </DropdownMenuItem>
-                        <DropdownMenuItem className="text-red-600">
+                        <DropdownMenuItem
+                            className="text-red-600 cursor-pointer"
+                            onClick={() => onDelete(almacen.id)}
+                        >
                             <Trash className="mr-2 h-4 w-4" /> Eliminar
                         </DropdownMenuItem>
                     </DropdownMenuContent>

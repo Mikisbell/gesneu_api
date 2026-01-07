@@ -15,9 +15,10 @@ import {
 
 interface GetColumnsProps {
     onEdit: (vehiculo: VehiculoWithRelations) => void
+    onDelete: (id: string) => void
 }
 
-export const getColumns = ({ onEdit }: GetColumnsProps): ColumnDef<VehiculoWithRelations>[] => [
+export const getColumns = ({ onEdit, onDelete }: GetColumnsProps): ColumnDef<VehiculoWithRelations>[] => [
     {
         accessorKey: "placa",
         header: "Placa",
@@ -86,7 +87,10 @@ export const getColumns = ({ onEdit }: GetColumnsProps): ColumnDef<VehiculoWithR
                                 <span className="mr-2">🔧</span> Montaje
                             </a>
                         </DropdownMenuItem>
-                        <DropdownMenuItem className="text-red-600">
+                        <DropdownMenuItem
+                            className="text-red-600 cursor-pointer"
+                            onClick={() => onDelete(vehiculo.id)}
+                        >
                             <Trash className="mr-2 h-4 w-4" /> Eliminar
                         </DropdownMenuItem>
                     </DropdownMenuContent>

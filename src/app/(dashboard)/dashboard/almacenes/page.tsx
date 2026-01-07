@@ -1,7 +1,8 @@
 'use client'
 
 import { useState } from 'react'
-import { useQuery } from '@tanstack/react-query'
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
+import { useToast } from '@/components/ui/use-toast'
 import { almacenesApi } from '@/lib/api/almacenes'
 import { DataTable } from '@/components/ui/data-table'
 import { getColumns } from './columns'
@@ -37,7 +38,37 @@ export default function AlmacenesPage() {
         setEditingAlmacen(null)
     }
 
-    const columns = getColumns({ onEdit: handleEdit })
+    const queryClient = useQueryClient()
+    const { toast } = useToast()
+
+    const deleteMutation = useMutation({
+        mutationFn: almacenesApi.delete,
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ['almacenes'] })
+            toast({
+                title: "Almacén eliminado",
+                description: "El registro ha sido eliminado correctamente."
+            })
+        },
+        onError: (error: Error) => {
+            toast({
+                variant: "destructive",
+                title: "Error al eliminar",
+                description: error.message || "No se pudo eliminar el registro."
+            })
+        }
+    })
+
+    const handleDelete = (id: string) => {
+        if (window.confirm("¿Está seguro de que desea eliminar este almacén? Esta acción no se puede deshacer.")) {
+            deleteMutation.mutate(id)
+        }
+    }
+
+    const columns = getColumns({
+        onEdit: handleEdit,
+        onDelete: handleDelete
+    })
 
     if (isError) {
         return (
