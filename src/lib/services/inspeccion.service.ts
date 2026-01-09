@@ -11,9 +11,10 @@ export class InspeccionService {
 
     async registrarManual(data: CreateInspeccionDTO, userId: string) {
 
-        // 1. Verificar Neumático
+        // 1. Verificar Neumático con Modelo
         const neumatico = await prisma.neumatico.findUnique({
-            where: { id: data.neumatico_id }
+            where: { id: data.neumatico_id },
+            include: { modelo: true }
         });
 
         if (!neumatico) throw BusinessError.notFound('Neumático', data.neumatico_id);
@@ -51,11 +52,21 @@ export class InspeccionService {
             }
         });
 
-        // 5. Disparar alerta si presión < mínimo
+        // 5. Disparar alerta dinámina
+        // Si hay presión recomendada, usamos el 80% como umbral crítico. Si no, fallback a 80 PSI.
+        // Convertir decimal a number si viene de Prisma.
+        const recomendada = neumatico.modelo.presion_recomendada_psi
+            ? Number(neumatico.modelo.presion_recomendada_psi)
+            : 100; // Valor base si no existe (asume 100 para dar 80 de umbral)
+
+        const umbralMinimo = neumatico.modelo.presion_recomendada_psi
+            ? Math.round(recomendada * 0.8)
+            : PRESION_MINIMA_PSI;
+
         await this.alertasService.generarAlertaPresion(
             data.neumatico_id,
             data.presion_psi,
-            PRESION_MINIMA_PSI
+            umbralMinimo
         );
 
         return lectura;

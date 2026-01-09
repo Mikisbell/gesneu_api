@@ -1,6 +1,7 @@
 import { Neumatico, Prisma } from '@prisma/client';
 import { BaseRepository } from './base.repository';
-import { CreateNeumaticoDTO, UpdateNeumaticoDTO, INeumatico, NeumaticoFilters } from '@/types/domain/neumatico.types';
+import { CreateNeumaticoDTO, UpdateNeumaticoDTO, NeumaticoEntity, NeumaticoFilters } from '@/types/domain/neumatico.types';
+import { NeumaticoId } from '@/types/branded.types';
 
 export class NeumaticoRepository extends BaseRepository<Neumatico, CreateNeumaticoDTO, UpdateNeumaticoDTO> {
     protected model = this.db.neumatico;
@@ -8,7 +9,7 @@ export class NeumaticoRepository extends BaseRepository<Neumatico, CreateNeumati
     /**
      * Busca un neumático por su número de serie único
      */
-    async findBySerie(numeroSerie: string): Promise<INeumatico | null> {
+    async findBySerie(numeroSerie: string): Promise<NeumaticoEntity | null> {
         try {
             return await this.model.findFirst({
                 where: { numero_serie: numeroSerie },
@@ -19,10 +20,16 @@ export class NeumaticoRepository extends BaseRepository<Neumatico, CreateNeumati
                         }
                     },
                     ubicacion_almacen: true,
-                    ubicacion_vehiculo: true,
-                    ubicacion_posicion: true
+                    ubicacion_vehiculo: {
+                        include: {
+                            tipo_vehiculo: true
+                        }
+                    },
+                    ubicacion_posicion: true,
+                    proveedor_compra: true,
+                    motivo_desecho: true
                 }
-            });
+            }) as unknown as NeumaticoEntity | null;
         } catch (error) {
             this.handleError(error);
             throw error;
@@ -32,7 +39,7 @@ export class NeumaticoRepository extends BaseRepository<Neumatico, CreateNeumati
     /**
      * Obtiene neumáticos con filtros avanzados y relaciones
      */
-    async findAllWithRelations(filters: NeumaticoFilters = {}): Promise<INeumatico[]> {
+    async findAllWithRelations(filters: NeumaticoFilters = {}): Promise<NeumaticoEntity[]> {
         const where: Prisma.NeumaticoWhereInput = {};
 
         if (filters.search) {
@@ -70,13 +77,49 @@ export class NeumaticoRepository extends BaseRepository<Neumatico, CreateNeumati
                         }
                     },
                     ubicacion_almacen: true,
-                    ubicacion_vehiculo: true,
-                    ubicacion_posicion: true
+                    ubicacion_vehiculo: {
+                        include: {
+                            tipo_vehiculo: true
+                        }
+                    },
+                    ubicacion_posicion: true,
+                    proveedor_compra: true,
+                    motivo_desecho: true
                 },
                 orderBy: {
                     creado_en: 'desc'
                 }
-            });
+            }) as unknown as NeumaticoEntity[];
+        } catch (error) {
+            this.handleError(error);
+            throw error;
+        }
+    }
+
+    /**
+     * Busca un neumático por ID con todas sus relaciones
+     */
+    async findByIdWithFullRelations(id: NeumaticoId): Promise<NeumaticoEntity | null> {
+        try {
+            return await this.model.findUnique({
+                where: { id },
+                include: {
+                    modelo: {
+                        include: {
+                            fabricante: true
+                        }
+                    },
+                    ubicacion_almacen: true,
+                    ubicacion_vehiculo: {
+                        include: {
+                            tipo_vehiculo: true
+                        }
+                    },
+                    ubicacion_posicion: true,
+                    proveedor_compra: true,
+                    motivo_desecho: true
+                }
+            }) as unknown as NeumaticoEntity | null;
         } catch (error) {
             this.handleError(error);
             throw error;

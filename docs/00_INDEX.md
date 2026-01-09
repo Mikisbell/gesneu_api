@@ -1,61 +1,47 @@
-# 📚 Índice de Documentación - GesNeu API
+# 📚 Documentación GesNeu API
 
-> **Sistema de Gestión de Neumáticos para Flotas**  
-> Última actualización: Diciembre 2025
+Bienvenido a la documentación técnica de **GesNeu API**, el sistema integral para gestión de activos de neumáticos y flotas.
 
----
+## 🗂 Estructura de Documentación
 
-## 🏗️ Arquitectura y Diseño
-
-| Documento | Descripción |
-|-----------|-------------|
-| [01_ARQUITECTURA.md](./01_ARQUITECTURA.md) | Decisiones técnicas, stack, patrones |
-| [02_MODELO_NEGOCIO.md](./02_MODELO_NEGOCIO.md) | Ciclo de vida del neumático, eventos, estados |
-
----
-
-## 🔌 API y Datos
-
-| Documento | Descripción |
-|-----------|-------------|
-| [03_API_REFERENCE.md](./03_API_REFERENCE.md) | Endpoints, payloads, responses |
-| [04_BASE_DATOS.md](./04_BASE_DATOS.md) | Schema Prisma, RLS, migraciones |
-
----
-
-## 🔒 Seguridad y Calidad
-
-| Documento | Descripción |
-|-----------|-------------|
-| [05_SEGURIDAD.md](./05_SEGURIDAD.md) | Auth, RBAC, audit trail |
-| [06_TESTING.md](./06_TESTING.md) | Estrategia de tests, coverage |
+1.  [**Arquitectura del Sistema**](./01_ARQUITECTURA.md)
+    *   Diseño de alto nivel, stack tecnológico y patrones.
+2.  [**Modelo de Negocio**](./02_MODELO_NEGOCIO.md)
+    *   Entidades principales, ciclo de vida del neumático y reglas.
+3.  [**Referencia API**](./03_API_REFERENCE.md)
+    *   Endpoints, autenticación y especificaciones técnicas.
+4.  [**Base de Datos**](./04_BASE_DATOS.md)
+    *   Diagrama ER, esquemas Prisma y migraciones.
+5.  [**Seguridad**](./05_SEGURIDAD.md)
+    *   Roles, permisos (RBAC) y auditoría.
+6.  [**Testing & QA**](./06_TESTING.md)
+    *   Estrategias de prueba, unitarias y E2E.
+7.  [**Guía de Despliegue**](./07_DEPLOY.md)
+    *   Configuración de Vercel, Supabase y variables de entorno.
+8.  [**Integraciones & Webhooks**](./08_INTEGRACIONES.md) 🆕
+    *   Guía para conectar ERPs y sistemas externos.
 
 ---
 
-## 🚀 Operaciones
+## 🚀 Inicio Rápido
 
-| Documento | Descripción |
-|-----------|-------------|
-| [07_DEPLOY.md](./07_DEPLOY.md) | Docker, Vercel, variables de entorno |
-| [99_CHANGELOG.md](./99_CHANGELOG.md) | Historial de cambios importantes |
+### Requisitos Previos
+*   Node.js 18+
+*   PostgreSQL 14+ (Supabase recomendado)
 
----
+### Instalación
+```bash
+git clone https://github.com/Mikisbell/gesneu_api.git
+cd gesneu_api
+npm install
+```
 
-## 📁 Documentos en Raíz
-
-| Archivo | Propósito |
-|---------|-----------|
-| [AGENT.md](../AGENT.md) | Gobernanza para AI |
-| [PROMPT_PRINCIPAL.md](../PROMPT_PRINCIPAL.md) | Contexto de interacción AI |
-| [ROADMAP.md](../ROADMAP.md) | Planificación Q1 2026 |
-| [README.md](../README.md) | Onboarding del proyecto |
-
----
-
-## 📦 Archivo Histórico
-
-Documentación legacy y análisis previos disponibles en `/docs/archive/`.
+### Desarrollo
+```bash
+npm run dev
+```
 
 ---
 
-*Para ejecutar auditoría de documentación: `npm run docs:audit`*
+## 🤝 Contribución
+Consulte `AGENT.md` para las reglas de desarrollo y estilo de código.

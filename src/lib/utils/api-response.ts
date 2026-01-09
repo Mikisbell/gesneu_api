@@ -52,15 +52,15 @@ export class ApiResponseHelper {
     }, { status })
   }
 
-  static unauthorized(message = ERROR_MESSAGES.UNAUTHORIZED): NextResponse<ApiError> {
+  static unauthorized(message: string = ERROR_MESSAGES.UNAUTHORIZED): NextResponse<ApiError> {
     return this.error(message, HTTP_STATUS.UNAUTHORIZED, 'UNAUTHORIZED')
   }
 
-  static forbidden(message = ERROR_MESSAGES.FORBIDDEN): NextResponse<ApiError> {
+  static forbidden(message: string = ERROR_MESSAGES.FORBIDDEN): NextResponse<ApiError> {
     return this.error(message, HTTP_STATUS.FORBIDDEN, 'FORBIDDEN')
   }
 
-  static notFound(message = ERROR_MESSAGES.NOT_FOUND): NextResponse<ApiError> {
+  static notFound(message: string = ERROR_MESSAGES.NOT_FOUND): NextResponse<ApiError> {
     return this.error(message, HTTP_STATUS.NOT_FOUND, 'NOT_FOUND')
   }
 
@@ -68,13 +68,30 @@ export class ApiResponseHelper {
     return this.error(message, HTTP_STATUS.CONFLICT, 'CONFLICT')
   }
 
-  static validationError(error: ZodError): NextResponse<ApiError> {
+  static badRequest(message: string): NextResponse<ApiError> {
+    return this.error(message, HTTP_STATUS.BAD_REQUEST, 'BAD_REQUEST')
+  }
+
+  static validationError(error: ZodError): NextResponse<ApiError>;
+  static validationError(fields: Record<string, string[]>, message?: string): NextResponse<ApiError>;
+  static validationError(
+    errorOrFields: ZodError | Record<string, string[]>,
+    message?: string
+  ): NextResponse<ApiError> {
+    if (errorOrFields instanceof ZodError) {
+      return this.error(
+        ERROR_MESSAGES.VALIDATION_ERROR,
+        HTTP_STATUS.BAD_REQUEST,
+        'VALIDATION_ERROR',
+        errorOrFields.issues
+      );
+    }
     return this.error(
-      ERROR_MESSAGES.VALIDATION_ERROR,
+      message || ERROR_MESSAGES.VALIDATION_ERROR,
       HTTP_STATUS.BAD_REQUEST,
       'VALIDATION_ERROR',
-      error.issues
-    )
+      errorOrFields
+    );
   }
 
   static handleError(error: unknown): NextResponse<ApiError> {

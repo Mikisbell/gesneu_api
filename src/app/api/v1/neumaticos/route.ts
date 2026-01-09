@@ -1,12 +1,16 @@
-import { NextRequest } from 'next/server'
-import { NeumaticoService } from '@/lib/services/neumatico.service'
-import { ApiResponseHelper } from '@/lib/utils/api-response'
-import { CreateNeumaticoDTO } from '@/types/domain/neumatico.types'
-import { CreateNeumaticoSchema } from '@/lib/validators/neumatico.validator'
-import { requireAuth, requirePermission } from '@/lib/auth/authorization'
-import { PERMISSIONS } from '@/lib/auth/permissions'
+import { NextRequest } from 'next/server';
+import { NeumaticoService } from '@/lib/services/neumatico.service';
+import { ApiResponseHelper } from '@/lib/utils/api-response';
+import {
+    validateCreateNeumatico,
+    validateNeumaticoFilters,
+    formatZodErrors
+} from '@/lib/validators/neumatico.validator';
+import { requireAuth, requirePermission } from '@/lib/auth/authorization';
+import { PERMISSIONS } from '@/lib/auth/permissions';
+import { asEmpresaId, asUsuarioId } from '@/types/branded.types';
 
-const service = new NeumaticoService()
+const service = new NeumaticoService();
 
 /**
  * @swagger
@@ -17,57 +21,6 @@ const service = new NeumaticoService()
  *     tags: [Neumáticos]
  *     security:
  *       - bearerAuth: []
- *     parameters:
- *       - in: query
- *         name: numero_serie
- *         schema:
- *           type: string
- *         description: Filtrar por número de serie
- *       - in: query
- *         name: modelo_id
- *         schema:
- *           type: string
- *           format: uuid
- *         description: Filtrar por ID de modelo
- *       - in: query
- *         name: estado_actual
- *         schema:
- *           type: string
- *           enum: [STOCK, MONTADO, REPARACION, REENCAUCHE, DESECHO]
- *         description: Filtrar por estado actual
- *       - in: query
- *         name: ubicacion_almacen_id
- *         schema:
- *           type: string
- *           format: uuid
- *         description: Filtrar por ubicación en almacén
- *       - in: query
- *         name: ubicacion_vehiculo_id
- *         schema:
- *           type: string
- *           format: uuid
- *         description: Filtrar por ubicación en vehículo
- *       - in: query
- *         name: activo
- *         schema:
- *           type: boolean
- *         description: Filtrar por estado activo/inactivo
- *     responses:
- *       200:
- *         description: Lista de neumáticos recuperada exitosamente
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 data:
- *                   type: array
- *                   items:
- *                     $ref: '#/components/schemas/Neumatico'
- *       401:
- *         description: No autenticado
- *       403:
- *         description: Permisos insuficientes (Requiere NEUMATICOS_READ)
  */
 export async function GET(request: NextRequest) {
     try {
@@ -77,23 +30,32 @@ export async function GET(request: NextRequest) {
         // 2. Authorization
         requirePermission(session, PERMISSIONS.NEUMATICOS_READ);
 
-        // 3. Business logic
-        const { searchParams } = new URL(request.url)
-        const filters = {
-            numero_serie: searchParams.get('numero_serie') || undefined,
-            modelo_id: searchParams.get('modelo_id') || undefined,
-            estado_actual: searchParams.get('estado_actual') as any || undefined,
-            ubicacion_almacen_id: searchParams.get('ubicacion_almacen_id') || undefined,
-            ubicacion_vehiculo_id: searchParams.get('ubicacion_vehiculo_id') || undefined,
-            dot: searchParams.get('dot') || undefined,
-            activo: searchParams.has('activo') ? searchParams.get('activo') === 'true' : undefined,
-            search: searchParams.get('q') || undefined
+        // 3. Validation & Parsing
+        const { searchParams } = new URL(request.url);
+        const filtersRaw = {
+            search: searchParams.get('q') || undefined,
+            serie: searchParams.get('numero_serie') || undefined,
+            marca: searchParams.get('marca') || undefined,
+            estado: searchParams.get('estado') || undefined,
+            vehiculo_id: searchParams.get('vehiculo_id') || undefined,
+            ubicacion: searchParams.get('ubicacion') || undefined // ALMACEN assigned in Zod?
+        };
+
+        const validation = validateNeumaticoFilters(filtersRaw);
+        if (!validation.success) {
+            return ApiResponseHelper.validationError(formatZodErrors(validation.error));
         }
 
-        const neumaticos = await service.getAll(filters)
-        return ApiResponseHelper.success(neumaticos)
+        // 4. Business Logic
+        const result = await service.getAll(validation.data);
+
+        if (!result.success) {
+            return ApiResponseHelper.handleError(result.error);
+        }
+
+        return ApiResponseHelper.success(result.data);
     } catch (error) {
-        return ApiResponseHelper.handleError(error)
+        return ApiResponseHelper.handleError(error);
     }
 }
 
@@ -104,32 +66,6 @@ export async function GET(request: NextRequest) {
  *     summary: Crear neumático
  *     description: Crea un nuevo neumático en el sistema.
  *     tags: [Neumáticos]
- *     security:
- *       - bearerAuth: []
- *     requestBody:
- *       required: true
- *       content:
- *         application/json:
- *           schema:
- *             $ref: '#/components/schemas/CreateNeumaticoDTO'
- *     responses:
- *       201:
- *         description: Neumático creado exitosamente
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 data:
- *                   $ref: '#/components/schemas/Neumatico'
- *                 message:
- *                   type: string
- *       400:
- *         description: Datos inválidos
- *       401:
- *         description: No autenticado
- *       403:
- *         description: Permisos insuficientes (Requiere NEUMATICOS_CREATE)
  */
 export async function POST(request: NextRequest) {
     try {
@@ -143,20 +79,33 @@ export async function POST(request: NextRequest) {
             return ApiResponseHelper.unauthorized();
         }
 
-        // 3. Business logic
+        // Ensure multi-tenancy
+        const empresaId = session.user.empresa_id;
+        if (!empresaId) {
+            return ApiResponseHelper.forbidden('Usuario no asociado a una empresa');
+        }
+
+        // 3. Validation
         const json = await request.json();
-        // ✅ Validate input with Zod to prevent Mass Assignment
-        const validated = CreateNeumaticoSchema.parse(json);
+        const validation = validateCreateNeumatico(json);
 
-        // Convert Zod types to Domain DTO types (Date string to Date object)
-        const body: CreateNeumaticoDTO = {
-            ...validated,
-            fecha_compra: validated.fecha_compra ? new Date(validated.fecha_compra) : undefined
-        };
+        if (!validation.success) {
+            return ApiResponseHelper.validationError(formatZodErrors(validation.error));
+        }
 
-        const neumatico = await service.create(body, session.user.id);
-        return ApiResponseHelper.created(neumatico, 'Neumático creado exitosamente')
+        // 4. Business logic
+        const result = await service.create(
+            validation.data,
+            asEmpresaId(empresaId),
+            asUsuarioId(session.user.id)
+        );
+
+        if (!result.success) {
+            return ApiResponseHelper.handleError(result.error);
+        }
+
+        return ApiResponseHelper.created(result.data, 'Neumático creado exitosamente');
     } catch (error) {
-        return ApiResponseHelper.handleError(error)
+        return ApiResponseHelper.handleError(error);
     }
 }

@@ -1,15 +1,38 @@
 import { NeumaticoRepository } from '@/lib/repositories/neumatico.repository';
-import { CreateNeumaticoDTO, UpdateNeumaticoDTO, INeumatico, NeumaticoFilters, EventoCompraInput } from '@/types/domain/neumatico.types';
+import {
+    CreateNeumaticoDTO,
+    UpdateNeumaticoDTO,
+    NeumaticoResponse,
+    NeumaticoFilters,
+    EventoCompraInput
+} from '@/types/domain/neumatico.types';
+import {
+    mapDtoToPrismaCreate,
+    mapDtoToPrismaUpdate,
+    mapEntityToResponse,
+    mapEntitiesToResponses
+} from '@/lib/mappers/neumatico.mapper';
+import {
+    Result,
+    ok,
+    err,
+    BusinessError,
+    ConflictError,
+    NotFoundError,
+    ValidationError
+} from '@/types/result.types';
+import { asNeumaticoId, NeumaticoId, EmpresaId, UsuarioId } from '@/types/branded.types';
 import { prisma } from '@/lib/prisma';
-import { EventoNeumaticoCreate } from '@/lib/validators/evento-neumatico';
 import { TipoEventoNeumaticoEnum, EstadoNeumaticoEnum, Prisma, Neumatico } from '@prisma/client';
-import { BusinessError } from '@/lib/errors/business.error';
 import { toNumber } from '@/lib/utils/decimal';
+import { EventoNeumaticoCreate } from '@/lib/validators/evento-neumatico';
+import { EventoNeumaticoService } from './evento-neumatico.service';
+
 
 // Tipado seguro para la transacción
 type TxClient = Prisma.TransactionClient;
 
-// Definición extendida para typescript dentro del servicio
+// Definición extendida para typescript dentro del servicio (Legacy support)
 interface EventoCompra extends EventoNeumaticoCreate {
     numero_serie?: string;
     modelo_id?: string;
@@ -25,522 +48,201 @@ export class NeumaticoService {
         this.repository = new NeumaticoRepository();
     }
 
-    async getAll(filters?: NeumaticoFilters): Promise<INeumatico[]> {
-        return await this.repository.findAllWithRelations(filters);
-    }
-
-    async getById(id: string): Promise<INeumatico | null> {
-        return await this.repository.findById(id);
-    }
-
-    async getBySerie(serie: string): Promise<INeumatico | null> {
-        return await this.repository.findBySerie(serie);
-    }
-
-    async create(data: CreateNeumaticoDTO, userId: string): Promise<INeumatico> {
-        const evento: EventoNeumaticoCreate = {
-            tipo_evento: TipoEventoNeumaticoEnum.COMPRA,
-            fecha_evento: data.fecha_compra?.toISOString() || new Date().toISOString(),
-            numero_serie: data.numero_serie,
-            modelo_id: data.modelo_id,
-            dot: data.dot,
-            profundidad_inicial: data.profundidad_inicial_mm,
-            costo_compra: data.costo_compra,
-            almacen_destino_id: data.ubicacion_almacen_id,
-            observaciones: 'Creación directa desde API'
-        };
-        const result = await this.registrarEvento(evento, userId);
-        return result.neumatico;
-    }
-
-    async update(id: string, data: UpdateNeumaticoDTO): Promise<INeumatico> {
-        return await this.repository.update(id, data);
-    }
-
-    async delete(id: string): Promise<INeumatico> {
-        return await this.repository.delete(id);
-    }
-
-    // --- MÉTODO PRINCIPAL DE TRANSACCIÓN ---
-    async registrarEvento(evento: EventoNeumaticoCreate, userId: string): Promise<any> {
-        const { tipo_evento } = evento;
-
-        const transactionResult = await prisma.$transaction(async (tx) => {
-            let result;
-
-            switch (tipo_evento) {
-                // ✅ FIX CRÍTICO 1: El evento COMPRA ahora es ciudadano de primera clase
-                case TipoEventoNeumaticoEnum.COMPRA:
-                    result = await this._handleCompra(evento as unknown as EventoCompraInput, userId, tx);
-                    break;
-                case TipoEventoNeumaticoEnum.INSTALACION:
-                    result = await this._handleInstalacion(evento, userId, tx);
-                    break;
-                case TipoEventoNeumaticoEnum.DESMONTAJE:
-                    result = await this._handleDesmontaje(evento, userId, tx);
-                    break;
-                case TipoEventoNeumaticoEnum.INSPECCION:
-                    result = await this._handleInspeccion(evento, userId, tx);
-                    break;
-                case TipoEventoNeumaticoEnum.ROTACION:
-                    result = await this._handleRotacion(evento, userId, tx);
-                    break;
-                case TipoEventoNeumaticoEnum.REPARACION_ENTRADA:
-                    result = await this._handleReparacionEntrada(evento, userId, tx);
-                    break;
-                case TipoEventoNeumaticoEnum.REPARACION_SALIDA:
-                    result = await this._handleReparacionSalida(evento, userId, tx);
-                    break;
-                case TipoEventoNeumaticoEnum.REENCAUCHE_ENTRADA:
-                    result = await this._handleReencaucheEntrada(evento, userId, tx);
-                    break;
-                case TipoEventoNeumaticoEnum.REENCAUCHE_SALIDA:
-                    result = await this._handleReencaucheSalida(evento, userId, tx);
-                    break;
-                case TipoEventoNeumaticoEnum.DESECHO:
-                    result = await this._handleDesecho(evento, userId, tx);
-                    break;
-                default:
-                    throw new Error(`Evento ${tipo_evento} no soportado aún.`);
+    /**
+     * Crea un nuevo neumático (Compra/Alta).
+     * Implementa multi-tenancy y validación de negocio.
+     */
+    async create(
+        dto: CreateNeumaticoDTO,
+        empresa_id: EmpresaId,
+        userId: UsuarioId
+    ): Promise<Result<NeumaticoResponse, BusinessError>> {
+        // 1. Validaciones previas
+        if (dto.numero_serie) {
+            const existing = await this.repository.findBySerie(dto.numero_serie);
+            if (existing) {
+                return err(new ConflictError(`Ya existe un neumático con serie ${dto.numero_serie}`));
             }
+        }
 
-            return result;
-        });
+        try {
+            // 2. Transacción de creación (Neumático + Evento Compra)
+            const result = await prisma.$transaction(async (tx) => {
+                // Preparar datos con mapper
+                const prismaInput = mapDtoToPrismaCreate(dto);
 
-        // ✅ WEBHOOK INTEGRATION (Fire & Forget)
-        // Se ejecuta fuera de la transacción para asegurar que el evento ya se persistió
-        this.dispatchWebhookIfConfigured(tipo_evento, transactionResult, userId).catch(err =>
-            console.error('[NeumaticoService] Webhook dispatch error:', err)
-        );
+                // Forzar empresa_id (Multi-tenancy critical)
+                const createData = {
+                    ...prismaInput,
+                    empresa: { connect: { id: empresa_id } },
+                    creado_por: userId,
+                    activo: true,
+                    fecha_compra: new Date(dto.fecha_compra || new Date()),
+                };
 
-        return transactionResult;
+                // Crear Neumático
+                const neumatico = await tx.neumatico.create({
+                    data: createData as any, // Cast necesario por tipos complejos de connect
+                    include: {
+                        modelo: { include: { fabricante: true } },
+                        ubicacion_almacen: true,
+                        ubicacion_vehiculo: { include: { tipo_vehiculo: true } },
+                        ubicacion_posicion: true,
+                        proveedor_compra: true,
+                        motivo_desecho: true
+                    }
+                });
+
+                // Registrar Evento Inicial (COMPRA)
+                await tx.eventoNeumatico.create({
+                    data: {
+                        tipo_evento: TipoEventoNeumaticoEnum.COMPRA,
+                        neumatico_id: neumatico.id,
+                        fecha_evento: new Date(dto.fecha_compra || new Date()),
+                        // Datos del evento
+                        proveedor_id: dto.proveedor_id,
+                        almacen_destino_id: dto.ubicacion_almacen_id, // Si fue a almacén
+                        costo_evento: dto.costo_compra ? new Prisma.Decimal(dto.costo_compra) : undefined,
+                        profundidad_remanente: dto.profundidad_inicial ?? 0,
+                        notas: 'Alta inicial sistema',
+                        creado_por: userId
+                    }
+                });
+
+                return neumatico;
+            });
+
+            // 3. Mapear respuesta
+            return ok(mapEntityToResponse(result as any));
+
+        } catch (error: any) {
+            console.error('[NeumaticoService.create] Error:', error);
+            if (error.code === 'P2002') {
+                return err(new ConflictError('Ya existe un neumático con estos datos únicos'));
+            }
+            return err(new BusinessError('Error al crear neumático', 'CREATE_ERROR', 500));
+        }
     }
 
     /**
-     * Dispara webhooks para eventos configurados
+     * Obtiene todos los neumáticos con filtros.
      */
-    private async dispatchWebhookIfConfigured(tipo: string, result: any, userId: string) {
-        // Mapeo de eventos que interesan a webhooks
-        const INTERESTING_EVENTS: string[] = [
-            'DESECHO',
-            'REENCAUCHE_SALIDA',
-            'INSTALACION',
-            'DESMONTAJE'
-        ];
+    async getAll(filters?: NeumaticoFilters): Promise<Result<NeumaticoResponse[], BusinessError>> {
+        try {
+            const entities = await this.repository.findAllWithRelations(filters);
+            return ok(mapEntitiesToResponses(entities as any));
+        } catch (error) {
+            console.error('[NeumaticoService.getAll] Error:', error);
+            return err(new BusinessError('Error al obtener neumáticos', 'QUERY_ERROR', 500));
+        }
+    }
 
-        if (!INTERESTING_EVENTS.includes(tipo)) return;
+    async getById(id: NeumaticoId): Promise<Result<NeumaticoResponse, NotFoundError | BusinessError>> {
+        try {
+            const entity = await this.repository.findByIdWithFullRelations(id);
+            if (!entity) return err(new NotFoundError('Neumático', id));
+            return ok(mapEntityToResponse(entity));
+        } catch (error) {
+            return err(new BusinessError('Error finding neumatico', 'FIND_ERROR', 500));
+        }
+    }
 
-        // Normalizar objeto evento
-        let evento = result;
-        let neumaticoId = result.neumatico_id;
+    /**
+     * Actualiza un neumático.
+     */
+    async update(id: NeumaticoId, dto: UpdateNeumaticoDTO): Promise<Result<NeumaticoResponse, BusinessError>> {
+        try {
+            // Validar existencia
+            const existing = await this.repository.findById(id);
+            if (!existing) return err(new NotFoundError('Neumático', id));
 
-        // Caso especial COMPRA devuelve { neumatico, evento }
-        if (tipo === TipoEventoNeumaticoEnum.COMPRA) {
-            evento = result.evento;
-            neumaticoId = result.neumatico.id;
+            // Helper to map UpdateDTO to Prisma Update Input
+            const updateInput = mapDtoToPrismaUpdate(dto);
+
+            const updated = await this.repository.update(id, updateInput as any);
+            return ok(mapEntityToResponse(updated as any));
+        } catch (error) {
+            console.error('[NeumaticoService.update] Error:', error);
+            return err(new BusinessError('Error updating neumatico', 'UPDATE_ERROR', 500));
+        }
+    }
+
+    /**
+     * Elimina (soft-delete) un neumático.
+     */
+    async delete(id: NeumaticoId): Promise<Result<void, BusinessError>> {
+        try {
+            // Validar existencia
+            const existing = await this.repository.findById(id);
+            if (!existing) return err(new NotFoundError('Neumático', id));
+
+            // Check if can be deleted (no active usage?)
+            // For now just proxy to repo which likely does soft delete
+            await this.repository.delete(id);
+            return ok(undefined);
+        } catch (error) {
+            console.error('[NeumaticoService.delete] Error:', error);
+            return err(new BusinessError('Error deleting neumatico', 'DELETE_ERROR', 500));
+        }
+    }
+
+    // ============================================
+    // LEGACY & OPERATION METHODS (Restored)
+    // ============================================
+
+    // ============================================
+    // EVENT DELEGATION (Standardized)
+    // ============================================
+
+    private eventoService = new EventoNeumaticoService();
+
+    /**
+     * Registra un evento delegando al servicio especializado.
+     */
+    async registrarEvento(evento: EventoNeumaticoCreate, userId: string): Promise<any> {
+        // Adaptador para usar el nuevo servicio que retorna Result<>
+        // Mantenemos la firma de promesa básica para compatibilidad, o lanzamos error si falla
+        const result = await this.eventoService.registrarEvento(evento, userId as UsuarioId);
+
+        if (!result.success) {
+            throw result.error; // Re-throw como excepción para mantener compatibilidad con callers legacy
         }
 
-        // Enriquecer datos para el payload (Webhooks externos suelen necesitar strings leibles, no solo UUIDs)
-        // Hacemos una consulta ligera para obtener códigos/placas
-        const details = await prisma.eventoNeumatico.findUnique({
-            where: { id: evento.id },
+        return result.data;
+    }
+
+    async getHistorialPresion(id: string) {
+        // Obtenemos lecturas de presión ordenadas por fecha
+        const lecturas = await prisma.lecturaPresion.findMany({
+            where: { neumatico_id: id },
+            orderBy: { fecha_lectura: 'asc' }, // Ascendente para gráfico
+            take: 50, // Límite razonable
             include: {
-                neumatico: { select: { numero_serie: true, modelo: { select: { nombre_modelo: true } } } },
-                vehiculo: { select: { placa: true, numero_economico: true } },
-                motivo_desecho: { select: { nombre: true } },
-                almacen_destino: { select: { nombre: true } }
+                usuario: {
+                    select: { nombre_completo: true, username: true }
+                }
             }
         });
 
-        if (!details) return;
+        // Obtenemos info del neumático para saber la recomendada
+        const neumatico = await prisma.neumatico.findUnique({
+            where: { id },
+            include: { modelo: true }
+        });
 
-        const payload = {
-            tipo_evento: tipo,
-            fecha: new Date().toISOString(),
-            neumatico: {
-                id: details.neumatico_id,
-                serie: details.neumatico.numero_serie || 'S/N',
-                modelo: details.neumatico.modelo.nombre_modelo
-            },
-            vehiculo: details.vehiculo ? {
-                placa: details.vehiculo.placa,
-                codigo: details.vehiculo.numero_economico
-            } : undefined,
-            detalle: {
-                motivo: details.motivo_desecho?.nombre,
-                destino: details.almacen_destino?.nombre,
-                costo: details.costo_evento,
-                profundidad: details.profundidad_remanente,
-                km: details.contador_vehiculo
-            },
-            usuario_id: userId
+        return {
+            lecturas: lecturas.map(l => ({
+                id: l.id,
+                fecha: l.fecha_lectura.toISOString(),
+                presion: toNumber(l.presion_psi),
+                temperatura: l.temperatura_c ? toNumber(l.temperatura_c) : undefined,
+                inspector: l.usuario?.nombre_completo || l.usuario?.username || 'Sistema',
+                fuente: l.fuente
+            })),
+            recomendada: neumatico?.modelo?.presion_recomendada_psi
+                ? toNumber(neumatico.modelo.presion_recomendada_psi)
+                : undefined
         };
-
-        // Dynamic import to avoid circular dependency if any (though Service -> Validator -> Prisma is fine)
-        const { WebhookService } = require('./webhook.service');
-        const webhookService = new WebhookService();
-
-        // Mapear enum de Prisma (TipoEventoNeumaticoEnum) a WebhookEventType
-        // El enum WebhookEventType en schema tiene nombres específicos
-        let webhookEvent = 'ALL_EVENTS';
-        if (tipo === TipoEventoNeumaticoEnum.DESECHO) webhookEvent = 'DESECHO';
-        if (tipo === TipoEventoNeumaticoEnum.REENCAUCHE_SALIDA) webhookEvent = 'REENCAUCHE_SALIDA';
-        if (tipo === TipoEventoNeumaticoEnum.INSTALACION) webhookEvent = 'INSTALACION';
-        if (tipo === TipoEventoNeumaticoEnum.DESMONTAJE) webhookEvent = 'DESMONTAJE';
-
-        await webhookService.dispatch(webhookEvent, payload);
-    }
-
-    // --- MANEJADORES PRIVADOS ---
-
-    private async _validateAndGetNeumatico<T = Neumatico>(tx: TxClient, id: string, includes: any = {}): Promise<T> {
-        const neumatico = await tx.neumatico.findUnique({ where: { id }, include: includes });
-        if (!neumatico) throw BusinessError.notFound('Neumático', id);
-        if (!(neumatico as any).activo) throw BusinessError.badRequest('El neumático no está activo');
-        return neumatico as unknown as T;
-    }
-
-    // ✅ LÓGICA DE COMPRA (Nacimiento del neumático)
-    private async _handleCompra(evento: EventoCompraInput, userId: string, tx: TxClient) {
-        // Extraemos todos los datos posibles del evento
-        // Mapeamos observaciones (del DTO) a notas (del código del usuario)
-        const {
-            numero_serie, modelo_id, dot, profundidad_inicial, costo_compra,
-            fecha_evento, proveedor_id, almacen_destino_id, observaciones, medida
-        } = evento;
-
-        const notas = observaciones; // Alias para compatibilidad
-
-        const now = new Date(fecha_evento || new Date());
-
-        // Validaciones estrictas para creación
-        if (!numero_serie || !modelo_id || !dot || !profundidad_inicial || !almacen_destino_id) {
-            throw BusinessError.badRequest('Faltan datos obligatorios para COMPRA (serie, modelo, dot, profundidad, almacén)');
-        }
-
-        const existing = await tx.neumatico.findFirst({ where: { numero_serie } });
-        if (existing) throw BusinessError.conflict(`El neumático ${numero_serie} ya existe`);
-
-        // 1. Crear el Neumático
-        const nuevoNeumatico = await tx.neumatico.create({
-            data: {
-                empresa_id: "00000000-0000-0000-0000-000000000000",
-                numero_serie,
-                modelo_id,
-                dot,
-                // Si la medida no viene en el evento, se confía en que el modelo la tiene (se resolverá en lecturas con include)
-                profundidad_inicial_mm: profundidad_inicial,
-                profundidad_remanente_actual_mm: profundidad_inicial,
-                estado_actual: EstadoNeumaticoEnum.EN_STOCK,
-                ubicacion_almacen_id: almacen_destino_id,
-                fecha_compra: now,
-                costo_compra: costo_compra ? new Prisma.Decimal(costo_compra) : undefined,
-                creado_por: userId,
-                activo: true
-            }
-        });
-
-        // 2. Registrar el Evento de Compra (Para tener la historia completa desde el día 0)
-        const nuevoEvento = await tx.eventoNeumatico.create({
-            data: {
-                tipo_evento: TipoEventoNeumaticoEnum.COMPRA,
-                neumatico_id: nuevoNeumatico.id,
-                fecha_evento: now,
-                proveedor_id,
-                almacen_destino_id,
-                costo_evento: costo_compra ? new Prisma.Decimal(costo_compra) : undefined,
-                profundidad_remanente: profundidad_inicial,
-                notas: notas || 'Alta inicial por compra',
-                creado_por: userId
-            }
-        });
-
-        return { neumatico: nuevoNeumatico, evento: nuevoEvento };
-    }
-
-    private async _handleInstalacion(evento: EventoNeumaticoCreate, userId: string, tx: TxClient) {
-        const { neumatico_id, vehiculo_id, posicion_montaje_id, contador_vehiculo, profundidad_remanente, presion_psi, observaciones } = evento;
-        const now = new Date(evento.fecha_evento || new Date());
-
-        if (!neumatico_id || !vehiculo_id) throw BusinessError.badRequest('Faltan datos instalación');
-
-        const neumatico = await this._validateAndGetNeumatico(tx, neumatico_id, { modelo: true });
-        if (neumatico.estado_actual !== EstadoNeumaticoEnum.EN_STOCK) throw BusinessError.conflict('El neumático no está en stock');
-
-        const vehiculo = await tx.vehiculo.findUnique({ where: { id: vehiculo_id } });
-        if (!vehiculo) throw BusinessError.notFound('Vehículo', vehiculo_id);
-
-        // Validación de Posición
-        if (posicion_montaje_id) {
-            const posicion = await tx.posicionNeumatico.findUnique({ where: { id: posicion_montaje_id }, include: { configuracion_eje: true } });
-            if (!posicion) throw BusinessError.notFound('Posición', posicion_montaje_id);
-            if (posicion.configuracion_eje.tipo_vehiculo_id !== vehiculo.tipo_vehiculo_id) throw BusinessError.badRequest('Posición no corresponde al vehículo');
-            if (neumatico.es_reencauchado && !posicion.configuracion_eje.permite_reencauchados) throw BusinessError.badRequest('Posición no permite reencauchados');
-
-            const ocupada = await tx.neumatico.findFirst({ where: { ubicacion_posicion_id: posicion_montaje_id, activo: true, estado_actual: EstadoNeumaticoEnum.INSTALADO } });
-            if (ocupada) throw BusinessError.conflict(`Posición ocupada por ${ocupada.numero_serie}`);
-        }
-
-        const nuevoEvento = await tx.eventoNeumatico.create({
-            data: {
-                tipo_evento: TipoEventoNeumaticoEnum.INSTALACION,
-                neumatico_id, fecha_evento: now, contador_vehiculo, profundidad_remanente, presion_psi, vehiculo_id, posicion_montaje_id, notas: observaciones, creado_por: userId
-            }
-        });
-
-        await tx.neumatico.update({
-            where: { id: neumatico_id },
-            data: {
-                estado_actual: EstadoNeumaticoEnum.INSTALADO,
-                ubicacion_almacen_id: null,
-                ubicacion_vehiculo_id: vehiculo_id,
-                ubicacion_posicion_id: posicion_montaje_id || null,
-                profundidad_remanente_actual_mm: profundidad_remanente,
-                presion_actual_psi: presion_psi,
-                actualizado_en: now
-            }
-        });
-
-        await tx.historialEstadoNeumatico.create({
-            data: { neumatico_id, estado_anterior: neumatico.estado_actual, estado_nuevo: EstadoNeumaticoEnum.INSTALADO, fecha_cambio: now, motivo: `Montaje en ${vehiculo.placa}`, creado_por: userId }
-        });
-
-        if (contador_vehiculo) {
-            await tx.registroContador.create({ data: { vehiculo_id, valor: contador_vehiculo, fecha_registro: now, notas: `Montaje ${neumatico.numero_serie}` } });
-            await tx.vehiculo.update({ where: { id: vehiculo_id }, data: { odometro_actual: contador_vehiculo } });
-        }
-
-        return nuevoEvento;
-    }
-
-    private async _handleDesmontaje(evento: EventoNeumaticoCreate, userId: string, tx: TxClient) {
-        const { neumatico_id, contador_vehiculo, profundidad_remanente, presion_psi, observaciones, estado_neumatico_resultante, almacen_destino_id, motivo_desecho_id } = evento;
-        const now = new Date(evento.fecha_evento || new Date());
-
-        if (!neumatico_id) throw BusinessError.badRequest('ID de neumático requerido');
-
-        const neumatico = await this._validateAndGetNeumatico(tx, neumatico_id, { ubicacion_vehiculo: true });
-        if (neumatico.estado_actual !== EstadoNeumaticoEnum.INSTALADO) throw BusinessError.badRequest('Neumático no instalado');
-
-        let kmRecorrido = 0;
-        if (contador_vehiculo && neumatico.ubicacion_vehiculo_id) {
-            const instEvento = await tx.eventoNeumatico.findFirst({ where: { neumatico_id, tipo_evento: TipoEventoNeumaticoEnum.INSTALACION }, orderBy: { fecha_evento: 'desc' } });
-            if (instEvento?.contador_vehiculo) {
-                const contadorInstalacion = toNumber(instEvento.contador_vehiculo);
-                kmRecorrido = contador_vehiculo - contadorInstalacion;
-                if (kmRecorrido < 0) throw BusinessError.badRequest(`KM actual (${contador_vehiculo}) menor al de instalación (${contadorInstalacion})`);
-            }
-        }
-
-        const nuevoEstado = (estado_neumatico_resultante || EstadoNeumaticoEnum.EN_STOCK) as EstadoNeumaticoEnum;
-        if (nuevoEstado === EstadoNeumaticoEnum.EN_STOCK && !almacen_destino_id) throw BusinessError.badRequest('Requiere almacén destino');
-        if (nuevoEstado === EstadoNeumaticoEnum.DESECHADO && !motivo_desecho_id) throw BusinessError.badRequest('Requiere motivo desecho');
-
-        const nuevoEvento = await tx.eventoNeumatico.create({
-            data: {
-                tipo_evento: TipoEventoNeumaticoEnum.DESMONTAJE,
-                neumatico_id, fecha_evento: now, contador_vehiculo, profundidad_remanente, presion_psi, vehiculo_id: neumatico.ubicacion_vehiculo_id, posicion_montaje_id: neumatico.ubicacion_posicion_id, almacen_destino_id, motivo_desecho_id, notas: observaciones, creado_por: userId
-            }
-        });
-
-        await tx.neumatico.update({
-            where: { id: neumatico_id },
-            data: {
-                estado_actual: nuevoEstado,
-                ubicacion_almacen_id: almacen_destino_id || null,
-                ubicacion_vehiculo_id: null,
-                ubicacion_posicion_id: null,
-                profundidad_remanente_actual_mm: profundidad_remanente,
-                presion_actual_psi: presion_psi,
-                kilometraje_acumulado: { increment: kmRecorrido },
-                actualizado_en: now
-            }
-        });
-
-        await tx.historialEstadoNeumatico.create({
-            data: { neumatico_id, estado_anterior: neumatico.estado_actual, estado_nuevo: nuevoEstado, fecha_cambio: now, motivo: 'Desmontaje', creado_por: userId }
-        });
-
-        if (contador_vehiculo && neumatico.ubicacion_vehiculo_id) {
-            await tx.registroContador.create({ data: { vehiculo_id: neumatico.ubicacion_vehiculo_id, valor: contador_vehiculo, fecha_registro: now, notas: `Desmontaje ${neumatico.numero_serie}` } });
-            await tx.vehiculo.update({ where: { id: neumatico.ubicacion_vehiculo_id }, data: { odometro_actual: contador_vehiculo } });
-        }
-
-        return nuevoEvento;
-    }
-
-    private async _handleInspeccion(evento: EventoNeumaticoCreate, userId: string, tx: TxClient) {
-        const { neumatico_id, profundidad_remanente, presion_psi, contador_vehiculo, observaciones } = evento;
-        const now = new Date(evento.fecha_evento || new Date());
-
-        if (!neumatico_id) throw BusinessError.badRequest('ID de neumático requerido');
-
-        await this._validateAndGetNeumatico(tx, neumatico_id);
-
-        const nuevoEvento = await tx.eventoNeumatico.create({
-            data: {
-                tipo_evento: TipoEventoNeumaticoEnum.INSPECCION,
-                neumatico_id, fecha_evento: now, contador_vehiculo, profundidad_remanente, presion_psi, notas: observaciones, creado_por: userId
-            }
-        });
-
-        await tx.neumatico.update({
-            where: { id: neumatico_id },
-            data: {
-                profundidad_remanente_actual_mm: profundidad_remanente ?? undefined,
-                presion_actual_psi: presion_psi ?? undefined,
-                actualizado_en: now
-            }
-        });
-        return nuevoEvento;
-    }
-
-    private async _handleRotacion(evento: EventoNeumaticoCreate, userId: string, tx: TxClient) {
-        const { neumatico_id, posicion_montaje_id, contador_vehiculo, observaciones } = evento;
-        const now = new Date(evento.fecha_evento || new Date());
-
-        if (!neumatico_id) throw BusinessError.badRequest('ID de neumático requerido');
-        if (!posicion_montaje_id) throw BusinessError.badRequest('Falta posición destino');
-        const neumatico = await this._validateAndGetNeumatico(tx, neumatico_id, { modelo: true });
-        if (neumatico.estado_actual !== EstadoNeumaticoEnum.INSTALADO) throw BusinessError.badRequest('Neumático no instalado');
-
-        const origenPosId = neumatico.ubicacion_posicion_id;
-        const destinoPosId = posicion_montaje_id;
-
-        const targetPos = await tx.posicionNeumatico.findUnique({ where: { id: destinoPosId }, include: { configuracion_eje: true } });
-        if (!targetPos) throw BusinessError.notFound('Posición destino', destinoPosId);
-        if (neumatico.es_reencauchado && !targetPos.configuracion_eje.permite_reencauchados) throw BusinessError.badRequest('Destino no permite reencauchados');
-
-        const neumáticoEnDestino = await tx.neumatico.findFirst({
-            where: { ubicacion_posicion_id: destinoPosId, activo: true, estado_actual: EstadoNeumaticoEnum.INSTALADO }
-        });
-
-        if (neumáticoEnDestino && origenPosId) {
-            const origenPos = await tx.posicionNeumatico.findUnique({ where: { id: origenPosId }, include: { configuracion_eje: true } });
-            if (neumáticoEnDestino.es_reencauchado && !origenPos?.configuracion_eje.permite_reencauchados) throw BusinessError.badRequest('Swap inválido: reencauchado a origen prohibido');
-        }
-
-        const eventoRotacion = await tx.eventoNeumatico.create({
-            data: {
-                tipo_evento: TipoEventoNeumaticoEnum.ROTACION,
-                neumatico_id, fecha_evento: now, contador_vehiculo, vehiculo_id: neumatico.ubicacion_vehiculo_id, posicion_montaje_id: destinoPosId, notas: observaciones, creado_por: userId
-            }
-        });
-
-        await tx.neumatico.update({ where: { id: neumatico_id }, data: { ubicacion_posicion_id: destinoPosId, actualizado_en: now } });
-
-        if (neumáticoEnDestino && origenPosId) {
-            await tx.eventoNeumatico.create({
-                data: { tipo_evento: TipoEventoNeumaticoEnum.ROTACION, neumatico_id: neumáticoEnDestino.id, fecha_evento: now, contador_vehiculo, vehiculo_id: neumatico.ubicacion_vehiculo_id, posicion_montaje_id: origenPosId, notas: `Intercambio con ${neumatico.numero_serie}`, creado_por: userId }
-            });
-            await tx.neumatico.update({ where: { id: neumáticoEnDestino.id }, data: { ubicacion_posicion_id: origenPosId, actualizado_en: now } });
-        }
-        return eventoRotacion;
-    }
-
-    private async _handleReparacionEntrada(evento: EventoNeumaticoCreate, userId: string, tx: TxClient) {
-        const { neumatico_id, proveedor_id, observaciones } = evento;
-        const now = new Date(evento.fecha_evento || new Date());
-
-        if (!neumatico_id) throw BusinessError.badRequest('ID de neumático requerido');
-
-        const neumatico = await this._validateAndGetNeumatico(tx, neumatico_id);
-        if (neumatico.estado_actual !== EstadoNeumaticoEnum.EN_STOCK) throw BusinessError.badRequest('Debe estar en STOCK');
-
-        await tx.eventoNeumatico.create({
-            data: { tipo_evento: TipoEventoNeumaticoEnum.REPARACION_ENTRADA, neumatico_id, fecha_evento: now, proveedor_id, notas: observaciones, creado_por: userId }
-        });
-
-        await tx.neumatico.update({ where: { id: neumatico_id }, data: { estado_actual: EstadoNeumaticoEnum.EN_REPARACION, ubicacion_almacen_id: null, actualizado_en: now } });
-        await tx.historialEstadoNeumatico.create({ data: { neumatico_id, estado_anterior: neumatico.estado_actual, estado_nuevo: EstadoNeumaticoEnum.EN_REPARACION, fecha_cambio: now, motivo: 'Envío reparación', creado_por: userId } });
-    }
-
-    private async _handleReparacionSalida(evento: EventoNeumaticoCreate, userId: string, tx: TxClient) {
-        const { neumatico_id, almacen_destino_id, costo_evento, observaciones, profundidad_remanente } = evento;
-        const now = new Date(evento.fecha_evento || new Date());
-
-        if (!neumatico_id) throw BusinessError.badRequest('ID de neumático requerido');
-
-        const neumatico = await this._validateAndGetNeumatico(tx, neumatico_id);
-        if (neumatico.estado_actual !== EstadoNeumaticoEnum.EN_REPARACION) throw BusinessError.badRequest('No está en reparación');
-
-        // ✅ FIX 2: Registro de costo para trazabilidad financiera
-        const nuevoEvento = await tx.eventoNeumatico.create({
-            data: { tipo_evento: TipoEventoNeumaticoEnum.REPARACION_SALIDA, neumatico_id, fecha_evento: now, almacen_destino_id, costo_evento: costo_evento ? new Prisma.Decimal(costo_evento) : undefined, profundidad_remanente, notas: observaciones, creado_por: userId }
-        });
-
-        await tx.neumatico.update({ where: { id: neumatico_id }, data: { estado_actual: EstadoNeumaticoEnum.EN_STOCK, ubicacion_almacen_id: almacen_destino_id, profundidad_remanente_actual_mm: profundidad_remanente, actualizado_en: now } });
-        await tx.historialEstadoNeumatico.create({ data: { neumatico_id, estado_anterior: EstadoNeumaticoEnum.EN_REPARACION, estado_nuevo: EstadoNeumaticoEnum.EN_STOCK, fecha_cambio: now, motivo: 'Retorno reparación', creado_por: userId } });
-        return nuevoEvento;
-    }
-
-    private async _handleReencaucheEntrada(evento: EventoNeumaticoCreate, userId: string, tx: TxClient) {
-        const { neumatico_id, proveedor_id, observaciones } = evento;
-        const now = new Date(evento.fecha_evento || new Date());
-
-        if (!neumatico_id) throw BusinessError.badRequest('ID de neumático requerido');
-
-        const neumatico = await this._validateAndGetNeumatico<Prisma.NeumaticoGetPayload<{ include: { modelo: true } }>>(tx, neumatico_id, { modelo: true });
-        if (neumatico.estado_actual !== EstadoNeumaticoEnum.EN_STOCK) throw BusinessError.badRequest('Debe estar en STOCK');
-
-        const modelo = neumatico.modelo;
-        if (modelo && neumatico.reencauches_realizados >= modelo.reencauches_maximos) throw BusinessError.conflict(`Límite reencauches alcanzado (${modelo.reencauches_maximos})`);
-
-        await tx.eventoNeumatico.create({
-            data: { tipo_evento: TipoEventoNeumaticoEnum.REENCAUCHE_ENTRADA, neumatico_id, fecha_evento: now, proveedor_id, notas: observaciones, creado_por: userId }
-        });
-
-        await tx.neumatico.update({ where: { id: neumatico_id }, data: { estado_actual: EstadoNeumaticoEnum.EN_REENCAUCHE, ubicacion_almacen_id: null, actualizado_en: now } });
-        await tx.historialEstadoNeumatico.create({ data: { neumatico_id, estado_anterior: neumatico.estado_actual, estado_nuevo: EstadoNeumaticoEnum.EN_REENCAUCHE, fecha_cambio: now, motivo: 'Envío reencauche', creado_por: userId } });
-    }
-
-    private async _handleReencaucheSalida(evento: EventoNeumaticoCreate, userId: string, tx: TxClient) {
-        const { neumatico_id, almacen_destino_id, costo_evento, observaciones, profundidad_remanente } = evento;
-        const now = new Date(evento.fecha_evento || new Date());
-
-        if (!neumatico_id) throw BusinessError.badRequest('ID de neumático requerido');
-
-        const neumatico = await this._validateAndGetNeumatico(tx, neumatico_id);
-        if (neumatico.estado_actual !== EstadoNeumaticoEnum.EN_REENCAUCHE) throw BusinessError.badRequest('No está en reencauche');
-
-        const nuevoEvento = await tx.eventoNeumatico.create({
-            data: { tipo_evento: TipoEventoNeumaticoEnum.REENCAUCHE_SALIDA, neumatico_id, fecha_evento: now, almacen_destino_id, costo_evento: costo_evento ? new Prisma.Decimal(costo_evento) : undefined, profundidad_remanente, notas: observaciones, creado_por: userId }
-        });
-
-        // ✅ FIX CRÍTICO 3: Reset de Ciclo de Vida para Cálculo de CPK correcto
-        await tx.neumatico.update({
-            where: { id: neumatico_id },
-            data: {
-                estado_actual: EstadoNeumaticoEnum.EN_STOCK,
-                ubicacion_almacen_id: almacen_destino_id,
-                profundidad_remanente_actual_mm: profundidad_remanente,
-                profundidad_inicial_mm: profundidad_remanente, // Nuevo inicio
-                kilometraje_acumulado: 0, // Reset para nueva vida
-                es_reencauchado: true,
-                reencauches_realizados: { increment: 1 },
-                vida_actual: { increment: 1 },
-                actualizado_en: now
-            }
-        });
-
-        await tx.historialEstadoNeumatico.create({ data: { neumatico_id, estado_anterior: EstadoNeumaticoEnum.EN_REENCAUCHE, estado_nuevo: EstadoNeumaticoEnum.EN_STOCK, fecha_cambio: now, motivo: 'Retorno reencauche (Nueva Vida)', creado_por: userId } });
-        return nuevoEvento;
-    }
-
-    private async _handleDesecho(evento: EventoNeumaticoCreate, userId: string, tx: TxClient) {
-        const { neumatico_id, motivo_desecho_id, observaciones } = evento;
-        const now = new Date(evento.fecha_evento || new Date());
-
-        if (!neumatico_id) throw BusinessError.badRequest('ID de neumático requerido');
-
-        const neumatico = await this._validateAndGetNeumatico(tx, neumatico_id);
-        if (neumatico.estado_actual === EstadoNeumaticoEnum.INSTALADO) throw BusinessError.badRequest('Desmontar antes de desechar');
-
-        await tx.eventoNeumatico.create({
-            data: { tipo_evento: TipoEventoNeumaticoEnum.DESECHO, neumatico_id, fecha_evento: now, motivo_desecho_id, notas: observaciones, creado_por: userId }
-        });
-
-        await tx.neumatico.update({ where: { id: neumatico_id }, data: { estado_actual: EstadoNeumaticoEnum.DESECHADO, ubicacion_almacen_id: null, ubicacion_vehiculo_id: null, ubicacion_posicion_id: null, actualizado_en: now } });
-        await tx.historialEstadoNeumatico.create({ data: { neumatico_id, estado_anterior: neumatico.estado_actual, estado_nuevo: EstadoNeumaticoEnum.DESECHADO, fecha_cambio: now, motivo: 'Baja definitiva', creado_por: userId } });
     }
 }
+

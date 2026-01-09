@@ -3,6 +3,7 @@ import { VehiculoService } from '@/lib/services/vehiculo.service'
 import { ApiResponseHelper } from '@/lib/utils/api-response'
 import { requireAuth, requirePermission } from '@/lib/auth/authorization'
 import { PERMISSIONS } from '@/lib/auth/permissions'
+import { asVehiculoId } from '@/types/branded.types'
 
 const service = new VehiculoService()
 
@@ -45,12 +46,15 @@ export async function GET(
         requirePermission(session, PERMISSIONS.VEHICULOS_READ);
 
         // 3. Business logic
-        const vehiculo = await service.getByIdWithFullConfig((await params).id)
-        if (!vehiculo) {
-            return ApiResponseHelper.notFound()
+        const id = asVehiculoId((await params).id);
+        const result = await service.getByIdWithFullConfig(id);
+
+        if (!result.success) {
+            return ApiResponseHelper.error(result.error.message, result.error.statusCode);
         }
-        return ApiResponseHelper.success(vehiculo)
+
+        return ApiResponseHelper.success(result.data);
     } catch (error) {
-        return ApiResponseHelper.handleError(error)
+        return ApiResponseHelper.handleError(error);
     }
 }

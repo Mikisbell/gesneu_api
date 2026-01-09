@@ -96,4 +96,32 @@ export class VehiculoRepository extends BaseRepository<Vehiculo, CreateVehiculoD
             throw error;
         }
     }
+
+    /**
+     * Obtiene un vehículo por ID con todas las relaciones para VehiculoEntity.
+     * Incluye tipo_vehiculo, neumaticos con modelo y fabricante.
+     */
+    async findByIdWithFullRelations(id: string): Promise<IVehiculo | null> {
+        try {
+            return await this.model.findUnique({
+                where: { id },
+                include: {
+                    tipo_vehiculo: true,
+                    neumaticos_instalados: {
+                        include: {
+                            ubicacion_posicion: true,
+                            modelo: {
+                                include: {
+                                    fabricante: true
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+        } catch (error) {
+            this.handleError(error);
+            throw error;
+        }
+    }
 }

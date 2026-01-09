@@ -118,9 +118,10 @@ export default function NeumaticosPage() {
                         </div>
                     ) : (
                         <DataTable
+                            key="force-remount-v1"
                             columns={columns}
                             data={neumaticos || []}
-                            searchKey="numero_serie"
+                            searchKey="serie"
                         />
                     )}
                 </CardContent>

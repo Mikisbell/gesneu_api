@@ -4,6 +4,7 @@ const { withSentryConfig } = require("@sentry/nextjs");
 const nextConfig = {
   serverExternalPackages: ['@prisma/client', 'bcryptjs'],
   turbopack: {},
+  // Force cache invalidation timestamp: 1
 }
 
 

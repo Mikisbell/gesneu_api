@@ -1,11 +1,26 @@
-import { NextRequest } from 'next/server'
-import { VehiculoService } from '@/lib/services/vehiculo.service'
-import { ApiResponseHelper } from '@/lib/utils/api-response'
-import { UpdateVehiculoDTO } from '@/types/domain/vehiculo.types'
-import { requireAuth, requirePermission } from '@/lib/auth/authorization'
-import { PERMISSIONS } from '@/lib/auth/permissions'
+/**
+ * Vehiculos API Routes - Detalle, Actualización y Eliminación
+ * 
+ * Implementa los endpoints GET, PUT y DELETE para un vehículo específico.
+ * Usa el patrón Result para manejo explícito de errores y branded IDs.
+ * 
+ * @see docs/10_TIPADO_PROFESIONAL.md
+ */
 
-const service = new VehiculoService()
+import { NextRequest } from 'next/server';
+import { VehiculoService } from '@/lib/services/vehiculo.service';
+import { ApiResponseHelper } from '@/lib/utils/api-response';
+import { requireAuth, requirePermission } from '@/lib/auth/authorization';
+import { PERMISSIONS } from '@/lib/auth/permissions';
+import { asVehiculoId, VehiculoId } from '@/types/branded.types';
+import { isBusinessError } from '@/types/result.types';
+import {
+    validateUpdateVehiculo,
+    formatZodErrors,
+    getFirstZodError,
+} from '@/lib/validators/vehiculo.validator';
+
+const service = new VehiculoService();
 
 /**
  * @swagger
@@ -52,14 +67,22 @@ export async function GET(
         // 2. Authorization
         requirePermission(session, PERMISSIONS.VEHICULOS_READ);
 
-        // 3. Business logic
-        const vehiculo = await service.getById((await params).id)
-        if (!vehiculo) {
-            return ApiResponseHelper.notFound()
+        // 3. Parse ID with branded type
+        const id = asVehiculoId((await params).id);
+
+        // 4. Business logic with Result handling
+        const result = await service.getById(id);
+
+        if (!result.success) {
+            return ApiResponseHelper.error(
+                result.error.message,
+                result.error.statusCode
+            );
         }
-        return ApiResponseHelper.success(vehiculo)
+
+        return ApiResponseHelper.success(result.data);
     } catch (error) {
-        return ApiResponseHelper.handleError(error)
+        return ApiResponseHelper.handleError(error);
     }
 }
 
@@ -106,6 +129,8 @@ export async function GET(
  *         description: No autenticado
  *       403:
  *         description: Permisos insuficientes (Requiere VEHICULOS_UPDATE)
+ *       409:
+ *         description: Conflicto (placa duplicada)
  */
 export async function PUT(
     request: NextRequest,
@@ -118,12 +143,36 @@ export async function PUT(
         // 2. Authorization
         requirePermission(session, PERMISSIONS.VEHICULOS_UPDATE);
 
-        // 3. Business logic
-        const body = await request.json() as UpdateVehiculoDTO
-        const vehiculo = await service.update((await params).id, body)
-        return ApiResponseHelper.success(vehiculo, 'Vehículo actualizado exitosamente')
+        // 3. Parse ID with branded type
+        const id = asVehiculoId((await params).id);
+
+        // 4. Parse and validate body
+        const body = await request.json();
+        const validation = validateUpdateVehiculo(body);
+
+        if (!validation.success) {
+            return ApiResponseHelper.validationError(
+                formatZodErrors(validation.error),
+                getFirstZodError(validation.error)
+            );
+        }
+
+        // 5. Business logic with Result handling
+        const result = await service.update(id, validation.data);
+
+        if (!result.success) {
+            if (isBusinessError(result.error)) {
+                return ApiResponseHelper.error(
+                    result.error.message,
+                    result.error.statusCode
+                );
+            }
+            return ApiResponseHelper.error((result.error as Error).message || 'Error desconocido', 500);
+        }
+
+        return ApiResponseHelper.success(result.data, 'Vehículo actualizado exitosamente');
     } catch (error) {
-        return ApiResponseHelper.handleError(error)
+        return ApiResponseHelper.handleError(error);
     }
 }
 
@@ -174,10 +223,24 @@ export async function DELETE(
         // 2. Authorization
         requirePermission(session, PERMISSIONS.VEHICULOS_DELETE);
 
-        // 3. Business logic
-        const vehiculo = await service.delete((await params).id)
-        return ApiResponseHelper.success(vehiculo, 'Vehículo eliminado exitosamente')
+        // 3. Parse ID with branded type
+        const id = asVehiculoId((await params).id);
+
+        // 4. Business logic with Result handling
+        const result = await service.delete(id);
+
+        if (!result.success) {
+            if (isBusinessError(result.error)) {
+                return ApiResponseHelper.error(
+                    result.error.message,
+                    result.error.statusCode
+                );
+            }
+            return ApiResponseHelper.error((result.error as Error).message || 'Error desconocido', 500);
+        }
+
+        return ApiResponseHelper.success(result.data, 'Vehículo eliminado exitosamente');
     } catch (error) {
-        return ApiResponseHelper.handleError(error)
+        return ApiResponseHelper.handleError(error);
     }
 }

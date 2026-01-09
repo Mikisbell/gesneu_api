@@ -63,7 +63,8 @@ export const PERMISSIONS = {
   SISTEMA_USUARIOS_DELETE: 'sistema:usuarios:delete',
   SISTEMA_ROLES_MANAGE: 'sistema:roles:manage',
   SISTEMA_PERMISOS_MANAGE: 'sistema:permisos:manage',
-  SISTEMA_AUDITORIA_READ: 'sistema:auditoria:read'
+  SISTEMA_AUDITORIA_READ: 'sistema:auditoria:read',
+  SISTEMA_AJUSTES_READ: 'sistema:ajustes:read'
 } as const
 
 export type Permission = typeof PERMISSIONS[keyof typeof PERMISSIONS]

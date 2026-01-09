@@ -17,32 +17,14 @@ export default function NeumaticoDetallePage() {
     const router = useRouter();
     const id = params.id;
 
-    // TODO: Crear endpoint getById en neumaticosApi si no existe separado, 
-    // pero por ahora asumimos que podemos usar el id para fetch o filtrar.
-    // Lo ideal seria tener neumaticosApi.getById(id). 
-    // Por simplicidad para este MVP, usaremos un fetch directo si la api lib no lo tiene expuesto aun.
-
-    // Simulo fetch directo para no tocar la lib api ahora y romper tipos
+    // React Query para obtener el detalle del neumático
     const { data: neumatico, isLoading } = useQuery({
         queryKey: ['neumatico', id],
         queryFn: async () => {
-            // Reutilizamos el endpoint general filtrando por ID si fuera necesario o asumiendo nueva ruta
-            // Pero como no quieor romper nada, usaré el endpoint de historial que ya trae info básica o 
-            // mejor, crearé un pequeño fetch a un endpoint de detalle si el getAll es muy pesado.
-            // Voy a arriesgarme a usar el endpoint de historial para validar existencia primero
-            const res = await fetch(`/api/v1/neumaticos`); // esto es ineficiente, fetching all.
-            // Mejor fetch single si existe
-            // Voy a consultar el endpoint de historial que sí implementé y me devuelve 404 si no existe
-            const check = await fetch(`/api/v1/neumaticos/${id}/historial-presion`);
-            if (!check.ok) throw new Error('Neumático no encontrado');
-
-            // Para pintar el header necesito datos básicos. 
-            // Voy a confiar en que el usuario viene del listado y podría pasar estado, 
-            // pero para deep link necesito fetch. 
-            // Haré un fetch rapido a la lista general y buscare en cliente por ahora (MVP Tech Debt)
-            const listRes = await fetch('/api/v1/neumaticos');
-            const list = await listRes.json();
-            return list.data.find((n: any) => n.id === id);
+            const res = await fetch(`/api/v1/neumaticos/${id}`);
+            if (!res.ok) throw new Error('Neumático no encontrado');
+            const json = await res.json();
+            return json.data;
         }
     });
 
@@ -65,10 +47,10 @@ export default function NeumaticoDetallePage() {
                         <h1 className="text-2xl font-bold tracking-tight">
                             Neumático {neumatico.numero_serie}
                         </h1>
-                        <p className="text-muted-foreground flex items-center gap-2">
+                        <div className="text-muted-foreground flex items-center gap-2">
                             {neumatico.modelo?.nombre} - {neumatico.modelo?.fabricante?.nombre}
                             <Badge variant="outline">{neumatico.estado_actual}</Badge>
-                        </p>
+                        </div>
                     </div>
                 </div>
                 {/* Botón de Reporte PDF (Ya implementado) */}

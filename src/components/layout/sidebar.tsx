@@ -19,7 +19,8 @@ import {
     Trash2,
     Bell,
     FileText,
-    Shield
+    Shield,
+    Share2
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { signOut } from 'next-auth/react'
@@ -105,6 +106,12 @@ const sistemaItems = [
         href: '/dashboard/usuarios',
         icon: Shield,
         permission: PERMISSIONS.SISTEMA_USUARIOS_READ
+    },
+    {
+        title: 'Integraciones',
+        href: '/dashboard/ajustes/integraciones',
+        icon: Share2, // Icono para webhooks/conexiones
+        permission: PERMISSIONS.SISTEMA_AJUSTES_READ
     },
 ]
 

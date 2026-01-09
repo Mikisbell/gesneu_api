@@ -62,3 +62,6 @@ export const EventoNeumaticoCreateSchema = z.object({
 });
 
 export type EventoNeumaticoCreate = z.infer<typeof EventoNeumaticoCreateSchema>;
+
+// Alias estándar para el "Hybrid Approach"
+export type CreateEventoInput = EventoNeumaticoCreate;

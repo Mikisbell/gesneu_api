@@ -12,6 +12,7 @@ export interface ExtendedSession {
         username: string;
         roles: string[];
         permissions: string[];
+        empresa_id?: string;  // Multi-tenancy - empresa del usuario
     };
 }
 
