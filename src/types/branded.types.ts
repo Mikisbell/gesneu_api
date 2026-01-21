@@ -62,10 +62,15 @@ export type LecturaPresionId = Brand<string, 'LecturaPresionId'>;
 /** ID único de Alerta */
 export type AlertaId = Brand<string, 'AlertaId'>;
 
+// ...
 /** ID único de Posición de Neumático */
 export type PosicionNeumaticoId = Brand<string, 'PosicionNeumaticoId'>;
 
-// ...
+/** ID único de Evento (Historial) */
+export type EventoId = Brand<string, 'EventoId'>;
+
+/** ID único de Proveedor */
+export type ProveedorId = Brand<string, 'ProveedorId'>;
 
 /**
  * Convierte un string a PosicionNeumaticoId.
@@ -107,3 +112,10 @@ export const asAlmacenId = (id: string): AlmacenId => id as AlmacenId;
 export const asUsuarioId = (id: string): UsuarioId => id as UsuarioId;
 export const asEmpresaId = (id: string): EmpresaId => id as EmpresaId;
 export const asEventoNeumaticoId = (id: string): EventoNeumaticoId => id as EventoNeumaticoId;
+export const asTipoVehiculoId = (id: string): TipoVehiculoId => id as TipoVehiculoId;
+export const asModeloNeumaticoId = (id: string): ModeloNeumaticoId => id as ModeloNeumaticoId;
+export const asFabricanteId = (id: string): FabricanteId => id as FabricanteId;
+export const asEventoId = (id: string): EventoId => id as EventoId;
+export const asProveedorId = (id: string): ProveedorId => id as ProveedorId;
+export const parseEventoId = (id: string): EventoId => validateUUID(id, 'EventoId') as EventoId;
+export const parseProveedorId = (id: string): ProveedorId => validateUUID(id, 'ProveedorId') as ProveedorId;

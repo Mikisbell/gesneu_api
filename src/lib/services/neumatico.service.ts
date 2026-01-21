@@ -3,8 +3,7 @@ import {
     CreateNeumaticoDTO,
     UpdateNeumaticoDTO,
     NeumaticoResponse,
-    NeumaticoFilters,
-    EventoCompraInput
+    NeumaticoFilters
 } from '@/types/domain/neumatico.types';
 import {
     mapDtoToPrismaCreate,
@@ -27,6 +26,7 @@ import { TipoEventoNeumaticoEnum, EstadoNeumaticoEnum, Prisma, Neumatico } from 
 import { toNumber } from '@/lib/utils/decimal';
 import { EventoNeumaticoCreate } from '@/lib/validators/evento-neumatico';
 import { EventoNeumaticoService } from './evento-neumatico.service';
+import { canDeleteNeumatico } from '@/lib/validators/domain-rules/neumatico.rules';
 
 
 // Tipado seguro para la transacción
@@ -176,12 +176,19 @@ export class NeumaticoService {
             const existing = await this.repository.findById(id);
             if (!existing) return err(new NotFoundError('Neumático', id));
 
-            // Check if can be deleted (no active usage?)
-            // For now just proxy to repo which likely does soft delete
+            // Validar Reglas de Dominio
+            const canDelete = canDeleteNeumatico(existing);
+            if (!canDelete.success) return err(canDelete.error);
+
             await this.repository.delete(id);
             return ok(undefined);
         } catch (error) {
             console.error('[NeumaticoService.delete] Error:', error);
+            // Si es error de FK de Prisma, lo manejamos aqui o dejamos que el global handler lo tome?
+            // Segun politica nueva: excepciones inesperadas = 500 (global handler).
+            // Pero FK violations a veces son "Business Logic" implicita...
+            // Por consistencia con la regla "Infra = Exception", dejamos que propague si no es esperado.
+            // O retornamos 500 genérico aqui.
             return err(new BusinessError('Error deleting neumatico', 'DELETE_ERROR', 500));
         }
     }

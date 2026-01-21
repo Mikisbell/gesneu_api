@@ -194,9 +194,15 @@ export interface NeumaticoCardViewModel {
 
 export interface NeumaticoFilters {
     serie?: string;
+    numero_serie?: string; // Alias for repository compatibility
     marca?: string;
-    estado?: string; // EN_STOCK, MONTADO
+    modelo_id?: string;
+    dot?: string;
+    estado?: string; // EN_STOCK, MONTADO (deprecated, use estado_actual)
+    estado_actual?: string; // EstadoNeumaticoEnum value
     ubicacion?: 'ALMACEN' | 'MONTADO';
     vehiculo_id?: string;
+    ubicacion_vehiculo_id?: string;
+    ubicacion_almacen_id?: string;
     search?: string;
 }

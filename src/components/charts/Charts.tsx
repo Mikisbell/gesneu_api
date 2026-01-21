@@ -1,41 +1,41 @@
 'use client';
 
 import {
-    Chart as ChartJS,
-    CategoryScale,
-    LinearScale,
-    BarElement,
-    Title,
+    BarChart as RechartsBarChart,
+    Bar,
+    XAxis,
+    YAxis,
+    CartesianGrid,
     Tooltip,
     Legend,
-    ArcElement,
-    PointElement,
-    LineElement,
-} from 'chart.js';
-import { Bar, Doughnut, Line } from 'react-chartjs-2';
-
-// Registrar componentes de Chart.js
-ChartJS.register(
-    CategoryScale,
-    LinearScale,
-    BarElement,
-    Title,
-    Tooltip,
-    Legend,
-    ArcElement,
-    PointElement,
-    LineElement
-);
+    ResponsiveContainer,
+    PieChart,
+    Pie,
+    Cell,
+    LineChart as RechartsLineChart,
+    Line,
+    Area,
+    AreaChart
+} from 'recharts';
 
 // Estilos globales para los charts
 const chartColors = {
-    primary: 'rgba(59, 130, 246, 0.8)',
-    secondary: 'rgba(16, 185, 129, 0.8)',
-    warning: 'rgba(245, 158, 11, 0.8)',
-    danger: 'rgba(239, 68, 68, 0.8)',
-    info: 'rgba(139, 92, 246, 0.8)',
-    gray: 'rgba(107, 114, 128, 0.8)',
+    primary: '#3b82f6',
+    secondary: '#10b981',
+    warning: '#f59e0b',
+    danger: '#ef4444',
+    info: '#8b5cf6',
+    gray: '#6b7280',
 };
+
+const COLORS = [
+    chartColors.primary,
+    chartColors.secondary,
+    chartColors.warning,
+    chartColors.danger,
+    chartColors.info,
+    chartColors.gray,
+];
 
 interface BarChartProps {
     labels: string[];
@@ -45,28 +45,25 @@ interface BarChartProps {
 }
 
 export function BarChart({ labels, data, title, color = chartColors.primary }: BarChartProps) {
-    const chartData = {
-        labels,
-        datasets: [{
-            label: title,
-            data,
-            backgroundColor: color,
-            borderRadius: 4,
-        }],
-    };
+    const chartData = labels.map((label, index) => ({
+        name: label,
+        value: data[index],
+    }));
 
-    const options = {
-        responsive: true,
-        plugins: {
-            legend: { display: false },
-            title: { display: true, text: title, font: { size: 14 } },
-        },
-        scales: {
-            y: { beginAtZero: true },
-        },
-    };
-
-    return <Bar data={chartData} options={options} />;
+    return (
+        <div className="w-full h-64">
+            <p className="text-sm font-medium text-center mb-2">{title}</p>
+            <ResponsiveContainer width="100%" height="90%">
+                <RechartsBarChart data={chartData}>
+                    <CartesianGrid strokeDasharray="3 3" />
+                    <XAxis dataKey="name" fontSize={12} />
+                    <YAxis fontSize={12} />
+                    <Tooltip />
+                    <Bar dataKey="value" fill={color} radius={[4, 4, 0, 0]} />
+                </RechartsBarChart>
+            </ResponsiveContainer>
+        </div>
+    );
 }
 
 interface DoughnutChartProps {
@@ -77,34 +74,39 @@ interface DoughnutChartProps {
 }
 
 export function DoughnutChart({ labels, data, title, colors }: DoughnutChartProps) {
-    const defaultColors = [
-        chartColors.primary,
-        chartColors.secondary,
-        chartColors.warning,
-        chartColors.danger,
-        chartColors.info,
-        chartColors.gray,
-    ];
+    const chartData = labels.map((label, index) => ({
+        name: label,
+        value: data[index],
+    }));
 
-    const chartData = {
-        labels,
-        datasets: [{
-            data,
-            backgroundColor: colors || defaultColors.slice(0, data.length),
-            borderWidth: 2,
-            borderColor: '#fff',
-        }],
-    };
+    const fillColors = colors || COLORS.slice(0, data.length);
 
-    const options = {
-        responsive: true,
-        plugins: {
-            legend: { position: 'bottom' as const },
-            title: { display: true, text: title, font: { size: 14 } },
-        },
-    };
-
-    return <Doughnut data={chartData} options={options} />;
+    return (
+        <div className="w-full h-64">
+            <p className="text-sm font-medium text-center mb-2">{title}</p>
+            <ResponsiveContainer width="100%" height="90%">
+                <PieChart>
+                    <Pie
+                        data={chartData}
+                        cx="50%"
+                        cy="50%"
+                        innerRadius={40}
+                        outerRadius={80}
+                        paddingAngle={2}
+                        dataKey="value"
+                        label={({ name, percent = 0 }) => `${name} ${(percent * 100).toFixed(0)}%`}
+                        labelLine={false}
+                    >
+                        {chartData.map((_, index) => (
+                            <Cell key={`cell-${index}`} fill={fillColors[index % fillColors.length]} />
+                        ))}
+                    </Pie>
+                    <Tooltip />
+                    <Legend />
+                </PieChart>
+            </ResponsiveContainer>
+        </div>
+    );
 }
 
 interface LineChartProps {
@@ -115,33 +117,34 @@ interface LineChartProps {
 }
 
 export function LineChart({ labels, data, title, color = chartColors.primary }: LineChartProps) {
-    const chartData = {
-        labels,
-        datasets: [{
-            label: title,
-            data,
-            borderColor: color,
-            backgroundColor: color.replace('0.8', '0.2'),
-            tension: 0.3,
-            fill: true,
-        }],
-    };
+    const chartData = labels.map((label, index) => ({
+        name: label,
+        value: data[index],
+    }));
 
-    const options = {
-        responsive: true,
-        plugins: {
-            legend: { display: false },
-            title: { display: true, text: title, font: { size: 14 } },
-        },
-        scales: {
-            y: { beginAtZero: true },
-        },
-    };
-
-    return <Line data={chartData} options={options} />;
+    return (
+        <div className="w-full h-64">
+            <p className="text-sm font-medium text-center mb-2">{title}</p>
+            <ResponsiveContainer width="100%" height="90%">
+                <AreaChart data={chartData}>
+                    <CartesianGrid strokeDasharray="3 3" />
+                    <XAxis dataKey="name" fontSize={12} />
+                    <YAxis fontSize={12} />
+                    <Tooltip />
+                    <Area
+                        type="monotone"
+                        dataKey="value"
+                        stroke={color}
+                        fill={color}
+                        fillOpacity={0.2}
+                    />
+                </AreaChart>
+            </ResponsiveContainer>
+        </div>
+    );
 }
 
-// Componente de KPI Card
+// Componente de KPI Card (sin cambios, no usa chart.js)
 interface KpiCardProps {
     title: string;
     value: string | number;

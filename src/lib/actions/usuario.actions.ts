@@ -65,8 +65,7 @@ export async function createUsuario(data: CreateUsuarioDTO) {
             email: data.email,
             password_hash: hashedPassword,
             rol: data.rol as RolEnum,
-            empresa_id: empresaId,
-            creado_por: session.user.id
+            empresa_id: empresaId
         }
     });
 
@@ -113,16 +112,11 @@ export async function deleteUsuario(id: string) {
         throw new Error('No puedes eliminar tu propio usuario');
     }
 
-    // Soft delete or Hard delete? Prisma schema has `eliminado_en`.
-    // Let's emulate soft delete manually if Prisma middleware isn't set up, or just update fields.
-    // Based on schema `eliminado_en` exists.
-
+    // Schema only has 'activo', no soft delete fields like eliminado_en
     await prisma.usuario.update({
         where: { id },
         data: {
-            eliminado_en: new Date(),
-            activo: false,
-            eliminado_por: session.user.id
+            activo: false
         }
     });
 

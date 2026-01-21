@@ -1,8 +1,7 @@
 "use client"
 
 import { ColumnDef } from "@tanstack/react-table"
-import { Action, NeumaticoResponse } from "@/types/domain/neumatico.types"
-// import { NeumaticoWithRelations } from "@/lib/api/neumaticos"
+import { NeumaticoWithRelations } from "@/lib/api/neumaticos"
 import { MoreHorizontal, Pencil, Trash, Eye } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import {
@@ -16,54 +15,58 @@ import {
 import { Badge } from "@/components/ui/badge"
 
 interface GetColumnsProps {
-    onEdit: (neumatico: NeumaticoResponse) => void
+    onEdit: (neumatico: NeumaticoWithRelations) => void
     onDelete: (id: string) => void
 }
 
-console.log("COLUMNS DEFINITION RELOADED - V2");
-export const getColumns = ({ onEdit, onDelete }: GetColumnsProps): ColumnDef<NeumaticoResponse>[] => [
+export const getColumns = ({ onEdit, onDelete }: GetColumnsProps): ColumnDef<NeumaticoWithRelations>[] => [
     {
-        accessorKey: "identificacion.serie",
+        accessorKey: "numero_serie",
         id: "serie",
         header: "Serie",
-        cell: ({ row }) => <span className="font-medium">{row.original.identificacion.serie || 'S/N'}</span>,
+        cell: ({ row }) => <span className="font-medium">{row.original.numero_serie || 'S/N'}</span>,
     },
     {
-        accessorKey: "identificacion.modelo",
+        accessorKey: "modelo.nombre",
         header: "Modelo",
         cell: ({ row }) => (
             <div className="flex flex-col">
-                <span className="font-medium">{row.original.identificacion.modelo}</span>
-                <span className="text-xs text-muted-foreground">{row.original.identificacion.medida}</span>
+                <span className="font-medium">{row.original.modelo?.nombre_modelo || '-'}</span>
+                <span className="text-xs text-muted-foreground">{row.original.modelo?.medida || '-'}</span>
             </div>
         )
     },
     {
-        accessorKey: "identificacion.dot",
+        accessorKey: "dot",
         header: "DOT",
-        cell: ({ row }) => <span>{row.original.identificacion.dot || '-'}</span>,
+        cell: ({ row }) => <span>{row.original.dot || '-'}</span>,
     },
     {
-        accessorKey: "estado.estadoActual",
+        accessorKey: "estado_actual",
         header: "Estado",
         cell: ({ row }) => {
-            const estado = row.original.estado.estadoActual
+            const estado = row.original.estado_actual
             if (!estado) return <Badge variant="secondary">UNKNOWN</Badge>
 
             return (
-                <Badge variant={estado === "MONTADO" ? "default" : "secondary"}>
+                <Badge variant={estado === "INSTALADO" ? "default" : "secondary"}>
                     {estado.replace("_", " ")}
                 </Badge>
             )
         },
     },
     {
-        accessorKey: "estado.ubicacion",
+        id: "ubicacion",
         header: "Ubicación",
         cell: ({ row }) => {
-            return <span className="text-sm truncate max-w-[200px]" title={row.original.estado.ubicacion}>
-                {row.original.estado.ubicacion}
-            </span>
+            const neumatico = row.original
+            if (neumatico.ubicacion_vehiculo) {
+                return <span className="text-sm">Vehículo: {neumatico.ubicacion_vehiculo.placa}</span>
+            }
+            if (neumatico.ubicacion_almacen) {
+                return <span className="text-sm">Almacén: {neumatico.ubicacion_almacen.nombre}</span>
+            }
+            return <span className="text-sm text-muted-foreground">Sin ubicación</span>
         },
     },
     {

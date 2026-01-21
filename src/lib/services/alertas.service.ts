@@ -162,6 +162,7 @@ export class AlertasService {
             where: { id: neumaticoId },
             select: {
                 numero_serie: true,
+                empresa_id: true,
                 ubicacion_vehiculo_id: true,
                 ubicacion_vehiculo: { select: { placa: true } }
             }
@@ -208,7 +209,7 @@ export class AlertasService {
 
             // WEBHOOK TRIGGER
             const webhookService = new (require('./webhook.service').WebhookService)();
-            await webhookService.dispatch('ALERTA_CRITICAL', alertData);
+            await webhookService.dispatch('ALERTA_CRITICAL', alertData, neumatico.empresa_id);
         }
 
         return true;

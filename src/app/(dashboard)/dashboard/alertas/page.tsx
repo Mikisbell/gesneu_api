@@ -19,7 +19,7 @@ interface Alerta {
     mensaje: string;
     leida: boolean;
     resuelta: boolean;
-    creado_en: string;
+    creada_en: string;
     neumatico?: {
         id: string;
         numero_serie: string;
@@ -236,7 +236,7 @@ export default function AlertasPage() {
                                                         </p>
                                                     )}
                                                     <p className="text-xs text-muted-foreground mt-2">
-                                                        {formatDistanceToNow(new Date(alerta.creado_en), { addSuffix: true, locale: es })}
+                                                        {formatDistanceToNow(new Date(alerta.creada_en), { addSuffix: true, locale: es })}
                                                     </p>
                                                 </div>
                                             </div>

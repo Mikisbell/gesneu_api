@@ -104,11 +104,11 @@ export class ApiResponseHelper {
 
     // Handle custom auth errors
     if (error instanceof Error) {
-      if (error.message === 'UNAUTHORIZED') {
-        return this.unauthorized();
+      if (error.message === 'UNAUTHORIZED' || error.message.startsWith('UNAUTHORIZED:')) {
+        return this.unauthorized(error.message === 'UNAUTHORIZED' ? undefined : error.message.split(': ')[1]);
       }
-      if (error.message === 'FORBIDDEN') {
-        return this.forbidden();
+      if (error.message === 'FORBIDDEN' || error.message.startsWith('FORBIDDEN:')) {
+        return this.forbidden(error.message === 'FORBIDDEN' ? undefined : error.message.split(': ')[1]);
       }
     }
 

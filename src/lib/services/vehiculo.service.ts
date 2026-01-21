@@ -34,6 +34,7 @@ import {
     mapEntityToResponse,
     mapEntitiesToListItems,
 } from '@/lib/mappers/vehiculo.mapper';
+import { canDeleteVehiculo } from '@/lib/validators/domain-rules/vehiculo.rules';
 
 /**
  * Servicio para gestión de Vehículos.
@@ -218,6 +219,16 @@ export class VehiculoService {
         const existing = await this.repository.findById(id);
         if (!existing) {
             return err(new NotFoundError('Vehículo', id));
+        }
+
+        // Recuperar con relaciones para validar
+        // Es mejor usar findByIdWithFullRelations si necesitamos chequear neumáticos instalados
+        // El findById standard podría no traer la relación
+        const fullEntity = await this.repository.findByIdWithFullRelations(id);
+
+        if (fullEntity) {
+            const canDelete = canDeleteVehiculo(fullEntity);
+            if (!canDelete.success) return err(canDelete.error);
         }
 
         try {

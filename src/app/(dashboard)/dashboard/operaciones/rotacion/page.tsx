@@ -59,12 +59,12 @@ export default function RotacionPage() {
     // Queries
     const { data: vehiculos, isLoading: loadingVehiculos } = useQuery({
         queryKey: ['vehiculos'],
-        queryFn: () => apiClient<any[]>('/api/v1/vehiculos'),
+        queryFn: () => apiClient<any[]>('/vehiculos'),
     });
 
     const { data: vehicleDetails, isLoading: loadingDetails, refetch: refetchDetails } = useQuery({
         queryKey: ['vehicle', selectedVehicleId],
-        queryFn: () => apiClient<any>(`/api/v1/vehiculos/${selectedVehicleId}/full`),
+        queryFn: () => apiClient<any>(`/vehiculos/${selectedVehicleId}/full`),
         enabled: !!selectedVehicleId,
     });
 
@@ -75,7 +75,7 @@ export default function RotacionPage() {
                 tipo_evento: 'ROTACION',
                 ...data
             };
-            return apiClient('/api/v1/neumaticos/eventos', { method: 'POST', body: JSON.stringify(payload) });
+            return apiClient('/neumaticos/eventos', { method: 'POST', body: JSON.stringify(payload) });
         },
         onSuccess: () => {
             toast({

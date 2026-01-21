@@ -1,12 +1,17 @@
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Disc, Truck, AlertTriangle, CheckCircle } from 'lucide-react'
 import { DashboardService } from '@/lib/services/dashboard.service'
+import { StatusPieChart } from '@/components/dashboard/charts/StatusPieChart'
 
 export const dynamic = 'force-dynamic' // Asegurar datos frescos en cada carga
 
 export default async function DashboardPage() {
     const dashboardService = new DashboardService()
-    const stats = await dashboardService.getGeneralStats()
+    // Parallel data fetching
+    const [stats, inventario] = await Promise.all([
+        dashboardService.getGeneralStats(),
+        dashboardService.getReporteInventario()
+    ])
 
     return (
         <div className="space-y-6">
@@ -80,22 +85,14 @@ export default async function DashboardPage() {
                         <CardTitle>Resumen Reciente</CardTitle>
                     </CardHeader>
                     <CardContent>
-                        <p className="text-sm text-muted-foreground">
+                        <p className="text-sm text-muted-foreground h-[300px] flex items-center justify-center bg-muted/20 rounded-lg">
                             Gráfico de actividad en desarrollo...
                         </p>
                     </CardContent>
                 </Card>
 
-                <Card className="col-span-3">
-                    <CardHeader>
-                        <CardTitle>Estado de Flota</CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                        <p className="text-sm text-muted-foreground">
-                            Gráfico de estado en desarrollo...
-                        </p>
-                    </CardContent>
-                </Card>
+                {/* Status Chart Component */}
+                <StatusPieChart data={inventario.por_estado} />
             </div>
         </div>
     )

@@ -1,6 +1,6 @@
 import { Vehiculo, Prisma } from '@prisma/client';
 import { BaseRepository } from './base.repository';
-import { CreateVehiculoDTO, UpdateVehiculoDTO, IVehiculo, VehiculoFilters } from '@/types/domain/vehiculo.types';
+import { CreateVehiculoDTO, UpdateVehiculoDTO, VehiculoEntity, VehiculoFilters } from '@/types/domain/vehiculo.types';
 
 export class VehiculoRepository extends BaseRepository<Vehiculo, CreateVehiculoDTO, UpdateVehiculoDTO> {
     protected model = this.db.vehiculo;
@@ -8,19 +8,24 @@ export class VehiculoRepository extends BaseRepository<Vehiculo, CreateVehiculoD
     /**
      * Busca un vehículo por su placa única
      */
-    async findByPlaca(placa: string): Promise<IVehiculo | null> {
+    /**
+     * Busca un vehículo por su placa única
+     */
+    async findByPlaca(placa: string): Promise<VehiculoEntity | null> {
         try {
-            return await this.model.findUnique({
+            const result = await this.model.findUnique({
                 where: { placa },
                 include: {
                     tipo_vehiculo: true,
                     neumaticos_instalados: {
                         include: {
+                            modelo: { include: { fabricante: true } },
                             ubicacion_posicion: true
                         }
                     }
                 }
             });
+            return result as VehiculoEntity | null;
         } catch (error) {
             this.handleError(error);
             throw error;
@@ -30,7 +35,7 @@ export class VehiculoRepository extends BaseRepository<Vehiculo, CreateVehiculoD
     /**
      * Obtiene vehículos con filtros y relaciones
      */
-    async findAllWithRelations(filters: VehiculoFilters = {}): Promise<IVehiculo[]> {
+    async findAllWithRelations(filters: VehiculoFilters = {}): Promise<VehiculoEntity[]> {
         const where: Prisma.VehiculoWhereInput = {};
 
         if (filters.placa) {
@@ -47,16 +52,22 @@ export class VehiculoRepository extends BaseRepository<Vehiculo, CreateVehiculoD
         }
 
         try {
-            return await this.model.findMany({
+            const result = await this.model.findMany({
                 where,
                 include: {
                     tipo_vehiculo: true,
-                    // No traemos neumáticos en la lista masiva por performance, solo en detalle
+                    neumaticos_instalados: {
+                        include: {
+                            modelo: { include: { fabricante: true } },
+                            ubicacion_posicion: true
+                        }
+                    }
                 },
                 orderBy: {
                     placa: 'asc'
                 }
             });
+            return result as VehiculoEntity[];
         } catch (error) {
             this.handleError(error);
             throw error;
@@ -66,9 +77,9 @@ export class VehiculoRepository extends BaseRepository<Vehiculo, CreateVehiculoD
     /**
      * Obtiene un vehículo con toda su configuración de ejes y neumáticos
      */
-    async findByIdWithFullConfig(id: string): Promise<IVehiculo | null> {
+    async findByIdWithFullConfig(id: string): Promise<VehiculoEntity | null> {
         try {
-            return await this.model.findUnique({
+            const result = await this.model.findUnique({
                 where: { id },
                 include: {
                     tipo_vehiculo: {
@@ -86,11 +97,16 @@ export class VehiculoRepository extends BaseRepository<Vehiculo, CreateVehiculoD
                     neumaticos_instalados: {
                         include: {
                             ubicacion_posicion: true,
-                            modelo: true
+                            modelo: {
+                                include: {
+                                    fabricante: true
+                                }
+                            }
                         }
                     }
                 }
             });
+            return result as unknown as VehiculoEntity | null;
         } catch (error) {
             this.handleError(error);
             throw error;
@@ -101,9 +117,9 @@ export class VehiculoRepository extends BaseRepository<Vehiculo, CreateVehiculoD
      * Obtiene un vehículo por ID con todas las relaciones para VehiculoEntity.
      * Incluye tipo_vehiculo, neumaticos con modelo y fabricante.
      */
-    async findByIdWithFullRelations(id: string): Promise<IVehiculo | null> {
+    async findByIdWithFullRelations(id: string): Promise<VehiculoEntity | null> {
         try {
-            return await this.model.findUnique({
+            const result = await this.model.findUnique({
                 where: { id },
                 include: {
                     tipo_vehiculo: true,
@@ -119,6 +135,7 @@ export class VehiculoRepository extends BaseRepository<Vehiculo, CreateVehiculoD
                     }
                 }
             });
+            return result as VehiculoEntity | null;
         } catch (error) {
             this.handleError(error);
             throw error;

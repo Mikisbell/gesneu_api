@@ -46,9 +46,14 @@ export class EventoNeumaticoService {
             }
 
             // Ejecutar lógica dentro de una transacción
-            const eventEntity = await (externalTx || prisma).$transaction(async (tx) => {
-                return this._dispatchEvento(input, userId, tx);
-            });
+            const executeLogic = (tx: TxClient) => this._dispatchEvento(input, userId, tx);
+
+            let eventEntity;
+            if (externalTx) {
+                eventEntity = await executeLogic(externalTx);
+            } else {
+                eventEntity = await prisma.$transaction(executeLogic);
+            }
 
             // Mapear respuesta final (Recuperando entidad completa si es necesario)
             // El repository.create devuelve con includes, pero mis handlers internos usan create nativo.
@@ -459,7 +464,7 @@ export class EventoNeumaticoService {
     private async _validateAndGetNeumatico(tx: TxClient, id: string): Promise<Neumatico> {
         const neumatico = await tx.neumatico.findUnique({ where: { id } });
         if (!neumatico) throw new NotFoundError('Neumático');
-        if (!neumatico.activo) throw new BusinessError('Neumático inactivo');
+        if (!neumatico.activo) throw new BusinessError('Neumático inactivo', 'NEUMATICO_INACTIVO', 409);
         return neumatico;
     }
 

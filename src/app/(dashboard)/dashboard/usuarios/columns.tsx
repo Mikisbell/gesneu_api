@@ -69,7 +69,7 @@ export const columns = (
             cell: ({ row }) => {
                 const activo = row.original.activo
                 return (
-                    <Badge variant={activo ? "success" : "secondary"}>
+                    <Badge variant={activo ? "default" : "secondary"}>
                         {activo ? 'Activo' : 'Inactivo'}
                     </Badge>
                 )

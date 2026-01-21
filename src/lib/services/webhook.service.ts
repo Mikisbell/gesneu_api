@@ -8,11 +8,12 @@ export class WebhookService {
      * Envía un evento a todos los webhooks configurados y activos
      * que estén suscritos a este tipo de evento (o ALL_EVENTS).
      */
-    async dispatch(event: WebhookEventType, payload: any): Promise<void> {
-        // 1. Buscar webhooks suscritos
+    async dispatch(event: WebhookEventType, payload: any, empresaId: string): Promise<void> {
+        // 1. Buscar webhooks suscritos de la empresa correcta
         const webhooks = await prisma.webhookConfig.findMany({
             where: {
                 activo: true,
+                empresa_id: empresaId,
                 OR: [
                     { eventos: { has: event } },
                     { eventos: { has: WebhookEventType.ALL_EVENTS } }

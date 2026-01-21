@@ -130,7 +130,7 @@ export function mapEntityToResponse(entity: VehiculoEntity): VehiculoResponse {
         // Vehiculo model uses fecha_alta instead of creado_en
         createdAt: e.fecha_alta?.toISOString?.() ?? new Date().toISOString(),
         updatedAt: e.fecha_alta?.toISOString?.() ?? new Date().toISOString(),
-    };
+    } satisfies VehiculoResponse;
 }
 
 /**

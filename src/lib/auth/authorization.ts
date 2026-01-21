@@ -127,5 +127,28 @@ export function hasRole(session: ExtendedSession, role: string): boolean {
  * @returns true if user is admin
  */
 export function isAdmin(session: ExtendedSession): boolean {
-    return hasRole(session, 'ADMINISTRADOR');
+    return hasRole(session, 'ADMINISTRADOR') || hasRole(session, 'SUPERADMIN');
+}
+
+/**
+ * Require specific role - throws error if user doesn't have it
+ * @param session - Expected to be a valid session
+ * @param role - Role or array of roles (OR logic)
+ * @throws Error if forbidden
+ */
+export function requireRole(session: ExtendedSession, role: string | string[]): void {
+    const roles = Array.isArray(role) ? role : [role];
+    const userRoles = session.user.roles || [];
+
+    // Create normalized set for comparison (handle potential casing)
+    const normalizedUserRoles = userRoles.map(r => r.toUpperCase());
+
+    // Always allow SUPERADMIN
+    if (normalizedUserRoles.includes('SUPERADMIN')) return;
+
+    const hasRequired = roles.some(r => normalizedUserRoles.includes(r.toUpperCase()));
+
+    if (!hasRequired) {
+        throw new Error(`FORBIDDEN: Requires role ${roles.join(' or ')}`);
+    }
 }

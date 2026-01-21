@@ -1,3 +1,4 @@
+
 /**
  * Database test helpers
  * Provides utilities for managing test data
@@ -9,6 +10,18 @@ import { prisma } from '@/lib/prisma';
  * Note: In test environment, we can safely delete test data
  * In real environment, be more selective
  */
+export async function getOrCreateTestEnterprise() {
+    // RLS might block reading, so we create a new one every time
+    // This is safer for tests anyway to ensure isolation
+    const empresa = await prisma.empresa.create({
+        data: {
+            nombre: `Test Enterprise ${Date.now()}`,
+            ruc: `TEST-${Date.now()}-${Math.random().toString(36).substr(2, 5)}`,
+        }
+    });
+    return empresa;
+}
+
 export async function cleanTestData() {
     // Get test neumatico IDs first
     const testNeumaticos = await prisma.neumatico.findMany({
@@ -25,6 +38,11 @@ export async function cleanTestData() {
 
         // Delete eventos_neumaticos (FK to neumatico)
         await prisma.eventoNeumatico.deleteMany({
+            where: { neumatico_id: { in: testNeumaticoIds } }
+        });
+
+        // Delete alertas (FK to neumatico)
+        await prisma.alerta.deleteMany({
             where: { neumatico_id: { in: testNeumaticoIds } }
         });
     }
@@ -58,17 +76,46 @@ export async function cleanTestData() {
     await prisma.fabricanteNeumatico.deleteMany({
         where: { nombre: { endsWith: 'Test' } }
     });
+
+    // Delete test users (generic cleanup for created users)
+    await prisma.usuario.deleteMany({
+        where: { username: { startsWith: 'testuser_' } }
+    });
 }
+
+// Alias for compatibility
+export const clearDatabase = cleanTestData;
 
 /**
  * Create test neumatico
  */
 export async function createTestNeumatico(overrides: any = {}) {
     // First, ensure we have a modelo
-    const modelo = await prisma.modeloNeumatico.findFirst();
+    let modelo = await prisma.modeloNeumatico.findFirst({
+        where: { nombre_modelo: { endsWith: 'Test' } }
+    });
 
     if (!modelo) {
-        throw new Error('No modelo found in database. Please seed base data first.');
+        // Create a test manufacturer first
+        let fabricante = await prisma.fabricanteNeumatico.findFirst({
+            where: { nombre: { endsWith: 'Test' } }
+        });
+
+        if (!fabricante) {
+            fabricante = await prisma.fabricanteNeumatico.create({
+                data: { nombre: 'Michelin Test' }
+            });
+        }
+
+        modelo = await prisma.modeloNeumatico.create({
+            data: {
+                nombre_modelo: 'X Multi Z Test',
+                medida: '295/80R22.5',
+                profundidad_original_mm: 18.5,
+                fabricante_id: fabricante.id,
+                reencauches_maximos: 2
+            }
+        });
     }
 
     const neumatico = await prisma.neumatico.create({
@@ -80,6 +127,7 @@ export async function createTestNeumatico(overrides: any = {}) {
             profundidad_inicial_mm: 20,
             profundidad_remanente_actual_mm: 20,
             activo: true,
+            empresa_id: (await getOrCreateTestEnterprise()).id,
             ...overrides
         }
     });
@@ -106,6 +154,7 @@ export async function createTestVehiculo(overrides: any = {}) {
             modelo: 'Test Model',
             anio: 2024,
             activo: true,
+            empresa_id: (await getOrCreateTestEnterprise()).id,
             ...overrides
         }
     });
@@ -121,6 +170,7 @@ export async function createTestAlmacen(overrides: any = {}) {
         data: {
             nombre: `[TEST] Almacén Test ${Date.now()}`,
             tipo: 'PRINCIPAL',
+            empresa_id: (await getOrCreateTestEnterprise()).id,
             ...overrides
         }
     });
@@ -137,11 +187,29 @@ export async function createTestProveedor(overrides: any = {}) {
             tipo: 'FABRICANTE',
             nombre: `[TEST] Proveedor Test ${Date.now()}`,
             ruc: `TEST${Date.now()}`.substring(0, 20),
+            empresa_id: (await getOrCreateTestEnterprise()).id,
             ...overrides
         }
     });
 
     return proveedor;
+}
+
+/**
+ * Create test user
+ */
+export async function createTestUser(overrides: any = {}) {
+    return await prisma.usuario.create({
+        data: {
+            username: 'testuser_' + Date.now() + Math.random().toString(36).substr(2, 5),
+            email: 'test_' + Date.now() + '_' + Math.random().toString(36).substr(2, 5) + '@example.com',
+            password_hash: 'hashed_password',
+            nombre_completo: 'Test User',
+            rol: 'ADMIN',
+            empresa_id: (await getOrCreateTestEnterprise()).id,
+            ...overrides
+        }
+    });
 }
 
 /**

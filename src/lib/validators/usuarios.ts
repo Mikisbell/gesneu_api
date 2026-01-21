@@ -8,8 +8,8 @@ export const createUsuarioSchema = z.object({
     nombre_completo: z.string().min(3, 'El nombre completo debe tener al menos 3 caracteres').max(200),
     email: z.string().email('Email inválido').max(100),
     password: z.string().min(6, 'La contraseña debe tener al menos 6 caracteres'),
-    // Ahora es un solo Enum, no un array de UUIDs
-    rol: RolesEnum.default('OPERADOR'),
+    // Rol es requerido, el form proporciona 'OPERADOR' como defaultValue
+    rol: RolesEnum,
 });
 
 export const updateUsuarioSchema = z.object({

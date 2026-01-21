@@ -1,21 +1,21 @@
+
 import { NextRequest } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { ApiResponseHelper } from '@/lib/utils/api-response';
-import { requireAuth } from '@/lib/auth/authorization';
+import { requireAuth, requireRole } from '@/lib/auth/authorization';
 import { CreateWebhookSchema } from '@/lib/validators/webhook.validator';
 
-// GET: Listar webhooks
+// GET: Listar webhooks (Scoped by Tenant)
 export async function GET(request: NextRequest) {
     try {
         const session = await requireAuth();
-        // Solo ADMIN puede ver/configurar webhooks
-        const isAdmin = session.user.roles?.includes('ADMINISTRADOR') || session.user.roles?.includes('ADMIN');
-        if (!isAdmin) {
-            return ApiResponseHelper.error('Requiere rol de Administrador', 403);
-        }
+        requireRole(session, ['ADMIN', 'ADMINISTRADOR']);
 
         const webhooks = await prisma.webhookConfig.findMany({
-            orderBy: { creado_en: 'desc' }
+            where: {
+                empresa_id: session.user.empresa_id
+            },
+            orderBy: { id: 'desc' }
         });
 
         // Ocultar secret parcialmente
@@ -30,14 +30,11 @@ export async function GET(request: NextRequest) {
     }
 }
 
-// POST: Crear webhook
+// POST: Crear webhook (Scoped by Tenant)
 export async function POST(request: NextRequest) {
     try {
         const session = await requireAuth();
-        const isAdmin = session.user.roles?.includes('ADMINISTRADOR') || session.user.roles?.includes('ADMIN');
-        if (!isAdmin) {
-            return ApiResponseHelper.error('Requiere rol de Administrador', 403);
-        }
+        requireRole(session, ['ADMIN', 'ADMINISTRADOR']);
 
         const json = await request.json();
         const body = CreateWebhookSchema.parse(json);
@@ -45,7 +42,8 @@ export async function POST(request: NextRequest) {
         const webhook = await prisma.webhookConfig.create({
             data: {
                 ...body,
-                creado_por: session.user.id
+                creado_por: session.user.id,
+                empresa_id: session.user.empresa_id || '00000000-0000-0000-0000-000000000000' // Fallback handled by DB default usually
             }
         });
 

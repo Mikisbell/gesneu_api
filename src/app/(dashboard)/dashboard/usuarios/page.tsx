@@ -85,7 +85,6 @@ export default function UsuariosPage() {
                 columns={columns(handleEdit, handleToggle, handleDelete)}
                 data={data}
                 searchKey="nombre_completo"
-                loading={loading}
             />
 
             <UsuarioDialog

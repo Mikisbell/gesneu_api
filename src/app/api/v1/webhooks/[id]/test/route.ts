@@ -1,7 +1,7 @@
 import { NextRequest } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { ApiResponseHelper } from '@/lib/utils/api-response';
-import { requireAuth } from '@/lib/auth/authorization';
+import { requireAuth, requireRole } from '@/lib/auth/authorization';
 import { WebhookService } from '@/lib/services/webhook.service';
 import { WebhookEventType } from '@prisma/client';
 
@@ -11,11 +11,14 @@ const webhookService = new WebhookService();
 export async function POST(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
     try {
         const session = await requireAuth();
-        if (!session.user.roles.includes('ADMIN')) return ApiResponseHelper.error('Requiere rol de Administrador', 403);
+        requireRole(session, ['ADMIN', 'ADMINISTRADOR']);
 
         const { id } = await params;
-        const webhook = await prisma.webhookConfig.findUnique({
-            where: { id }
+        const webhook = await prisma.webhookConfig.findFirst({
+            where: {
+                id,
+                empresa_id: session.user.empresa_id
+            }
         });
 
         if (!webhook) return ApiResponseHelper.error('Webhook no encontrado', 404);
@@ -36,7 +39,7 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
         // Pero queremos forzar SOLO a este. 
         // Mejor simulamos el dispatch pero verificamos logs.
 
-        await webhookService.dispatch(event, testPayload);
+        await webhookService.dispatch(event, testPayload, session.user.empresa_id!);
 
         // Buscamos el último log generado para este webhook
         // Damos un pequeño delay para asegurar que se procesó (ya que dispatch es async fire&forget)

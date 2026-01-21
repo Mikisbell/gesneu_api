@@ -20,10 +20,11 @@ import {
     Bell,
     FileText,
     Shield,
-    Share2
+    Share2,
+    Building
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
-import { signOut } from 'next-auth/react'
+import { signOut, useSession } from 'next-auth/react'
 import { PERMISSIONS } from '@/lib/auth/permissions'
 import { usePermission } from '@/hooks/use-permission'
 
@@ -115,9 +116,12 @@ const sistemaItems = [
     },
 ]
 
-export function Sidebar() {
+export function Sidebar({ onNavigate }: { onNavigate?: () => void }) {
     const pathname = usePathname()
     const { hasPermission, isLoading } = usePermission()
+    const { data: session } = useSession() // Get session for role check
+    const userExtended = session?.user as { rol?: string; role?: string; roles?: string[] } | undefined;
+    const isSuperAdmin = userExtended?.rol === 'SUPERADMIN' || userExtended?.role === 'SUPERADMIN' || userExtended?.roles?.includes('SUPERADMIN')
 
     // Si está cargando auth, mostramos esqueleto o nada
     if (isLoading) return <div className="w-64 bg-gray-100 dark:bg-gray-900 border-r" />
@@ -137,6 +141,30 @@ export function Sidebar() {
             </div>
 
             <div className="flex-1 px-4 space-y-4 overflow-y-auto">
+                {/* Admin Section */}
+                {isSuperAdmin && (
+                    <div>
+                        <div className="px-3 py-2 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                            Administración
+                        </div>
+                        <div className="space-y-1">
+                            <Link
+                                href="/dashboard/admin/tenants"
+                                onClick={onNavigate}
+                                className={cn(
+                                    "flex items-center gap-3 px-3 py-2 rounded-md text-sm font-medium transition-colors",
+                                    pathname.startsWith('/dashboard/admin')
+                                        ? "bg-primary text-primary-foreground"
+                                        : "text-muted-foreground hover:bg-muted hover:text-foreground"
+                                )}
+                            >
+                                <Building className="h-4 w-4" />
+                                Empresas
+                            </Link>
+                        </div>
+                    </div>
+                )}
+
                 {/* Catálogos Section */}
                 {filteredCatalogos.length > 0 && (
                     <div>
@@ -152,6 +180,7 @@ export function Sidebar() {
                                     <Link
                                         key={item.href}
                                         href={item.href}
+                                        onClick={onNavigate}
                                         className={cn(
                                             "flex items-center gap-3 px-3 py-2 rounded-md text-sm font-medium transition-colors",
                                             isActive
@@ -183,6 +212,7 @@ export function Sidebar() {
                                     <Link
                                         key={item.href}
                                         href={item.href}
+                                        onClick={onNavigate}
                                         className={cn(
                                             "flex items-center gap-3 px-3 py-2 rounded-md text-sm font-medium transition-colors",
                                             isActive
@@ -214,6 +244,7 @@ export function Sidebar() {
                                     <Link
                                         key={item.href}
                                         href={item.href}
+                                        onClick={onNavigate}
                                         className={cn(
                                             "flex items-center gap-3 px-3 py-2 rounded-md text-sm font-medium transition-colors",
                                             isActive
@@ -229,6 +260,15 @@ export function Sidebar() {
                         </div>
                     </div>
                 )}
+
+                {/* Admin/Tenants Section (SUPERADMIN ONLY) */}
+                {/* We use a direct role check here or assume specific permission if we added it */}
+                {/* For now, let's assume we want to show this if the user has the 'SUPERADMIN' role context */}
+                {/* Note: usePermission hook might not expose role directly, so we might need useSession if strictly role based */}
+
+                <div>
+                    {/* Placeholder for dynamic role check if needed, or we rely on having the permission */}
+                </div>
             </div>
 
             <div className="p-4 border-t">

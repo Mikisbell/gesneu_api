@@ -2,6 +2,7 @@
 
 generator client {
   provider = "prisma-client-js"
+  engineType = "binary"
 }
 
 datasource db {
@@ -39,7 +40,9 @@ model Empresa {
   almacenes   Almacen[]
   vehiculos   Vehiculo[]
   neumaticos  Neumatico[]
+
   proveedores Proveedor[]
+  webhooks    WebhookConfig[]
 
   @@map("empresas")
 }
@@ -510,6 +513,7 @@ enum RolEnum {
   ADMIN
   GESTOR
   OPERADOR
+  SUPERADMIN
 }
 
 enum TipoMedicionEnum {
@@ -640,13 +644,17 @@ model WebhookConfig {
   eventos       WebhookEventType[]
   activo        Boolean           @default(true)
   
-  creado_en     DateTime          @default(now())
   creado_por    String?           @db.Uuid
-  
+  empresa_id    String            @default("00000000-0000-0000-0000-000000000000") @db.Uuid // Default temp for migration
+
+  creado_en     DateTime          @default(now())
+  actualizado_en DateTime         @updatedAt
+
   logs          WebhookLog[]
   jobs          WebhookJob[]
   
   usuario       Usuario?          @relation(fields: [creado_por], references: [id])
+  empresa       Empresa           @relation(fields: [empresa_id], references: [id])
 
   @@map("webhook_configs")
 }

@@ -77,6 +77,12 @@ export const SYSTEM_ROLES = {
     permisos: Object.values(PERMISSIONS) // Todos los permisos
   },
 
+  SUPERADMIN: {
+    nombre: 'SUPERADMIN',
+    descripcion: 'Control Total Multi-tenant',
+    permisos: Object.values(PERMISSIONS)
+  },
+
   GESTOR: {
     nombre: 'GESTOR',
     descripcion: 'Gestión operativa completa',

@@ -9,7 +9,7 @@ import { INeumatico } from '@/types/domain/neumatico.types';
 import { IVehiculo } from '@/types/domain/vehiculo.types';
 
 interface MontajeClientProps {
-    vehiculo: IVehiculo;
+    vehiculo: any; // Accepts IVehiculo or VehiculoResponse
     stock: INeumatico[];
     neumaticosInstalados: INeumatico[];
 }

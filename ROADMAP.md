@@ -15,7 +15,7 @@
 | **Fase 3** | ✅ 100% | Alertas, Dashboard, Email Notif. |
 | **Fase 4** | ✅ 100% | Políticas reencauchado |
 | **Fase 5** | ✅ 100% | Reportes, CSV, Dashboard visual, Mapa Ejes |
-| **Fase 6** | ⏳ 80% | PWA + Inspecciones Manuales |
+| **Fase 6** | ✅ 100% | PWA + Inspecciones Manuales (Backend & Basic UI) |
 
 ---
 
@@ -31,16 +31,14 @@
 ### Prioridad Media 🟡 (Mejoras UX)
 | Tarea | Estado | Detalle | Est. |
 |-------|--------|---------|-----|
-| **Historial Presión UI** | 📋 | Gráfico de tendencia por neumático | Sem 4 |
+| **Historial Presión UI** | ✅ | Gráfico de tendencia implementado (Recharts) | ✅ |
 | **IoT Scalability** | 📉 | (Postergado) Solo entrada manual por ahora | Q3 2026 |
-| **Historial Presión UI** | 📋 | Gráfico de tendencia por neumático | Sem 4 |
 
 ### Prioridad Media 🟡
 
 | Tarea | Estado | Descripción | ETA |
 |-------|--------|-------------|-----|
-| **API IoT/TPMS** | 📋 | Endpoint para sensores (cuando hardware esté listo) | Sem 4-6 |
-| **Historial Presión UI** | 📋 | Gráfico de tendencia por neumático | Sem 4 |
+| **API IoT/TPMS** | ✅ | Endpoint para sensores (Implementado Fase 5) | Completado |
 
 ### Prioridad Descartada/Postergada 📉
 | Tarea | Estado | Motivo |
@@ -98,8 +96,8 @@
 - [x] Install prompt component
 - [x] API `POST /api/v1/inspecciones`
 - [x] Modal de inspección manual
-- [ ] Migración DB para `lecturas_presion`
-- [ ] Alertas automáticas de presión
+- [x] Migración DB para `lecturas_presion`
+- [x] Alertas automáticas de presión
 
 </details>
 

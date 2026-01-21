@@ -83,6 +83,16 @@ Authorization: Bearer <token>
 | POST | `/alertas/generar` | Generar alertas automáticas |
 | PATCH | `/alertas/:id` | Marcar como leída/resuelta |
 
+### Admin Panel (Requiere Rol Admin)
+
+| Método | Endpoint | Descripción |
+|--------|----------|-------------|
+| GET | `/admin/tenants` | Listar empresas (con stats) |
+| GET | `/admin/tenants/:id` | Detalle empresa |
+| GET | `/admin/users` | Directorio global usuarios |
+| GET | `/admin/audit` | Audit trail del sistema |
+| GET | `/admin/webhooks` | Consola de webhooks |
+
 ---
 
 ## Swagger/OpenAPI

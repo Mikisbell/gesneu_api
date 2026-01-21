@@ -47,7 +47,7 @@ export default function DesechoPage() {
         queryKey: ['neumatico-search', searchTerm],
         queryFn: async () => {
             if (!searchTerm) return null;
-            const response = await apiClient(`/api/v1/neumaticos?numero_serie=${searchTerm}`) as Response;
+            const response = await apiClient(`/neumaticos?numero_serie=${searchTerm}`) as Response;
             const data = await response.json();
             return data.data?.[0] || null;
         },
@@ -58,7 +58,7 @@ export default function DesechoPage() {
     const { data: motivos } = useQuery({
         queryKey: ['motivos-desecho'],
         queryFn: async () => {
-            const response = await apiClient('/api/v1/catalogos/motivos-desecho') as Response;
+            const response = await apiClient('/catalogos/motivos-desecho') as Response;
             const data = await response.json();
             return data.data || [];
         },
@@ -73,7 +73,7 @@ export default function DesechoPage() {
                 motivo_desecho_id: data.motivo_desecho_id,
                 observaciones: data.observaciones,
             };
-            return apiClient('/api/v1/neumaticos/eventos', {
+            return apiClient('/neumaticos/eventos', {
                 method: 'POST',
                 body: JSON.stringify(payload)
             });

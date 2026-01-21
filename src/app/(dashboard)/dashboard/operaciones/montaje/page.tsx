@@ -59,20 +59,20 @@ export default function MontajePage() {
     // Fetch available vehicles (List)
     const { data: vehiculos, isLoading: loadingVehiculos, isError: errorVehiculos } = useQuery({
         queryKey: ['vehiculos'],
-        queryFn: () => apiClient<any[]>('/api/v1/vehiculos'),
+        queryFn: () => apiClient<any[]>('/vehiculos'),
     });
 
     // Fetch full vehicle details when selected
     const { data: vehicleDetails, isLoading: loadingDetails, refetch: refetchDetails } = useQuery({
         queryKey: ['vehicle', selectedVehicleId],
-        queryFn: () => apiClient<any>(`/api/v1/vehiculos/${selectedVehicleId}/full`),
+        queryFn: () => apiClient<any>(`/vehiculos/${selectedVehicleId}/full`),
         enabled: !!selectedVehicleId,
     });
 
     // Fetch available tires (EN_STOCK)
     const { data: neumaticos, isLoading: loadingNeumaticos, isError: errorNeumaticos } = useQuery({
         queryKey: ['neumaticos', 'EN_STOCK'],
-        queryFn: () => apiClient<any[]>('/api/v1/neumaticos?estado=EN_STOCK'),
+        queryFn: () => apiClient<any[]>('/neumaticos?estado=EN_STOCK'),
     });
 
     // ... (keep mutation code)
@@ -92,7 +92,7 @@ export default function MontajePage() {
                 presion_psi: data.presion_psi,
                 observaciones: data.observaciones,
             };
-            return apiClient('/api/v1/neumaticos/eventos', { method: 'POST', body: JSON.stringify(payload) });
+            return apiClient('/neumaticos/eventos', { method: 'POST', body: JSON.stringify(payload) });
         },
         onSuccess: () => {
             toast({

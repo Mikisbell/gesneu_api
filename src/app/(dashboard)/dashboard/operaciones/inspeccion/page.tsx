@@ -33,14 +33,14 @@ export default function InspeccionPage() {
     // Search query
     const { data: searchResults, isLoading: isSearching } = useQuery({
         queryKey: ['neumaticos', 'search', searchTerm],
-        queryFn: () => apiClient<any[]>(`/api/v1/neumaticos?q=${searchTerm}`),
+        queryFn: () => apiClient<any[]>(`/neumaticos?q=${searchTerm}`),
         enabled: searchTerm.length > 2,
     });
 
     // Inspection mutation
     const inspeccionMutation = useMutation({
         mutationFn: (data: any) =>
-            apiClient('/api/v1/neumaticos/eventos', {
+            apiClient('/neumaticos/eventos', {
                 method: 'POST',
                 body: JSON.stringify(data)
             }),

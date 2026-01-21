@@ -4,6 +4,7 @@ import { NeumaticoService } from '@/lib/services/neumatico.service';
 import { VehiculoService } from '@/lib/services/vehiculo.service';
 import MontajeClient from './montaje-client';
 import { EstadoNeumaticoEnum } from '@prisma/client';
+import { VehiculoId } from '@/types/branded.types';
 
 export const metadata: Metadata = {
     title: 'Montaje de Neumáticos | GesNeu',
@@ -25,35 +26,36 @@ const neumaticoService = new NeumaticoService();
 export default async function MontajePage({ params }: PageProps) {
     const { id } = await params;
 
-    // 1. Obtener Vehículo
-    const vehiculo = await vehiculoService.getByIdWithFullConfig(id);
-    if (!vehiculo) {
+    // 1. Obtener Vehículo (Result pattern)
+    const vehiculoResult = await vehiculoService.getByIdWithFullConfig(id as VehiculoId);
+    if (!vehiculoResult.success) {
         notFound();
     }
+    const vehiculo = vehiculoResult.data;
 
-    // 2. Obtener Neumáticos Instalados en este vehículo
-    // Nota: Esto podría optimizarse con un método específico en el servicio o repositorio
     // 2. Obtener Neumáticos Instalados en este vehículo (Optimizado)
-    const neumaticosInstalados = await neumaticoService.getAll({
+    const neumaticosInstaladosResult = await neumaticoService.getAll({
         ubicacion_vehiculo_id: id,
         estado_actual: EstadoNeumaticoEnum.INSTALADO
     });
+    const neumaticosInstalados = neumaticosInstaladosResult.success ? neumaticosInstaladosResult.data : [];
 
     // 3. Obtener Stock Disponible (Optimizado)
-    const stock = await neumaticoService.getAll({
+    const stockResult = await neumaticoService.getAll({
         estado_actual: EstadoNeumaticoEnum.EN_STOCK
     });
+    const stock = stockResult.success ? stockResult.data : [];
 
     // Helper to serialize Prisma objects (handle Decimals)
     const serializeNeumatico = (n: any) => ({
         ...n,
         costo_compra: n.costo_compra ? Number(n.costo_compra) : null,
-        // Add other Decimal fields if necessary
     });
 
     const serializedVehiculo = {
         ...vehiculo,
-        neumaticos_instalados: vehiculo.neumaticos_instalados?.map(serializeNeumatico) || []
+        // VehiculoResponse may not have neumaticos_instalados, handle safely
+        neumaticos_instalados: (vehiculo as any).neumaticos_instalados?.map(serializeNeumatico) || []
     };
 
     return (

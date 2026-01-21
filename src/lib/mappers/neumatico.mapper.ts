@@ -52,7 +52,7 @@ export function mapDtoToPrismaCreate(dto: CreateNeumaticoDTO): Prisma.NeumaticoC
         // Costos y Compras
         costo_compra: dto.costo_compra,
         moneda_compra: dto.moneda_compra ?? 'PEN',
-        fecha_compra: dto.fecha_compra,
+        fecha_compra: dto.fecha_compra ?? new Date(),
         fecha_fabricacion: dto.fecha_fabricacion,
 
         // Mediciones Iniciales

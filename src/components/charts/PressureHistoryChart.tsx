@@ -1,35 +1,21 @@
 'use client';
 
-import React, { useEffect, useState, useRef } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
-    Chart as ChartJS,
-    CategoryScale,
-    LinearScale,
-    PointElement,
-    LineElement,
-    Title,
+    AreaChart,
+    Area,
+    XAxis,
+    YAxis,
+    CartesianGrid,
     Tooltip,
-    Legend,
-    Filler,
-    ScriptableContext,
-    ChartData
-} from 'chart.js';
-import { Line } from 'react-chartjs-2';
+    ResponsiveContainer,
+    ReferenceLine
+} from 'recharts';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
-import { ArrowDownRight, ArrowUpRight, Minus, AlertTriangle, CheckCircle2 } from 'lucide-react';
-
-// Registrar componentes de Chart.js
-ChartJS.register(
-    CategoryScale,
-    LinearScale,
-    PointElement,
-    LineElement,
-    Title,
-    Tooltip,
-    Legend,
-    Filler
-);
+import { Minus, ArrowDownRight, ArrowUpRight, CheckCircle2, AlertTriangle } from 'lucide-react';
+import { format } from 'date-fns';
+import { es } from 'date-fns/locale';
 
 interface LecturaHistorial {
     id: string;
@@ -48,7 +34,6 @@ export const PressureHistoryChart = ({ neumaticoId }: PressureHistoryChartProps)
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
     const [recomendada, setRecomendada] = useState<number | undefined>(undefined);
-    const chartRef = useRef<any>(null);
 
     useEffect(() => {
         const fetchHistory = async () => {
@@ -57,8 +42,9 @@ export const PressureHistoryChart = ({ neumaticoId }: PressureHistoryChartProps)
                 const json = await res.json();
 
                 if (json.success) {
-                    setData(json.data);
-                    // Leemos la presión recomendada de los metadatos de la respuesta
+                    // Sort by date just in case, though API should handle it
+                    const sortedData = json.data.sort((a: any, b: any) => new Date(a.fecha).getTime() - new Date(b.fecha).getTime());
+                    setData(sortedData);
                     if (json.meta?.recomendada) {
                         setRecomendada(json.meta.recomendada);
                     }
@@ -78,7 +64,15 @@ export const PressureHistoryChart = ({ neumaticoId }: PressureHistoryChartProps)
     }, [neumaticoId]);
 
     if (loading) return <Skeleton className="h-[400px] w-full rounded-xl" />;
-    if (error) return <div className="text-red-500 text-sm p-4 text-center border border-red-100 rounded-lg bg-red-50">{error}</div>;
+
+    if (error) return (
+        <Card className="border-red-100 bg-red-50">
+            <CardContent className="flex items-center justify-center h-[200px] text-red-600">
+                <AlertTriangle className="mr-2 h-5 w-5" />
+                {error}
+            </CardContent>
+        </Card>
+    );
 
     if (data.length === 0) return (
         <Card className="shadow-sm border-slate-200">
@@ -97,10 +91,9 @@ export const PressureHistoryChart = ({ neumaticoId }: PressureHistoryChartProps)
         </Card>
     );
 
-    // --- LÓGICA DE UI PREMIUM ---
-
-    // 1. Análisis de Tendencia Simple
-    const analizarTendencia = () => {
+    // --- KPI Analysis ---
+    const lastReading = data[data.length - 1];
+    const analyzeTrend = () => {
         if (data.length < 2) return { text: 'Datos insuficientes', color: 'text-slate-500', bg: 'bg-slate-100', icon: <Minus className="h-4 w-4" /> };
 
         const recent = data.slice(-5);
@@ -113,156 +106,18 @@ export const PressureHistoryChart = ({ neumaticoId }: PressureHistoryChartProps)
         return { text: 'Presión Estable', color: 'text-blue-600', bg: 'bg-blue-50', icon: <CheckCircle2 className="h-4 w-4" /> };
     };
 
-    const trend = analizarTendencia();
-    const lastReading = data[data.length - 1];
-    const maxVal = Math.max(...data.map(d => d.presion));
-    const minVal = Math.min(...data.map(d => d.presion));
+    const trend = analyzeTrend();
 
-    // 2. Configuración Chart.js con Gradiente e Industrial Look
-    const safeMin = recomendada ? recomendada * 0.9 : 0; // -10% margin
-    const safeMax = recomendada ? recomendada * 1.1 : 120; // +10% margin
+    // Bounds for chart scaling
+    const dataMax = Math.max(...data.map(d => d.presion));
+    const dataMin = Math.min(...data.map(d => d.presion));
+    // Add buffer
+    const domainMax = Math.max(dataMax, recomendada ? recomendada * 1.2 : 120);
+    const domainMin = Math.max(0, Math.min(dataMin, recomendada ? recomendada * 0.8 : 0));
 
-    const chartData: ChartData<'line'> = {
-        labels: data.map(d => new Date(d.fecha).toLocaleDateString('es-PE', { day: '2-digit', month: 'short' })),
-        datasets: [
-            // BANDA SEGURA (SAFE ZONE) - Fondo verde sutil
-            ...(recomendada ? [{
-                label: 'Zona Segura Max',
-                data: data.map(() => safeMax),
-                borderColor: 'transparent',
-                backgroundColor: 'rgba(34, 197, 94, 0.1)', // green-500 very light
-                fill: '+1', // Llenar hasta el siguiente dataset (Zona Segura Min)
-                pointRadius: 0,
-                tension: 0
-            }, {
-                label: 'Zona Segura Min',
-                data: data.map(() => safeMin),
-                borderColor: 'transparent',
-                backgroundColor: 'transparent', // El color viene del fill del de arriba
-                fill: false,
-                pointRadius: 0,
-                tension: 0
-            }] : []) as any,
-
-            // LÍNEA PRINCIPAL (DATOS)
-            {
-                label: 'Presión Medida',
-                data: data.map(d => d.presion),
-                borderColor: '#3b82f6', // blue-500 default
-                borderWidth: 3,
-                segment: {
-                    borderColor: (ctx: any) => {
-                        if (!recomendada) return '#3b82f6';
-                        const val = ctx.p0.parsed.y;
-                        if (val < safeMin || val > safeMax) return '#ef4444'; // Red if out of zone
-                        return '#22c55e'; // Green if inside zone
-                    }
-                } as any, // Cast any to avoid weird type issues with segments in react-chartjs-2 wrapper
-                backgroundColor: (context: ScriptableContext<'line'>) => {
-                    const ctx = context.chart.ctx;
-                    const gradient = ctx.createLinearGradient(0, 0, 0, 300);
-                    gradient.addColorStop(0, "rgba(59, 130, 246, 0.1)");
-                    gradient.addColorStop(1, "rgba(59, 130, 246, 0.0)");
-                    return gradient;
-                },
-                fill: true,
-                tension: 0.4,
-                pointRadius: 4,
-                pointBackgroundColor: '#ffffff',
-                pointBorderColor: (ctx: any) => {
-                    if (!recomendada) return '#3b82f6';
-                    const val = ctx.raw as number;
-                    if (val < safeMin || val > safeMax) return '#ef4444';
-                    return '#22c55e';
-                },
-                pointBorderWidth: 2,
-                pointHoverRadius: 6,
-                pointHoverBackgroundColor: '#ffffff',
-                pointHoverBorderColor: '#3b82f6',
-            },
-
-            // LÍNEA IDEAL (Punteada)
-            ...(recomendada ? [{
-                label: 'Presión Ideal',
-                data: data.map(() => recomendada),
-                borderColor: '#64748b', // slate-500
-                borderWidth: 1,
-                borderDash: [6, 6],
-                pointRadius: 0,
-                fill: false,
-                tension: 0
-            }] : []) as any
-        ]
-    };
-
-    const options: any = {
-        responsive: true,
-        maintainAspectRatio: false,
-        interaction: {
-            mode: 'index',
-            intersect: false,
-        },
-        plugins: {
-            legend: { display: false },
-            tooltip: {
-                enabled: true,
-                backgroundColor: 'rgba(15, 23, 42, 0.95)',
-                titleColor: '#f8fafc',
-                bodyColor: '#e2e8f0',
-                padding: 12,
-                cornerRadius: 8,
-                titleFont: { size: 13, weight: 600 },
-                bodyFont: { size: 12 },
-                displayColors: false, // Cleaner tooltip
-                callbacks: {
-                    label: function (context: any) {
-                        if (['Zona Segura Max', 'Zona Segura Min'].includes(context.dataset.label)) return null;
-
-                        let label = `${context.parsed.y} PSI`;
-                        const val = context.parsed.y;
-
-                        if (recomendada) {
-                            if (val < safeMin) label += ' (⚠️ BAJA)';
-                            else if (val > safeMax) label += ' (⚠️ ALTA)';
-                            else label += ' (✅ OK)';
-                        }
-                        return label;
-                    },
-                    afterLabel: function (context: any) {
-                        if (context.dataset.label !== 'Presión Medida') return '';
-                        const index = context.dataIndex;
-                        const lectura = data[index];
-                        return `\n📅 ${new Date(lectura.fecha).toLocaleString('es-PE', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' })}\n👤 ${lectura.inspector}`;
-                    }
-                }
-            }
-        },
-        scales: {
-            x: {
-                grid: { display: false },
-                ticks: {
-                    font: { size: 10 },
-                    color: '#94a3b8',
-                    maxTicksLimit: 6
-                }
-            },
-            y: {
-                position: 'right',
-                grid: {
-                    color: '#f1f5f9',
-                    borderDash: [2, 2]
-                },
-                border: { display: false },
-                ticks: {
-                    font: { size: 10 },
-                    color: '#94a3b8',
-                    callback: (value: number) => `${value}`
-                },
-                min: recomendada ? recomendada * 0.5 : 0,
-                max: recomendada ? recomendada * 1.3 : 150
-            }
-        }
-    };
+    // Colors
+    const isLow = recomendada && lastReading.presion < (recomendada * 0.9);
+    const chartColor = isLow ? '#f43f5e' : '#10b981'; // Rose or Emerald
 
     return (
         <Card className="shadow-sm border-slate-200 overflow-hidden">
@@ -273,16 +128,15 @@ export const PressureHistoryChart = ({ neumaticoId }: PressureHistoryChartProps)
                             Monitoreo de Presión
                         </CardTitle>
                         <p className="text-xs text-slate-500 mt-1">
-                            {recomendada ? `Zona Segura: ${safeMin.toFixed(0)} - ${safeMax.toFixed(0)} PSI` : 'Sin presión recomendada configurada'}
+                            {recomendada ? `Recomendada: ${recomendada} PSI` : 'Sin presión configurada'}
                         </p>
                     </div>
 
-                    {/* Stats Row */}
                     <div className="flex items-center gap-6 text-sm">
                         <div className="flex flex-col items-end">
                             <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Última Lectura</span>
                             <div className="flex items-baseline gap-1">
-                                <span className={`text-xl font-bold ${lastReading.presion < (safeMin || 0) ? 'text-rose-600' : 'text-emerald-600'}`}>
+                                <span className={`text-xl font-bold ${isLow ? 'text-rose-600' : 'text-emerald-600'}`}>
                                     {lastReading.presion}
                                 </span>
                                 <span className="text-xs font-medium text-slate-400">PSI</span>
@@ -296,9 +150,58 @@ export const PressureHistoryChart = ({ neumaticoId }: PressureHistoryChartProps)
                     </div>
                 </div>
             </CardHeader>
-            <CardContent className="p-0">
-                <div className="h-[350px] w-full p-4 relative bg-gradient-to-b from-transparent to-slate-50/30">
-                    <Line ref={chartRef} options={options} data={chartData} />
+            <CardContent className="p-1">
+                <div className="h-[350px] w-full mt-4">
+                    <ResponsiveContainer width="100%" height="100%">
+                        <AreaChart
+                            data={data}
+                            margin={{ top: 10, right: 30, left: 0, bottom: 0 }}
+                        >
+                            <defs>
+                                <linearGradient id="colorPresion" x1="0" y1="0" x2="0" y2="1">
+                                    <stop offset="5%" stopColor={chartColor} stopOpacity={0.2} />
+                                    <stop offset="95%" stopColor={chartColor} stopOpacity={0} />
+                                </linearGradient>
+                            </defs>
+                            <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
+                            <XAxis
+                                dataKey="fecha"
+                                tickFormatter={(str) => format(new Date(str), 'd MMM', { locale: es })}
+                                stroke="#94a3b8"
+                                fontSize={12}
+                                tickLine={false}
+                                axisLine={false}
+                            />
+                            <YAxis
+                                domain={[domainMin, domainMax]}
+                                stroke="#94a3b8"
+                                fontSize={12}
+                                tickLine={false}
+                                axisLine={false}
+                                tickFormatter={(val) => `${Math.round(val)}`}
+                            />
+                            <Tooltip
+                                contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }}
+                                labelFormatter={(label) => format(new Date(label), 'PPP p', { locale: es })}
+                            />
+                            {recomendada && (
+                                <ReferenceLine
+                                    y={recomendada}
+                                    stroke="#64748b"
+                                    strokeDasharray="3 3"
+                                    label={{ value: 'Recomendada', position: 'insideRight', fill: '#64748b', fontSize: 10 }}
+                                />
+                            )}
+                            <Area
+                                type="monotone"
+                                dataKey="presion"
+                                stroke={chartColor}
+                                strokeWidth={2}
+                                fillOpacity={1}
+                                fill="url(#colorPresion)"
+                            />
+                        </AreaChart>
+                    </ResponsiveContainer>
                 </div>
             </CardContent>
         </Card>
