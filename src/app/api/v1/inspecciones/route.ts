@@ -124,7 +124,79 @@ export async function POST(request: NextRequest) {
             }
         });
 
-        return ApiResponseHelper.created(inspeccion);
+        // ✅ Fase 6B.2: Alertas Post-Inspección
+        const alertas: Array<{ tipo: string; mensaje: string; severidad: 'BAJA' | 'MEDIA' | 'ALTA' | 'CRITICA' }> = [];
+
+        // Obtener inspección anterior para comparar
+        const inspeccionAnterior = await prisma.inspeccion.findFirst({
+            where: {
+                neumatico_id: data.neumatico_id,
+                id: { not: inspeccion.id },
+                fecha_inspeccion: { lt: inspeccion.fecha_inspeccion }
+            },
+            orderBy: { fecha_inspeccion: 'desc' }
+        });
+
+        if (inspeccionAnterior) {
+            const psiAnterior = Number(inspeccionAnterior.psi_medido);
+            const mmAnterior = Number(inspeccionAnterior.mm_medido);
+            const psiActual = data.psi_medido;
+            const mmActual = data.mm_medido;
+
+            // 1. Anomalía de Presión: bajó >5%
+            if (psiAnterior > 0) {
+                const cambioPresion = ((psiAnterior - psiActual) / psiAnterior) * 100;
+                if (cambioPresion >= 5) {
+                    alertas.push({
+                        tipo: 'PRESION_BAJA',
+                        mensaje: `Presión bajó ${cambioPresion.toFixed(1)}% (de ${psiAnterior} a ${psiActual} PSI)`,
+                        severidad: cambioPresion >= 10 ? 'ALTA' : 'MEDIA'
+                    });
+                }
+            }
+
+            // 2. Desgaste Acelerado: bajó más de lo esperado
+            // Calcular días entre inspecciones
+            const diasTranscurridos = Math.floor(
+                (new Date(inspeccion.fecha_inspeccion).getTime() - new Date(inspeccionAnterior.fecha_inspeccion).getTime())
+                / (1000 * 60 * 60 * 24)
+            );
+
+            if (diasTranscurridos > 0 && mmAnterior > mmActual) {
+                const desgasteMm = mmAnterior - mmActual;
+                const desgastePorDia = desgasteMm / diasTranscurridos;
+                // Promedio normal: ~0.01 mm/día (10mm en 1000 días ~= 3 años)
+                const umbralNormal = 0.015; // mm por día
+
+                if (desgastePorDia > umbralNormal) {
+                    alertas.push({
+                        tipo: 'DESGASTE_ACELERADO',
+                        mensaje: `Desgaste acelerado detectado: ${desgasteMm.toFixed(1)}mm en ${diasTranscurridos} días`,
+                        severidad: desgastePorDia > umbralNormal * 2 ? 'ALTA' : 'MEDIA'
+                    });
+                }
+            }
+        }
+
+        // Crear alertas en base de datos
+        for (const alerta of alertas) {
+            await prisma.alerta.create({
+                data: {
+                    neumatico_id: data.neumatico_id,
+                    vehiculo_id: data.vehiculo_id || neumatico.ubicacion_vehiculo_id,
+                    tipo_alerta: alerta.tipo,
+                    mensaje: alerta.mensaje,
+                    severidad: alerta.severidad,
+                    empresa_id: session.user.empresa_id!,
+                    estado: 'PENDIENTE'
+                }
+            });
+        }
+
+        return ApiResponseHelper.created({
+            ...inspeccion,
+            alertas_generadas: alertas.length
+        });
     } catch (error) {
         return ApiResponseHelper.handleError(error);
     }
