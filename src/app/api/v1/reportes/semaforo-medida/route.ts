@@ -10,12 +10,12 @@ const service = new ReportesService();
  * @swagger
  * /api/v1/reportes/semaforo-medida:
  *   get:
- *     summary: Matriz Semáforo por Medida con distribución por eje
+ *     summary: Matriz Semaforo por Medida con distribucion por eje
  *     tags: [Reportes]
  *     parameters:
  *       - in: query
  *         name: medida
- *         description: Filtrar por medida de neumático (ej: 295/80R22.5)
+ *         description: Filtrar por medida de neumatico
  *         schema:
  *           type: string
  */
