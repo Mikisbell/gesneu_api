@@ -674,4 +674,87 @@ export class ReportesService {
             detalle: detalle.sort((a, b) => a.remanente_mm - b.remanente_mm) // Más críticos primero
         };
     }
+
+    /**
+     * Historial de últimas N instalaciones en una posición específica.
+     * Fase 6A.4: Muestra neumáticos anteriores con KM y días de uso.
+     */
+    async getHistorialPosicion(
+        empresaId: string,
+        vehiculoId: string,
+        posicionCodigo: string,
+        limit: number = 4
+    ) {
+        // Buscar eventos de montaje en esta posición
+        const eventos = await prisma.eventoNeumatico.findMany({
+            where: {
+                empresa_id: empresaId,
+                vehiculo_id: vehiculoId,
+                tipo_evento: 'MONTAJE',
+                posicion_destino: posicionCodigo
+            },
+            include: {
+                neumatico: {
+                    select: {
+                        numero_serie: true,
+                        modelo: {
+                            select: {
+                                medida: true,
+                                fabricante: { select: { nombre: true } }
+                            }
+                        }
+                    }
+                }
+            },
+            orderBy: { fecha_evento: 'desc' },
+            take: limit
+        });
+
+        // Buscar eventos de desmontaje correspondientes para calcular duración
+        const historial = await Promise.all(eventos.map(async (montaje) => {
+            // Buscar el desmontaje posterior (si existe)
+            const desmontaje = await prisma.eventoNeumatico.findFirst({
+                where: {
+                    neumatico_id: montaje.neumatico_id,
+                    tipo_evento: 'DESMONTAJE',
+                    posicion_origen: posicionCodigo,
+                    fecha_evento: { gt: montaje.fecha_evento }
+                },
+                orderBy: { fecha_evento: 'asc' }
+            });
+
+            const fechaInicio = new Date(montaje.fecha_evento);
+            const fechaFin = desmontaje ? new Date(desmontaje.fecha_evento) : new Date();
+            const diasInstalado = Math.floor((fechaFin.getTime() - fechaInicio.getTime()) / (1000 * 60 * 60 * 24));
+
+            // Calcular KM rodados en esta instalación
+            const kmInicio = toNumber(montaje.km_vehiculo);
+            const kmFin = desmontaje ? toNumber(desmontaje.km_vehiculo) : null;
+            const kmRodados = kmFin !== null && kmInicio > 0 ? kmFin - kmInicio : null;
+
+            return {
+                instalacion_num: 0, // Se asignará después
+                neumatico_serie: montaje.neumatico?.numero_serie || 'N/A',
+                marca: montaje.neumatico?.modelo?.fabricante?.nombre || 'N/A',
+                medida: montaje.neumatico?.modelo?.medida || 'N/A',
+                fecha_montaje: fechaInicio.toISOString().split('T')[0],
+                fecha_desmontaje: desmontaje ? new Date(desmontaje.fecha_evento).toISOString().split('T')[0] : null,
+                dias_instalado: diasInstalado,
+                km_rodados: kmRodados,
+                activo: !desmontaje
+            };
+        }));
+
+        // Asignar número de instalación (1 = más reciente)
+        historial.forEach((h, i) => {
+            h.instalacion_num = i + 1;
+        });
+
+        return {
+            vehiculo_id: vehiculoId,
+            posicion: posicionCodigo,
+            total_instalaciones: historial.length,
+            historial
+        };
+    }
 }
