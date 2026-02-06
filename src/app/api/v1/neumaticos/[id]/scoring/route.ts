@@ -1,18 +1,17 @@
+
 import { NextRequest } from 'next/server';
 import { ApiResponseHelper } from '@/lib/utils/api-response';
 import { requireAuth, requirePermission } from '@/lib/auth/authorization';
 import { PERMISSIONS } from '@/lib/auth/permissions';
-import { TcoService } from '@/lib/services/tco.service';
+import { ScoringService } from '@/lib/services/scoring.service';
 
 /**
  * @swagger
- * /api/v1/neumaticos/{id}/financials:
+ * /api/v1/neumaticos/[id]/scoring:
  *   get:
- *     summary: Obtener métricas financieras (TCO, CPK, estimaciones TCO)
- *     description: Retorna el Costo Total de Propiedad, Costo por Kilómetro y Proyecciones financieras.
- *     tags: [Neumaticos, Reportes]
- *     security:
- *       - bearerAuth: []
+ *     summary: Evaluar carcasa para reencauche
+ *     description: Retorna puntaje y recomendación (Apto/Desecho) basado en marca, edad y vidas previas.
+ *     tags: [Neumáticos, Premium]
  */
 export async function GET(
     request: NextRequest,
@@ -20,14 +19,12 @@ export async function GET(
 ) {
     try {
         const session = await requireAuth();
-        // Restringir visualización de costos a roles con permiso de reportes de rendimiento
         requirePermission(session, PERMISSIONS.REPORTES_RENDIMIENTO);
 
         const { id } = await params;
+        const result = await ScoringService.calculateScasingScore(id);
 
-        const financials = await TcoService.getFinancials(id);
-
-        return ApiResponseHelper.success(financials);
+        return ApiResponseHelper.success(result);
     } catch (error) {
         return ApiResponseHelper.handleError(error);
     }
