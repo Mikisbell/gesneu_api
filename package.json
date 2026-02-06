@@ -20,7 +20,7 @@
     "playwright:install": "playwright install chromium",
     "playwright:codegen": "playwright codegen http://localhost:3000",
     "testsprite": "npx @testsprite/testsprite-mcp",
-    "prepare": "husky"
+    "prepare": "node -e \"try { require.resolve('husky') && require('child_process').execSync('husky', {stdio:'inherit'}) } catch(e) {}\""
   },
   "dependencies": {
     "@auth/prisma-adapter": "^2.11.1",
