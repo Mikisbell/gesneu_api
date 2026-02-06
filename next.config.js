@@ -16,9 +16,9 @@ const nextConfig = {
   typescript: {
     ignoreBuildErrors: true,
   },
-  eslint: {
-    ignoreDuringBuilds: true,
-  },
+
+  // ✅ Next.js 16: Turbopack is default, add empty config to silence warning
+  turbopack: {},
 
   // Optimize images
   images: {
