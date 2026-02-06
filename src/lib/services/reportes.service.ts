@@ -555,4 +555,123 @@ export class ReportesService {
             }
         };
     }
+
+    /**
+     * Matriz Semáforo filtrada por Medida con distribución por Eje.
+     * Fase 6A.3: Muestra estado de neumáticos agrupados por eje (Direccional/Tracción/Repuesto).
+     */
+    async getSemaforoByMedida(empresaId: string, medidaFilter?: string) {
+        // Obtener neumáticos montados con su posición y modelo
+        const neumaticos = await prisma.neumatico.findMany({
+            where: {
+                empresa_id: empresaId,
+                activo: true,
+                estado_actual: 'EN_USO',
+                ...(medidaFilter ? {
+                    modelo: { medida: { contains: medidaFilter } }
+                } : {})
+            },
+            include: {
+                modelo: { select: { medida: true, fabricante: { select: { nombre: true } } } },
+                posicion_actual: {
+                    select: {
+                        codigo: true,
+                        tipo_eje: true,
+                        es_repuesto: true
+                    }
+                },
+                vehiculo: { select: { placa: true, tipo_vehiculo: { select: { nombre: true } } } }
+            }
+        });
+
+        // Clasificar por tipo de eje
+        const porEje: Record<string, { verde: number; amarillo: number; rojo: number; total: number }> = {
+            'DIRECCIONAL': { verde: 0, amarillo: 0, rojo: 0, total: 0 },
+            'TRACCION': { verde: 0, amarillo: 0, rojo: 0, total: 0 },
+            'REPUESTO': { verde: 0, amarillo: 0, rojo: 0, total: 0 }
+        };
+
+        // Lista de medidas disponibles para filtro
+        const medidasSet = new Set<string>();
+
+        // Detalle por neumático
+        const detalle: Array<{
+            serie: string;
+            medida: string;
+            marca: string;
+            placa: string;
+            posicion: string;
+            eje: string;
+            remanente_mm: number;
+            estado_semaforo: 'VERDE' | 'AMARILLO' | 'ROJO';
+        }> = [];
+
+        neumaticos.forEach(n => {
+            const medida = n.modelo?.medida || 'Sin Medida';
+            medidasSet.add(medida);
+
+            const remanente = toNumber(n.profundidad_remanente);
+            const posicionCodigo = n.posicion_actual?.codigo || '';
+            const esRepuesto = n.posicion_actual?.es_repuesto || false;
+
+            // Determinar tipo de eje
+            let eje = 'TRACCION';
+            if (esRepuesto) {
+                eje = 'REPUESTO';
+            } else if (posicionCodigo.startsWith('1')) {
+                eje = 'DIRECCIONAL';
+            }
+
+            // Semáforo basado en remanente
+            let semaforo: 'VERDE' | 'AMARILLO' | 'ROJO' = 'VERDE';
+            if (remanente <= 3) {
+                semaforo = 'ROJO';
+            } else if (remanente <= 5) {
+                semaforo = 'AMARILLO';
+            }
+
+            // Acumular estadísticas
+            if (porEje[eje]) {
+                porEje[eje].total++;
+                if (semaforo === 'VERDE') porEje[eje].verde++;
+                else if (semaforo === 'AMARILLO') porEje[eje].amarillo++;
+                else porEje[eje].rojo++;
+            }
+
+            detalle.push({
+                serie: n.numero_serie,
+                medida,
+                marca: n.modelo?.fabricante?.nombre || 'N/A',
+                placa: n.vehiculo?.placa || 'Sin Vehículo',
+                posicion: posicionCodigo,
+                eje,
+                remanente_mm: remanente,
+                estado_semaforo: semaforo
+            });
+        });
+
+        // Resumen global
+        const totalVerde = Object.values(porEje).reduce((acc, e) => acc + e.verde, 0);
+        const totalAmarillo = Object.values(porEje).reduce((acc, e) => acc + e.amarillo, 0);
+        const totalRojo = Object.values(porEje).reduce((acc, e) => acc + e.rojo, 0);
+        const totalGeneral = totalVerde + totalAmarillo + totalRojo;
+
+        return {
+            filtro_aplicado: medidaFilter || null,
+            medidas_disponibles: Array.from(medidasSet).sort(),
+            resumen: {
+                total: totalGeneral,
+                verde: totalVerde,
+                amarillo: totalAmarillo,
+                rojo: totalRojo,
+                porcentaje_critico: totalGeneral > 0 ? Number(((totalRojo / totalGeneral) * 100).toFixed(1)) : 0
+            },
+            distribucion_por_eje: Object.entries(porEje).map(([eje, data]) => ({
+                eje,
+                ...data,
+                porcentaje_rojo: data.total > 0 ? Number(((data.rojo / data.total) * 100).toFixed(1)) : 0
+            })),
+            detalle: detalle.sort((a, b) => a.remanente_mm - b.remanente_mm) // Más críticos primero
+        };
+    }
 }
