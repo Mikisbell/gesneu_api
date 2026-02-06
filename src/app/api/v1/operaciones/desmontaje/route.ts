@@ -63,7 +63,7 @@ export async function POST(request: NextRequest) {
         // Validación con Zod schema
         const validatedData = EventoNeumaticoCreateSchema.parse(eventData);
 
-        const resultado = await service.registrarEvento(validatedData, session.user.id);
+        const resultado = await service.registrarEvento(validatedData, session.user.id, session.user.empresa_id!);
 
         return ApiResponseHelper.success(resultado, 'Neumático desmontado exitosamente');
     } catch (error) {

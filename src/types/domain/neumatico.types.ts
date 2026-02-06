@@ -1,208 +1,107 @@
-/**
- * Neumatico Types - Arquitectura de Tipos por Capas
- * 
- * Este módulo define todos los tipos relacionados con la entidad Neumatico
- * siguiendo la arquitectura de 4 capas:
- * 1. Entity (Prisma/BD)
- * 2. DTOs (API Input)
- * 3. Response (API Output)
- * 4. ViewModel (UI)
- * 
- * @see docs/10_TIPADO_PROFESIONAL.md
- */
 
-import { Prisma } from '@prisma/client';
-import {
-    NeumaticoId,
-    ModeloNeumaticoId,
-    VehiculoId,
-    AlmacenId,
-    PosicionNeumaticoId,
-    EmpresaId,
-    ProveedorId
-} from '../branded.types';
+import { Neumatico, EstadoNeumaticoEnum, ModeloNeumatico, FabricanteNeumatico, Almacen, Vehiculo, PosicionNeumatico, Empresa } from '@prisma/client';
 
-// ============================================
-// 1. ENTITY (Lo que viene de Prisma/BD)
-// ============================================
+export type NeumaticoEntity = Neumatico & {
+    modelo?: ModeloNeumatico & { fabricante: FabricanteNeumatico };
+    ubicacion_almacen?: Almacen | null;
+    ubicacion_vehiculo?: Vehiculo & { tipo_vehiculo: any } | null; // Repository includes tipo_vehiculo
+    ubicacion_posicion?: PosicionNeumatico | null;
+    empresa?: Empresa;
+};
 
-/**
- * Tipo de entidad Neumatico con relaciones incluidas.
- * Representa exactamente lo que Prisma devuelve de la base de datos.
- */
-/**
- * Tipo de entidad Neumatico con relaciones incluidas.
- * Representa exactamente lo que Prisma devuelve de la base de datos.
- */
-export type NeumaticoEntity = Prisma.NeumaticoGetPayload<{
-    include: {
-        modelo: {
-            include: {
-                fabricante: true;
-            };
-        };
-        ubicacion_almacen: true;
-        ubicacion_vehiculo: {
-            include: {
-                tipo_vehiculo: true;
-            };
-        };
-        ubicacion_posicion: true;
-        proveedor_compra: true;
-        motivo_desecho: true;
-    };
-}>;
-
-/**
- * Tipo de entidad Neumatico sin relaciones (solo campos escalares).
- */
-export type NeumaticoScalarEntity = Prisma.NeumaticoGetPayload<object>;
-
-/**
- * @deprecated Validar si esto se sigue usando. Preferir NeumaticoEntity.
- */
-export interface INeumatico extends NeumaticoEntity { }
-
-// ============================================
-// 2. DTOs (Lo que recibe la API del cliente)
-// ============================================
-
-/**
- * DTO para creación de neumático.
- */
 export interface CreateNeumaticoDTO {
-    /** ID del modelo (catálogo) */
+    // Core Identity
     modelo_id: string;
-    /** Número de serie (opcional, algunos solo tienen DOT) */
     numero_serie?: string;
-    /** DOT del neumático */
     dot?: string;
-    /** Estado del neumático */
-    estado?: 'NUEVO' | 'USADO' | 'REENCAUCHADO';
-    /** Costo de compra */
+    sensor_id?: string;
+    es_reencauchado?: boolean;
+
+    // Purchase / Origin
+    fecha_compra: string; // ISO Date
+    fecha_fabricacion?: string; // ISO Date
     costo_compra?: number;
     moneda_compra?: string;
-    /** ID del proveedor */
-    proveedor_id?: string;
-    /** Fecha de compra (ISO) */
-    fecha_compra?: string;
-    /** Fecha de fabricación (ISO) */
-    fecha_fabricacion?: string;
+    proveedor_compra_id?: string;
 
-    // Mediciones iniciales (para usados)
-    profundidad_inicial?: number;
-    kilometraje_acumulado?: number; // Para usados
+    // Initial Condition
+    profundidad_inicial_mm?: number;
+    profundidad_actual_mm: number;
+    profundidad_int?: number;
+    profundidad_cen?: number;
+    profundidad_ext?: number;
+    presion_actual_psi?: number;
 
-    // Ubicación Inicial (Opcional, puede ir a almacén o vehículo)
+    // Location (Initial)
     ubicacion_almacen_id?: string;
-    ubicacion_vehiculo_id?: string;
-    ubicacion_posicion_id?: string;
 }
 
-/**
- * DTO para actualización de neumático.
- * Limitado a correcciones de datos, no eventos de ciclo de vida.
- */
 export interface UpdateNeumaticoDTO {
     numero_serie?: string;
     dot?: string;
-    proveedor_id?: string;
-    costo_compra?: number;
-    fecha_compra?: string;
-    fecha_fabricacion?: string;
     sensor_id?: string;
-    notas?: string;
     activo?: boolean;
 }
 
-// ============================================
-// 3. RESPONSE (Lo que devuelve la API)
-// ============================================
-
-/**
- * Respuesta de la API para un neumático.
- */
 export interface NeumaticoResponse {
-    id: NeumaticoId;
-    identificacion: {
-        serie: string | null;
-        dot: string | null;
-        marca: string;
-        modelo: string;
-        medida: string;
-        diseno: string | null; // patron_dibujo
-    };
-    estado: {
-        condicion: 'NUEVO' | 'USADO' | 'REENCAUCHADO' | 'DESECHO'; // Derivado
-        estadoActual: string; // EN_STOCK, MONTADO, etc.
-        ubicacion: string; // "Almacén Central" o "Vehículo ABC-123 Pos 1"
+    id: string;
+    numeroSerie: string | null;
+    codigo: string;
+    deviceId: string | null;
+    dot: string | null;
+    estado: EstadoNeumaticoEnum;
+    condicion: {
         esReencauchado: boolean;
+        reencauchesRealizados: number;
         vidaActual: number;
     };
+    modelo: {
+        id: string;
+        nombre: string;
+        medida: string;
+        fabricante: {
+            id: string;
+            nombre: string;
+        };
+    };
     mediciones: {
-        profundidadRemanente: number; // mm
-        presion: number | null; // psi
-        kilometrajeAcumulado: number;
-        horasAcumuladas: number;
-    };
-    costos: {
-        valorCompra: number | null;
-        moneda: string | null;
-        proveedor: string | null;
-    };
-    fechas: {
-        compra: string | null;
-        fabricacion: string | null;
-        ultimoEvento: string | null;
+        profundidadActual: number;
+        profundidadInicial: number | null;
+        presion: number | null;
     };
     ubicacion: {
-        almacenId: AlmacenId | null;
-        vehiculoId: VehiculoId | null;
-        posicionId: PosicionNeumaticoId | null;
+        tipo: 'ALMACEN' | 'VEHICULO' | 'DESECHO' | 'DESCONOCIDO';
+        almacen?: { id: string; nombre: string };
+        vehiculo?: { id: string; placa: string };
+        posicion?: { id: string; codigo: string };
     };
-    activo: boolean;
+    compra: {
+        fecha: string;
+        costo: number | null;
+        moneda: string | null;
+        proveedorId: string | null;
+    };
+    estadisticas: {
+        kmAcumulados: number;
+        horasAcumuladas: number;
+        costoPorKm: number | null;
+        proximaInspeccionKm: number | null;
+        proximaInspeccionFecha: string | null;
+    };
     createdAt: string;
-    updatedAt: string;
+    updatedAt: string | null;
 }
-
-// ============================================
-// 4. VIEWMODEL (Lo que usa React/UI)
-// ============================================
-
-export interface NeumaticoCardViewModel {
-    id: NeumaticoId;
-    displayName: string; // "Michelin XZE2 - SERIE123"
-    ubicacionBadge: {
-        label: string;
-        color: 'blue' | 'purple' | 'gray'; // Almacen, Montado, Otro
-    };
-    condicionBadge: {
-        label: string; // Nuevo vs Reencauchado
-        color: 'green' | 'orange';
-    };
-    remanente: {
-        valor: number; // mm
-        color: 'green' | 'yellow' | 'red';
-    };
-    km: string; // Format "12,500 km"
-    costoKm: string; // "$0.045 / km" (calculado)
-}
-
-// ============================================
-// FILTROS
-// ============================================
 
 export interface NeumaticoFilters {
-    serie?: string;
-    numero_serie?: string; // Alias for repository compatibility
-    marca?: string;
-    modelo_id?: string;
-    dot?: string;
-    estado?: string; // EN_STOCK, MONTADO (deprecated, use estado_actual)
-    estado_actual?: string; // EstadoNeumaticoEnum value
-    ubicacion?: 'ALMACEN' | 'MONTADO';
-    vehiculo_id?: string;
-    ubicacion_vehiculo_id?: string;
-    ubicacion_almacen_id?: string;
     search?: string;
+    numero_serie?: string;
+    modelo_id?: string;
+    estado_actual?: EstadoNeumaticoEnum;
+    ubicacion_almacen_id?: string;
+    ubicacion_vehiculo_id?: string;
+    dot?: string;
+    empresa_id?: string;
 }
+
+// Alias for backwards compatibility
+export type INeumatico = NeumaticoResponse;

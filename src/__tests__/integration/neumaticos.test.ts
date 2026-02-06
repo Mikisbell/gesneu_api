@@ -33,14 +33,14 @@ describe('Neumáticos API Integration Tests', () => {
         it('should return 401 if not authenticated', async () => {
             (auth as jest.Mock).mockResolvedValue(null);
             const req = new NextRequest(BASE_URL);
-            const res = await GET(req);
+            const res = await GET(req, {} as any);
             expect(res.status).toBe(401);
         });
 
         it('should return 200 and list of neumaticos for authenticated user', async () => {
             (auth as jest.Mock).mockResolvedValue(mockSessions.operador);
             const req = new NextRequest(BASE_URL);
-            const res = await GET(req);
+            const res = await GET(req, {} as any);
             expect(res.status).toBe(200);
             const data = await res.json();
             expect(Array.isArray(data.data)).toBe(true);
@@ -55,7 +55,7 @@ describe('Neumáticos API Integration Tests', () => {
                 method: 'POST',
                 body: JSON.stringify({})
             });
-            const res = await POST(req);
+            const res = await POST(req, {} as any);
             expect(res.status).toBe(403);
         });
 
@@ -122,7 +122,7 @@ describe('Neumáticos API Integration Tests', () => {
                 method: 'POST',
                 body: JSON.stringify(newNeumatico)
             });
-            const res = await POST(req);
+            const res = await POST(req, {} as any);
 
             expect(res.status).toBe(201);
             const data = await res.json();

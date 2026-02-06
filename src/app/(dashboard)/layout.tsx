@@ -3,6 +3,7 @@
 import { Sidebar } from '@/components/layout/sidebar'
 import { MobileNav } from '@/components/layout/mobile-nav'
 import { Header } from '@/components/layout/header'
+import { SSEProvider } from '@/components/providers/SSEProvider'
 
 export default function DashboardLayout({
     children,
@@ -10,24 +11,26 @@ export default function DashboardLayout({
     children: React.ReactNode
 }) {
     return (
-        <div className="flex h-screen bg-gray-100 dark:bg-gray-900">
-            {/* Sidebar para desktop */}
-            <aside className="w-64 hidden md:block">
-                <Sidebar />
-            </aside>
+        <SSEProvider>
+            <div className="flex h-screen bg-gray-100 dark:bg-gray-900">
+                {/* Sidebar para desktop */}
+                <aside className="w-64 hidden md:block">
+                    <Sidebar />
+                </aside>
 
-            {/* Main content */}
-            <div className="flex-1 flex flex-col overflow-hidden">
-                {/* Header móvil y Desktop */}
-                <MobileHeader />
-                <Header />
+                {/* Main content */}
+                <div className="flex-1 flex flex-col overflow-hidden">
+                    {/* Header móvil y Desktop */}
+                    <MobileHeader />
+                    <Header />
 
-                {/* Contenido principal */}
-                <main className="flex-1 overflow-y-auto p-4 md:p-8">
-                    {children}
-                </main>
+                    {/* Contenido principal */}
+                    <main className="flex-1 overflow-y-auto p-4 md:p-8">
+                        {children}
+                    </main>
+                </div>
             </div>
-        </div>
+        </SSEProvider>
     )
 }
 
@@ -40,3 +43,4 @@ function MobileHeader() {
         </header>
     )
 }
+

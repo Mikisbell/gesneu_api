@@ -4,8 +4,8 @@ import { Almacen } from '@prisma/client';
 export interface CreateAlmacenDTO {
     codigo: string;
     nombre: string;
-    descripcion?: string;
-    ubicacion?: string;
+    tipo: string;
+    direccion?: string;
     activo?: boolean;
 }
 

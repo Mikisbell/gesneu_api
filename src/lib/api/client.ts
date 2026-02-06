@@ -28,5 +28,6 @@ export async function apiClient<T>(endpoint: string, options: FetchOptions = {})
     }
 
     const json = await response.json();
-    return json.data;
+    // Handle both { data: ... } wrapped responses and raw responses
+    return (json && typeof json === 'object' && 'data' in json) ? json.data : json;
 }

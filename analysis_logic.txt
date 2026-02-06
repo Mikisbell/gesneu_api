@@ -1,0 +1,57 @@
+🧠 Forensic Analysis of: CONTROL DE MANTENIMIENTO NEUMÁTICOS_Rev. A.xlsx
+
+
+============== LOGIC ANALYSIS: Índice_Reencauche ==============
+🧮 Formulas Detected (15):
+   Pattern:  DN/CN
+   Pattern:  SUBTOTAL(N,TablaN[ORIGINAL])
+   Pattern:  SUBTOTAL(N,TablaN[REENCAUCHADO])
+   Pattern:  SUBTOTAL(N,TablaN[PARTICIPACIÓN])
+   Pattern:  SUBTOTAL(N,TablaN[NS(Nª)])
+   Pattern:  SUBTOTAL(N,TablaN[IR(N)])
+   Pattern:  SUBTOTAL(N,TablaN[N])
+   Pattern:  SUBTOTAL(N,TablaN[IR REAL])
+   Pattern:  SUBTOTAL(N,TablaN[IDR Objetivo])
+   Example: E16 = D16/C16
+   Example: E17 = D17/C17
+   Example: E18 = D18/C18
+   Example: E19 = D19/C19
+   Example: C20 = SUBTOTAL(109,Tabla4[ORIGINAL])
+
+============== LOGIC ANALYSIS: Índice_Scrap ==============
+🧮 Formulas Detected (17):
+   Pattern:  SUM(TablaN[[#This Row],[FATIGA]:[OPERACIÓN]])
+   Pattern:  SUBTOTAL(N,TablaN[FATIGA])
+   Pattern:  SUBTOTAL(N,TablaN[MECÁNICA])
+   Pattern:  SUBTOTAL(N,TablaN[OPERACIÓN])
+   Pattern:  SUBTOTAL(N,TablaN[SUBTOTAL])
+   Pattern:  SUBTOTAL(N,TablaN[SN (Nº)])
+   Pattern:  SUBTOTAL(N,TablaN[TOTAL FLOTA])
+   Pattern:  SUBTOTAL(N,TablaN[% DEL TOTAL])
+   Pattern:  SUBTOTAL(N,TablaN[TOTAL AÑO])
+   Pattern:  SUBTOTAL(N,TablaN[%])
+   Example: F16 = SUM(Tabla47[[#This Row],[FATIGA]:[OPERACIÓN]])
+   Example: F17 = SUM(Tabla47[[#This Row],[FATIGA]:[OPERACIÓN]])
+   Example: F18 = SUM(Tabla47[[#This Row],[FATIGA]:[OPERACIÓN]])
+   Example: F19 = SUM(Tabla47[[#This Row],[FATIGA]:[OPERACIÓN]])
+   Example: F20 = SUM(Tabla47[[#This Row],[FATIGA]:[OPERACIÓN]])
+
+============== LOGIC ANALYSIS: Tablas ==============
+🧮 Formulas Detected (58):
+   Pattern:  IFERROR(LLANTAS[[#This Row],[PRECIO ($)]]/LLANTAS[[#This Row],[NSK]],"")
+   Example: X2 = IFERROR(LLANTAS[[#This Row],[PRECIO ($)]]/LLANTAS[[#This Row],[NSK]],"")
+   Example: X3 = IFERROR(LLANTAS[[#This Row],[PRECIO ($)]]/LLANTAS[[#This Row],[NSK]],"")
+   Example: X4 = IFERROR(LLANTAS[[#This Row],[PRECIO ($)]]/LLANTAS[[#This Row],[NSK]],"")
+   Example: X5 = IFERROR(LLANTAS[[#This Row],[PRECIO ($)]]/LLANTAS[[#This Row],[NSK]],"")
+   Example: X6 = IFERROR(LLANTAS[[#This Row],[PRECIO ($)]]/LLANTAS[[#This Row],[NSK]],"")
+
+============== LOGIC ANALYSIS: Neumaticos_Tractos ==============
+🧮 Formulas Detected (64):
+   Pattern:  N.N-N.N
+   Pattern:  N.N-N
+   Pattern:  N-N
+   Example: H222 = 573087.8-545714.5
+   Example: I222 = 16903.5-16067.5
+   Example: P222 = 573087.8-545714.5
+   Example: Q222 = 16903.5-16067.5
+   Example: H223 = 573087.8-545714.5

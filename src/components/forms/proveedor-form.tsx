@@ -1,6 +1,5 @@
 "use client"
 
-import { useState } from "react"
 import { useForm } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
 import * as z from "zod"
@@ -16,6 +15,13 @@ import {
     FormLabel,
     FormMessage,
 } from "@/components/ui/form"
+import {
+    Select,
+    SelectContent,
+    SelectItem,
+    SelectTrigger,
+    SelectValue,
+} from "@/components/ui/select"
 import { Input } from "@/components/ui/input"
 import { useToast } from "@/components/ui/use-toast"
 import { proveedoresApi } from "@/lib/api/proveedores"
@@ -23,10 +29,11 @@ import { proveedoresApi } from "@/lib/api/proveedores"
 const formSchema = z.object({
     nombre: z.string().min(2, "El nombre debe tener al menos 2 caracteres"),
     ruc: z.string().optional(),
+    tipo: z.string().min(1, "Seleccione un tipo"),
     email: z.string().email("Email inválido").optional().or(z.literal("")),
     telefono: z.string().optional(),
     direccion: z.string().optional(),
-    contacto: z.string().optional(),
+    contacto_principal: z.string().optional(),
 })
 
 type FormValues = z.infer<typeof formSchema>
@@ -45,10 +52,11 @@ export function ProveedorForm({ initialData, onSuccess }: ProveedorFormProps) {
         defaultValues: {
             nombre: initialData?.nombre || "",
             ruc: initialData?.ruc || "",
+            tipo: initialData?.tipo || "FABRICANTE",
             email: initialData?.email || "",
             telefono: initialData?.telefono || "",
             direccion: initialData?.direccion || "",
-            contacto: initialData?.contacto || "",
+            contacto_principal: initialData?.contacto || initialData?.contacto_principal || "",
         },
     })
 
@@ -116,6 +124,46 @@ export function ProveedorForm({ initialData, onSuccess }: ProveedorFormProps) {
                     />
                     <FormField
                         control={form.control}
+                        name="tipo"
+                        render={({ field }) => (
+                            <FormItem>
+                                <FormLabel>Tipo *</FormLabel>
+                                <Select onValueChange={field.onChange} defaultValue={field.value}>
+                                    <FormControl>
+                                        <SelectTrigger>
+                                            <SelectValue placeholder="Seleccione tipo" />
+                                        </SelectTrigger>
+                                    </FormControl>
+                                    <SelectContent>
+                                        <SelectItem value="FABRICANTE">Fabricante</SelectItem>
+                                        <SelectItem value="DISTRIBUIDOR">Distribuidor</SelectItem>
+                                        <SelectItem value="SERVICIO_REPARACION">Servicio Reparación</SelectItem>
+                                        <SelectItem value="SERVICIO_REENCAUCHE">Servicio Reencauche</SelectItem>
+                                        <SelectItem value="OTRO">Otro</SelectItem>
+                                    </SelectContent>
+                                </Select>
+                                <FormMessage />
+                            </FormItem>
+                        )}
+                    />
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                    <FormField
+                        control={form.control}
+                        name="email"
+                        render={({ field }) => (
+                            <FormItem>
+                                <FormLabel>Email</FormLabel>
+                                <FormControl>
+                                    <Input placeholder="contacto@proveedor.com" {...field} />
+                                </FormControl>
+                                <FormMessage />
+                            </FormItem>
+                        )}
+                    />
+                    <FormField
+                        control={form.control}
                         name="telefono"
                         render={({ field }) => (
                             <FormItem>
@@ -128,20 +176,6 @@ export function ProveedorForm({ initialData, onSuccess }: ProveedorFormProps) {
                         )}
                     />
                 </div>
-
-                <FormField
-                    control={form.control}
-                    name="email"
-                    render={({ field }) => (
-                        <FormItem>
-                            <FormLabel>Email</FormLabel>
-                            <FormControl>
-                                <Input placeholder="contacto@proveedor.com" {...field} />
-                            </FormControl>
-                            <FormMessage />
-                        </FormItem>
-                    )}
-                />
 
                 <FormField
                     control={form.control}
@@ -159,7 +193,7 @@ export function ProveedorForm({ initialData, onSuccess }: ProveedorFormProps) {
 
                 <FormField
                     control={form.control}
-                    name="contacto"
+                    name="contacto_principal"
                     render={({ field }) => (
                         <FormItem>
                             <FormLabel>Persona de Contacto</FormLabel>

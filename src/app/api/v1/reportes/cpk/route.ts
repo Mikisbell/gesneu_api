@@ -59,7 +59,7 @@ export async function GET(request: NextRequest) {
         }
 
         // 4. Service Call
-        const metrics = await service.getCPK(neumaticoId);
+        const metrics = await service.getCPK(session.user.empresa_id!, neumaticoId);
 
         return ApiResponseHelper.success(metrics);
     } catch (error) {

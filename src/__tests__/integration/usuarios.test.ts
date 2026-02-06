@@ -21,7 +21,7 @@ describe('Usuarios API Integration Tests', () => {
             (auth as jest.Mock).mockResolvedValue(null);
 
             const req = new NextRequest(BASE_URL);
-            const response = await getUsersGET(req);
+            const response = await getUsersGET(req, {} as any);
 
             expect(response.status).toBe(401);
         });
@@ -30,7 +30,7 @@ describe('Usuarios API Integration Tests', () => {
             (auth as jest.Mock).mockResolvedValue(mockSessions.consultor);
 
             const req = new NextRequest(BASE_URL);
-            const response = await getUsersGET(req);
+            const response = await getUsersGET(req, {} as any);
 
             expect(response.status).toBe(403);
         });
@@ -53,7 +53,7 @@ describe('Usuarios API Integration Tests', () => {
                 body: JSON.stringify(payload),
             });
 
-            const response = await createUser(req);
+            const response = await createUser(req, {} as any);
             expect(response.status).toBe(401);
         });
 
@@ -73,7 +73,7 @@ describe('Usuarios API Integration Tests', () => {
                 body: JSON.stringify(payload),
             });
 
-            const response = await createUser(req);
+            const response = await createUser(req, {} as any);
             expect(response.status).toBe(403);
         });
     });

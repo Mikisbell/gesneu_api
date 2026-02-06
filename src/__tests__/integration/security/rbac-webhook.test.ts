@@ -27,6 +27,8 @@ jest.mock('@/lib/auth/authorization', () => {
 import { requireAuth } from '@/lib/auth/authorization';
 
 describe('Webhook Security & Isolation', () => {
+    let tenantA: any;
+    let tenantB: any;
     let userA: any;
     let userB: any;
 

@@ -66,6 +66,9 @@ export class NeumaticoRepository extends BaseRepository<Neumatico, CreateNeumati
         if (filters.dot) {
             where.dot = filters.dot;
         }
+        if (filters.empresa_id) {
+            where.empresa_id = filters.empresa_id;
+        }
 
         try {
             return await this.model.findMany({

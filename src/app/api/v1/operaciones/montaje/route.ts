@@ -40,7 +40,7 @@ export async function POST(request: NextRequest) {
         };
 
         // 4. Ejecutar vía Servicio (Centraliza validación, transacción, historial y hooks)
-        const resultado = await service.registrarEvento(eventoPayload, session.user.id);
+        const resultado = await service.registrarEvento(eventoPayload, session.user.id, session.user.empresa_id!);
 
         return ApiResponseHelper.success(resultado, 'Neumático montado exitosamente');
 

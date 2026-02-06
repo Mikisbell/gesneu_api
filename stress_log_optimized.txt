@@ -1,0 +1,425 @@
+🔥 INICIANDO PRUEBA DE ESTRÉS: REENCAUCHE (20 ciclos concurrentes)
+1. Preparando datos maestros...
+2. Creando 20 neumáticos...
+   ✅ Neumáticos creados.
+3. Ejecutando ENVÍOS masivos (Parallel)...
+[EventoService] Error: DriverAdapterError: Max client connections reached
+    at PrismaPgAdapter.onError (/mnt/e/FREECLOUD/FREECLOUD-IA/PROYECTOS/gesneu_api/node_modules/@prisma/adapter-pg/dist/index.js:687:11)
+    at /mnt/e/FREECLOUD/FREECLOUD-IA/PROYECTOS/gesneu_api/node_modules/@prisma/adapter-pg/dist/index.js:720:68
+    at process.processTicksAndRejections (node:internal/process/task_queues:95:5)
+    at async PrismaPgAdapter.startTransaction (/mnt/e/FREECLOUD/FREECLOUD-IA/PROYECTOS/gesneu_api/node_modules/@prisma/adapter-pg/dist/index.js:720:18)
+    at async Ft.#r (/mnt/e/FREECLOUD/FREECLOUD-IA/PROYECTOS/gesneu_api/node_modules/@prisma/client-engine-runtime/src/transaction-manager/transaction-manager.ts:125:31)
+    at async Ft.startTransaction (/mnt/e/FREECLOUD/FREECLOUD-IA/PROYECTOS/gesneu_api/node_modules/@prisma/client-engine-runtime/src/transaction-manager/transaction-manager.ts:99:12)
+    at async e.startTransaction (/mnt/e/FREECLOUD/FREECLOUD-IA/PROYECTOS/gesneu_api/node_modules/@prisma/client/src/runtime/core/engines/client/LocalExecutor.ts:85:18)
+    at async Dt.transaction (/mnt/e/FREECLOUD/FREECLOUD-IA/PROYECTOS/gesneu_api/node_modules/@prisma/client/src/runtime/core/engines/client/ClientEngine.ts:424:18)
+    at async Proxy._transactionWithCallback (/mnt/e/FREECLOUD/FREECLOUD-IA/PROYECTOS/gesneu_api/node_modules/@prisma/client/src/runtime/getPrismaClient.ts:687:20)
+    at async EventoNeumaticoService.registrarEvento (/mnt/e/FREECLOUD/FREECLOUD-IA/PROYECTOS/gesneu_api/src/lib/services/evento-neumatico.service.ts:62:31) {
+  cause: {
+    originalCode: 'XX000',
+    originalMessage: 'Max client connections reached',
+    kind: 'postgres',
+    code: 'XX000',
+    severity: 'FATAL',
+    message: 'Max client connections reached',
+    detail: undefined,
+    column: undefined,
+    hint: undefined
+  }
+}
+❌ Falló envio STRESS-1769620375749-14: Max client connections reached
+[EventoService] Error: DriverAdapterError: MaxClientsInSessionMode: max clients reached - in Session mode max clients are limited to pool_size
+    at PrismaPgAdapter.onError (/mnt/e/FREECLOUD/FREECLOUD-IA/PROYECTOS/gesneu_api/node_modules/@prisma/adapter-pg/dist/index.js:687:11)
+    at /mnt/e/FREECLOUD/FREECLOUD-IA/PROYECTOS/gesneu_api/node_modules/@prisma/adapter-pg/dist/index.js:720:68
+    at process.processTicksAndRejections (node:internal/process/task_queues:95:5)
+    at async PrismaPgAdapter.startTransaction (/mnt/e/FREECLOUD/FREECLOUD-IA/PROYECTOS/gesneu_api/node_modules/@prisma/adapter-pg/dist/index.js:720:18)
+    at async Ft.#r (/mnt/e/FREECLOUD/FREECLOUD-IA/PROYECTOS/gesneu_api/node_modules/@prisma/client-engine-runtime/src/transaction-manager/transaction-manager.ts:125:31)
+    at async Ft.startTransaction (/mnt/e/FREECLOUD/FREECLOUD-IA/PROYECTOS/gesneu_api/node_modules/@prisma/client-engine-runtime/src/transaction-manager/transaction-manager.ts:99:12)
+    at async e.startTransaction (/mnt/e/FREECLOUD/FREECLOUD-IA/PROYECTOS/gesneu_api/node_modules/@prisma/client/src/runtime/core/engines/client/LocalExecutor.ts:85:18)
+    at async Dt.transaction (/mnt/e/FREECLOUD/FREECLOUD-IA/PROYECTOS/gesneu_api/node_modules/@prisma/client/src/runtime/core/engines/client/ClientEngine.ts:424:18)
+    at async Proxy._transactionWithCallback (/mnt/e/FREECLOUD/FREECLOUD-IA/PROYECTOS/gesneu_api/node_modules/@prisma/client/src/runtime/getPrismaClient.ts:687:20)
+    at async EventoNeumaticoService.registrarEvento (/mnt/e/FREECLOUD/FREECLOUD-IA/PROYECTOS/gesneu_api/src/lib/services/evento-neumatico.service.ts:62:31) {
+  cause: {
+    originalCode: 'XX000',
+    originalMessage: 'MaxClientsInSessionMode: max clients reached - in Session mode max clients are limited to pool_size',
+    kind: 'postgres',
+    code: 'XX000',
+    severity: 'FATAL',
+    message: 'MaxClientsInSessionMode: max clients reached - in Session mode max clients are limited to pool_size',
+    detail: undefined,
+    column: undefined,
+    hint: undefined
+  }
+}
+❌ Falló envio STRESS-1769620374029-7: MaxClientsInSessionMode: max clients reached - in Session mode max clients are limited to pool_size
+[EventoService] Error: DriverAdapterError: MaxClientsInSessionMode: max clients reached - in Session mode max clients are limited to pool_size
+    at PrismaPgAdapter.onError (/mnt/e/FREECLOUD/FREECLOUD-IA/PROYECTOS/gesneu_api/node_modules/@prisma/adapter-pg/dist/index.js:687:11)
+    at /mnt/e/FREECLOUD/FREECLOUD-IA/PROYECTOS/gesneu_api/node_modules/@prisma/adapter-pg/dist/index.js:720:68
+    at process.processTicksAndRejections (node:internal/process/task_queues:95:5)
+    at async PrismaPgAdapter.startTransaction (/mnt/e/FREECLOUD/FREECLOUD-IA/PROYECTOS/gesneu_api/node_modules/@prisma/adapter-pg/dist/index.js:720:18)
+    at async Ft.#r (/mnt/e/FREECLOUD/FREECLOUD-IA/PROYECTOS/gesneu_api/node_modules/@prisma/client-engine-runtime/src/transaction-manager/transaction-manager.ts:125:31)
+    at async Ft.startTransaction (/mnt/e/FREECLOUD/FREECLOUD-IA/PROYECTOS/gesneu_api/node_modules/@prisma/client-engine-runtime/src/transaction-manager/transaction-manager.ts:99:12)
+    at async e.startTransaction (/mnt/e/FREECLOUD/FREECLOUD-IA/PROYECTOS/gesneu_api/node_modules/@prisma/client/src/runtime/core/engines/client/LocalExecutor.ts:85:18)
+    at async Dt.transaction (/mnt/e/FREECLOUD/FREECLOUD-IA/PROYECTOS/gesneu_api/node_modules/@prisma/client/src/runtime/core/engines/client/ClientEngine.ts:424:18)
+    at async Proxy._transactionWithCallback (/mnt/e/FREECLOUD/FREECLOUD-IA/PROYECTOS/gesneu_api/node_modules/@prisma/client/src/runtime/getPrismaClient.ts:687:20)
+    at async EventoNeumaticoService.registrarEvento (/mnt/e/FREECLOUD/FREECLOUD-IA/PROYECTOS/gesneu_api/src/lib/services/evento-neumatico.service.ts:62:31) {
+  cause: {
+    originalCode: 'XX000',
+    originalMessage: 'MaxClientsInSessionMode: max clients reached - in Session mode max clients are limited to pool_size',
+    kind: 'postgres',
+    code: 'XX000',
+    severity: 'FATAL',
+    message: 'MaxClientsInSessionMode: max clients reached - in Session mode max clients are limited to pool_size',
+    detail: undefined,
+    column: undefined,
+    hint: undefined
+  }
+}
+❌ Falló envio STRESS-1769620375261-12: MaxClientsInSessionMode: max clients reached - in Session mode max clients are limited to pool_size
+[EventoService] Error: DriverAdapterError: MaxClientsInSessionMode: max clients reached - in Session mode max clients are limited to pool_size
+    at PrismaPgAdapter.onError (/mnt/e/FREECLOUD/FREECLOUD-IA/PROYECTOS/gesneu_api/node_modules/@prisma/adapter-pg/dist/index.js:687:11)
+    at /mnt/e/FREECLOUD/FREECLOUD-IA/PROYECTOS/gesneu_api/node_modules/@prisma/adapter-pg/dist/index.js:720:68
+    at process.processTicksAndRejections (node:internal/process/task_queues:95:5)
+    at async PrismaPgAdapter.startTransaction (/mnt/e/FREECLOUD/FREECLOUD-IA/PROYECTOS/gesneu_api/node_modules/@prisma/adapter-pg/dist/index.js:720:18)
+    at async Ft.#r (/mnt/e/FREECLOUD/FREECLOUD-IA/PROYECTOS/gesneu_api/node_modules/@prisma/client-engine-runtime/src/transaction-manager/transaction-manager.ts:125:31)
+    at async Ft.startTransaction (/mnt/e/FREECLOUD/FREECLOUD-IA/PROYECTOS/gesneu_api/node_modules/@prisma/client-engine-runtime/src/transaction-manager/transaction-manager.ts:99:12)
+    at async e.startTransaction (/mnt/e/FREECLOUD/FREECLOUD-IA/PROYECTOS/gesneu_api/node_modules/@prisma/client/src/runtime/core/engines/client/LocalExecutor.ts:85:18)
+    at async Dt.transaction (/mnt/e/FREECLOUD/FREECLOUD-IA/PROYECTOS/gesneu_api/node_modules/@prisma/client/src/runtime/core/engines/client/ClientEngine.ts:424:18)
+    at async Proxy._transactionWithCallback (/mnt/e/FREECLOUD/FREECLOUD-IA/PROYECTOS/gesneu_api/node_modules/@prisma/client/src/runtime/getPrismaClient.ts:687:20)
+    at async EventoNeumaticoService.registrarEvento (/mnt/e/FREECLOUD/FREECLOUD-IA/PROYECTOS/gesneu_api/src/lib/services/evento-neumatico.service.ts:62:31) {
+  cause: {
+    originalCode: 'XX000',
+    originalMessage: 'MaxClientsInSessionMode: max clients reached - in Session mode max clients are limited to pool_size',
+    kind: 'postgres',
+    code: 'XX000',
+    severity: 'FATAL',
+    message: 'MaxClientsInSessionMode: max clients reached - in Session mode max clients are limited to pool_size',
+    detail: undefined,
+    column: undefined,
+    hint: undefined
+  }
+}
+❌ Falló envio STRESS-1769620376235-16: MaxClientsInSessionMode: max clients reached - in Session mode max clients are limited to pool_size
+[EventoService] Error: DriverAdapterError: Max client connections reached
+    at PrismaPgAdapter.onError (/mnt/e/FREECLOUD/FREECLOUD-IA/PROYECTOS/gesneu_api/node_modules/@prisma/adapter-pg/dist/index.js:687:11)
+    at /mnt/e/FREECLOUD/FREECLOUD-IA/PROYECTOS/gesneu_api/node_modules/@prisma/adapter-pg/dist/index.js:720:68
+    at process.processTicksAndRejections (node:internal/process/task_queues:95:5)
+    at async PrismaPgAdapter.startTransaction (/mnt/e/FREECLOUD/FREECLOUD-IA/PROYECTOS/gesneu_api/node_modules/@prisma/adapter-pg/dist/index.js:720:18)
+    at async Ft.#r (/mnt/e/FREECLOUD/FREECLOUD-IA/PROYECTOS/gesneu_api/node_modules/@prisma/client-engine-runtime/src/transaction-manager/transaction-manager.ts:125:31)
+    at async Ft.startTransaction (/mnt/e/FREECLOUD/FREECLOUD-IA/PROYECTOS/gesneu_api/node_modules/@prisma/client-engine-runtime/src/transaction-manager/transaction-manager.ts:99:12)
+    at async e.startTransaction (/mnt/e/FREECLOUD/FREECLOUD-IA/PROYECTOS/gesneu_api/node_modules/@prisma/client/src/runtime/core/engines/client/LocalExecutor.ts:85:18)
+    at async Dt.transaction (/mnt/e/FREECLOUD/FREECLOUD-IA/PROYECTOS/gesneu_api/node_modules/@prisma/client/src/runtime/core/engines/client/ClientEngine.ts:424:18)
+    at async Proxy._transactionWithCallback (/mnt/e/FREECLOUD/FREECLOUD-IA/PROYECTOS/gesneu_api/node_modules/@prisma/client/src/runtime/getPrismaClient.ts:687:20)
+    at async EventoNeumaticoService.registrarEvento (/mnt/e/FREECLOUD/FREECLOUD-IA/PROYECTOS/gesneu_api/src/lib/services/evento-neumatico.service.ts:62:31) {
+  cause: {
+    originalCode: 'XX000',
+    originalMessage: 'Max client connections reached',
+    kind: 'postgres',
+    code: 'XX000',
+    severity: 'FATAL',
+    message: 'Max client connections reached',
+    detail: undefined,
+    column: undefined,
+    hint: undefined
+  }
+}
+❌ Falló envio STRESS-1769620373536-5: Max client connections reached
+prisma:error MaxClientsInSessionMode: max clients reached - in Session mode max clients are limited to pool_size
+[EventoService] Error: DriverAdapterError: MaxClientsInSessionMode: max clients reached - in Session mode max clients are limited to pool_size
+    at PrismaPgAdapter.onError (/mnt/e/FREECLOUD/FREECLOUD-IA/PROYECTOS/gesneu_api/node_modules/@prisma/adapter-pg/dist/index.js:687:11)
+    at PrismaPgAdapter.performIO (/mnt/e/FREECLOUD/FREECLOUD-IA/PROYECTOS/gesneu_api/node_modules/@prisma/adapter-pg/dist/index.js:682:12)
+    at process.processTicksAndRejections (node:internal/process/task_queues:95:5)
+    at async PrismaPgAdapter.queryRaw (/mnt/e/FREECLOUD/FREECLOUD-IA/PROYECTOS/gesneu_api/node_modules/@prisma/adapter-pg/dist/index.js:602:30)
+    at async <anonymous> (/mnt/e/FREECLOUD/FREECLOUD-IA/PROYECTOS/gesneu_api/node_modules/@prisma/client-engine-runtime/src/tracing.ts:68:22)
+    at async fr (/mnt/e/FREECLOUD/FREECLOUD-IA/PROYECTOS/gesneu_api/node_modules/@prisma/client-engine-runtime/src/tracing.ts:56:10)
+    at async e.interpretNode (/mnt/e/FREECLOUD/FREECLOUD-IA/PROYECTOS/gesneu_api/node_modules/@prisma/client-engine-runtime/src/interpreter/query-interpreter.ts:190:26)
+    at async <anonymous> (/mnt/e/FREECLOUD/FREECLOUD-IA/PROYECTOS/gesneu_api/node_modules/@prisma/client-engine-runtime/src/interpreter/query-interpreter.ts:250:28)
+    at async Promise.all (index 2)
+    at async e.interpretNode (/mnt/e/FREECLOUD/FREECLOUD-IA/PROYECTOS/gesneu_api/node_modules/@prisma/client-engine-runtime/src/interpreter/query-interpreter.ts:247:27) {
+  cause: {
+    originalCode: 'XX000',
+    originalMessage: 'MaxClientsInSessionMode: max clients reached - in Session mode max clients are limited to pool_size',
+    kind: 'postgres',
+    code: 'XX000',
+    severity: 'FATAL',
+    message: 'MaxClientsInSessionMode: max clients reached - in Session mode max clients are limited to pool_size',
+    detail: undefined,
+    column: undefined,
+    hint: undefined
+  },
+  clientVersion: '7.2.0'
+}
+❌ Falló envio STRESS-1769620372284-0: MaxClientsInSessionMode: max clients reached - in Session mode max clients are limited to pool_size
+prisma:error MaxClientsInSessionMode: max clients reached - in Session mode max clients are limited to pool_size
+[EventoService] Error: DriverAdapterError: MaxClientsInSessionMode: max clients reached - in Session mode max clients are limited to pool_size
+    at PrismaPgAdapter.onError (/mnt/e/FREECLOUD/FREECLOUD-IA/PROYECTOS/gesneu_api/node_modules/@prisma/adapter-pg/dist/index.js:687:11)
+    at PrismaPgAdapter.performIO (/mnt/e/FREECLOUD/FREECLOUD-IA/PROYECTOS/gesneu_api/node_modules/@prisma/adapter-pg/dist/index.js:682:12)
+    at process.processTicksAndRejections (node:internal/process/task_queues:95:5)
+    at async PrismaPgAdapter.queryRaw (/mnt/e/FREECLOUD/FREECLOUD-IA/PROYECTOS/gesneu_api/node_modules/@prisma/adapter-pg/dist/index.js:602:30)
+    at async <anonymous> (/mnt/e/FREECLOUD/FREECLOUD-IA/PROYECTOS/gesneu_api/node_modules/@prisma/client-engine-runtime/src/tracing.ts:68:22)
+    at async fr (/mnt/e/FREECLOUD/FREECLOUD-IA/PROYECTOS/gesneu_api/node_modules/@prisma/client-engine-runtime/src/tracing.ts:56:10)
+    at async e.interpretNode (/mnt/e/FREECLOUD/FREECLOUD-IA/PROYECTOS/gesneu_api/node_modules/@prisma/client-engine-runtime/src/interpreter/query-interpreter.ts:190:26)
+    at async <anonymous> (/mnt/e/FREECLOUD/FREECLOUD-IA/PROYECTOS/gesneu_api/node_modules/@prisma/client-engine-runtime/src/interpreter/query-interpreter.ts:250:28)
+    at async Promise.all (index 4)
+    at async e.interpretNode (/mnt/e/FREECLOUD/FREECLOUD-IA/PROYECTOS/gesneu_api/node_modules/@prisma/client-engine-runtime/src/interpreter/query-interpreter.ts:247:27) {
+  cause: {
+    originalCode: 'XX000',
+    originalMessage: 'MaxClientsInSessionMode: max clients reached - in Session mode max clients are limited to pool_size',
+    kind: 'postgres',
+    code: 'XX000',
+    severity: 'FATAL',
+    message: 'MaxClientsInSessionMode: max clients reached - in Session mode max clients are limited to pool_size',
+    detail: undefined,
+    column: undefined,
+    hint: undefined
+  },
+  clientVersion: '7.2.0'
+}
+❌ Falló envio STRESS-1769620373283-4: MaxClientsInSessionMode: max clients reached - in Session mode max clients are limited to pool_size
+prisma:error MaxClientsInSessionMode: max clients reached - in Session mode max clients are limited to pool_size
+[EventoService] Error: DriverAdapterError: MaxClientsInSessionMode: max clients reached - in Session mode max clients are limited to pool_size
+    at PrismaPgAdapter.onError (/mnt/e/FREECLOUD/FREECLOUD-IA/PROYECTOS/gesneu_api/node_modules/@prisma/adapter-pg/dist/index.js:687:11)
+    at PrismaPgAdapter.performIO (/mnt/e/FREECLOUD/FREECLOUD-IA/PROYECTOS/gesneu_api/node_modules/@prisma/adapter-pg/dist/index.js:682:12)
+    at process.processTicksAndRejections (node:internal/process/task_queues:95:5)
+    at async PrismaPgAdapter.queryRaw (/mnt/e/FREECLOUD/FREECLOUD-IA/PROYECTOS/gesneu_api/node_modules/@prisma/adapter-pg/dist/index.js:602:30)
+    at async <anonymous> (/mnt/e/FREECLOUD/FREECLOUD-IA/PROYECTOS/gesneu_api/node_modules/@prisma/client-engine-runtime/src/tracing.ts:68:22)
+    at async fr (/mnt/e/FREECLOUD/FREECLOUD-IA/PROYECTOS/gesneu_api/node_modules/@prisma/client-engine-runtime/src/tracing.ts:56:10)
+    at async e.interpretNode (/mnt/e/FREECLOUD/FREECLOUD-IA/PROYECTOS/gesneu_api/node_modules/@prisma/client-engine-runtime/src/interpreter/query-interpreter.ts:190:26)
+    at async <anonymous> (/mnt/e/FREECLOUD/FREECLOUD-IA/PROYECTOS/gesneu_api/node_modules/@prisma/client-engine-runtime/src/interpreter/query-interpreter.ts:250:28)
+    at async Promise.all (index 6)
+    at async e.interpretNode (/mnt/e/FREECLOUD/FREECLOUD-IA/PROYECTOS/gesneu_api/node_modules/@prisma/client-engine-runtime/src/interpreter/query-interpreter.ts:247:27) {
+  cause: {
+    originalCode: 'XX000',
+    originalMessage: 'MaxClientsInSessionMode: max clients reached - in Session mode max clients are limited to pool_size',
+    kind: 'postgres',
+    code: 'XX000',
+    severity: 'FATAL',
+    message: 'MaxClientsInSessionMode: max clients reached - in Session mode max clients are limited to pool_size',
+    detail: undefined,
+    column: undefined,
+    hint: undefined
+  },
+  clientVersion: '7.2.0'
+}
+❌ Falló envio STRESS-1769620373784-6: MaxClientsInSessionMode: max clients reached - in Session mode max clients are limited to pool_size
+prisma:error MaxClientsInSessionMode: max clients reached - in Session mode max clients are limited to pool_size
+[EventoService] Error: DriverAdapterError: MaxClientsInSessionMode: max clients reached - in Session mode max clients are limited to pool_size
+    at PrismaPgAdapter.onError (/mnt/e/FREECLOUD/FREECLOUD-IA/PROYECTOS/gesneu_api/node_modules/@prisma/adapter-pg/dist/index.js:687:11)
+    at PrismaPgAdapter.performIO (/mnt/e/FREECLOUD/FREECLOUD-IA/PROYECTOS/gesneu_api/node_modules/@prisma/adapter-pg/dist/index.js:682:12)
+    at process.processTicksAndRejections (node:internal/process/task_queues:95:5)
+    at async PrismaPgAdapter.queryRaw (/mnt/e/FREECLOUD/FREECLOUD-IA/PROYECTOS/gesneu_api/node_modules/@prisma/adapter-pg/dist/index.js:602:30)
+    at async <anonymous> (/mnt/e/FREECLOUD/FREECLOUD-IA/PROYECTOS/gesneu_api/node_modules/@prisma/client-engine-runtime/src/tracing.ts:68:22)
+    at async fr (/mnt/e/FREECLOUD/FREECLOUD-IA/PROYECTOS/gesneu_api/node_modules/@prisma/client-engine-runtime/src/tracing.ts:56:10)
+    at async e.interpretNode (/mnt/e/FREECLOUD/FREECLOUD-IA/PROYECTOS/gesneu_api/node_modules/@prisma/client-engine-runtime/src/interpreter/query-interpreter.ts:190:26)
+    at async <anonymous> (/mnt/e/FREECLOUD/FREECLOUD-IA/PROYECTOS/gesneu_api/node_modules/@prisma/client-engine-runtime/src/interpreter/query-interpreter.ts:250:28)
+    at async Promise.all (index 5)
+    at async e.interpretNode (/mnt/e/FREECLOUD/FREECLOUD-IA/PROYECTOS/gesneu_api/node_modules/@prisma/client-engine-runtime/src/interpreter/query-interpreter.ts:247:27) {
+  cause: {
+    originalCode: 'XX000',
+    originalMessage: 'MaxClientsInSessionMode: max clients reached - in Session mode max clients are limited to pool_size',
+    kind: 'postgres',
+    code: 'XX000',
+    severity: 'FATAL',
+    message: 'MaxClientsInSessionMode: max clients reached - in Session mode max clients are limited to pool_size',
+    detail: undefined,
+    column: undefined,
+    hint: undefined
+  },
+  clientVersion: '7.2.0'
+}
+❌ Falló envio STRESS-1769620375504-13: MaxClientsInSessionMode: max clients reached - in Session mode max clients are limited to pool_size
+[SSE] Broadcast: invalidate to 0 clients
+prisma:error MaxClientsInSessionMode: max clients reached - in Session mode max clients are limited to pool_size
+[EventoService] Error: DriverAdapterError: MaxClientsInSessionMode: max clients reached - in Session mode max clients are limited to pool_size
+    at PrismaPgAdapter.onError (/mnt/e/FREECLOUD/FREECLOUD-IA/PROYECTOS/gesneu_api/node_modules/@prisma/adapter-pg/dist/index.js:687:11)
+    at PrismaPgAdapter.performIO (/mnt/e/FREECLOUD/FREECLOUD-IA/PROYECTOS/gesneu_api/node_modules/@prisma/adapter-pg/dist/index.js:682:12)
+    at process.processTicksAndRejections (node:internal/process/task_queues:95:5)
+    at async PrismaPgAdapter.queryRaw (/mnt/e/FREECLOUD/FREECLOUD-IA/PROYECTOS/gesneu_api/node_modules/@prisma/adapter-pg/dist/index.js:602:30)
+    at async <anonymous> (/mnt/e/FREECLOUD/FREECLOUD-IA/PROYECTOS/gesneu_api/node_modules/@prisma/client-engine-runtime/src/tracing.ts:68:22)
+    at async fr (/mnt/e/FREECLOUD/FREECLOUD-IA/PROYECTOS/gesneu_api/node_modules/@prisma/client-engine-runtime/src/tracing.ts:56:10)
+    at async e.interpretNode (/mnt/e/FREECLOUD/FREECLOUD-IA/PROYECTOS/gesneu_api/node_modules/@prisma/client-engine-runtime/src/interpreter/query-interpreter.ts:190:26)
+    at async <anonymous> (/mnt/e/FREECLOUD/FREECLOUD-IA/PROYECTOS/gesneu_api/node_modules/@prisma/client-engine-runtime/src/interpreter/query-interpreter.ts:250:28)
+    at async Promise.all (index 2)
+    at async e.interpretNode (/mnt/e/FREECLOUD/FREECLOUD-IA/PROYECTOS/gesneu_api/node_modules/@prisma/client-engine-runtime/src/interpreter/query-interpreter.ts:247:27) {
+  cause: {
+    originalCode: 'XX000',
+    originalMessage: 'MaxClientsInSessionMode: max clients reached - in Session mode max clients are limited to pool_size',
+    kind: 'postgres',
+    code: 'XX000',
+    severity: 'FATAL',
+    message: 'MaxClientsInSessionMode: max clients reached - in Session mode max clients are limited to pool_size',
+    detail: undefined,
+    column: undefined,
+    hint: undefined
+  },
+  clientVersion: '7.2.0'
+}
+❌ Falló envio STRESS-1769620376722-18: MaxClientsInSessionMode: max clients reached - in Session mode max clients are limited to pool_size
+[SSE] Broadcast: invalidate to 0 clients
+[SSE] Broadcast: invalidate to 0 clients
+[SSE] Broadcast: invalidate to 0 clients
+[SSE] Broadcast: invalidate to 0 clients
+prisma:error MaxClientsInSessionMode: max clients reached - in Session mode max clients are limited to pool_size
+[EventoService] Error: DriverAdapterError: MaxClientsInSessionMode: max clients reached - in Session mode max clients are limited to pool_size
+    at PrismaPgAdapter.onError (/mnt/e/FREECLOUD/FREECLOUD-IA/PROYECTOS/gesneu_api/node_modules/@prisma/adapter-pg/dist/index.js:687:11)
+    at PrismaPgAdapter.performIO (/mnt/e/FREECLOUD/FREECLOUD-IA/PROYECTOS/gesneu_api/node_modules/@prisma/adapter-pg/dist/index.js:682:12)
+    at process.processTicksAndRejections (node:internal/process/task_queues:95:5)
+    at async PrismaPgAdapter.queryRaw (/mnt/e/FREECLOUD/FREECLOUD-IA/PROYECTOS/gesneu_api/node_modules/@prisma/adapter-pg/dist/index.js:602:30)
+    at async <anonymous> (/mnt/e/FREECLOUD/FREECLOUD-IA/PROYECTOS/gesneu_api/node_modules/@prisma/client-engine-runtime/src/tracing.ts:68:22)
+    at async fr (/mnt/e/FREECLOUD/FREECLOUD-IA/PROYECTOS/gesneu_api/node_modules/@prisma/client-engine-runtime/src/tracing.ts:56:10)
+    at async e.interpretNode (/mnt/e/FREECLOUD/FREECLOUD-IA/PROYECTOS/gesneu_api/node_modules/@prisma/client-engine-runtime/src/interpreter/query-interpreter.ts:190:26)
+    at async <anonymous> (/mnt/e/FREECLOUD/FREECLOUD-IA/PROYECTOS/gesneu_api/node_modules/@prisma/client-engine-runtime/src/interpreter/query-interpreter.ts:250:28)
+    at async Promise.all (index 5)
+    at async e.interpretNode (/mnt/e/FREECLOUD/FREECLOUD-IA/PROYECTOS/gesneu_api/node_modules/@prisma/client-engine-runtime/src/interpreter/query-interpreter.ts:247:27) {
+  cause: {
+    originalCode: 'XX000',
+    originalMessage: 'MaxClientsInSessionMode: max clients reached - in Session mode max clients are limited to pool_size',
+    kind: 'postgres',
+    code: 'XX000',
+    severity: 'FATAL',
+    message: 'MaxClientsInSessionMode: max clients reached - in Session mode max clients are limited to pool_size',
+    detail: undefined,
+    column: undefined,
+    hint: undefined
+  },
+  clientVersion: '7.2.0'
+}
+❌ Falló envio STRESS-1769620372554-1: MaxClientsInSessionMode: max clients reached - in Session mode max clients are limited to pool_size
+prisma:error MaxClientsInSessionMode: max clients reached - in Session mode max clients are limited to pool_size
+[EventoService] Error: DriverAdapterError: MaxClientsInSessionMode: max clients reached - in Session mode max clients are limited to pool_size
+    at PrismaPgAdapter.onError (/mnt/e/FREECLOUD/FREECLOUD-IA/PROYECTOS/gesneu_api/node_modules/@prisma/adapter-pg/dist/index.js:687:11)
+    at PrismaPgAdapter.performIO (/mnt/e/FREECLOUD/FREECLOUD-IA/PROYECTOS/gesneu_api/node_modules/@prisma/adapter-pg/dist/index.js:682:12)
+    at process.processTicksAndRejections (node:internal/process/task_queues:95:5)
+    at async PrismaPgAdapter.queryRaw (/mnt/e/FREECLOUD/FREECLOUD-IA/PROYECTOS/gesneu_api/node_modules/@prisma/adapter-pg/dist/index.js:602:30)
+    at async <anonymous> (/mnt/e/FREECLOUD/FREECLOUD-IA/PROYECTOS/gesneu_api/node_modules/@prisma/client-engine-runtime/src/tracing.ts:68:22)
+    at async fr (/mnt/e/FREECLOUD/FREECLOUD-IA/PROYECTOS/gesneu_api/node_modules/@prisma/client-engine-runtime/src/tracing.ts:56:10)
+    at async e.interpretNode (/mnt/e/FREECLOUD/FREECLOUD-IA/PROYECTOS/gesneu_api/node_modules/@prisma/client-engine-runtime/src/interpreter/query-interpreter.ts:190:26)
+    at async e.interpretNode (/mnt/e/FREECLOUD/FREECLOUD-IA/PROYECTOS/gesneu_api/node_modules/@prisma/client-engine-runtime/src/interpreter/query-interpreter.ts:132:29)
+    at async <anonymous> (/mnt/e/FREECLOUD/FREECLOUD-IA/PROYECTOS/gesneu_api/node_modules/@prisma/client-engine-runtime/src/interpreter/query-interpreter.ts:250:28)
+    at async Promise.all (index 0) {
+  cause: {
+    originalCode: 'XX000',
+    originalMessage: 'MaxClientsInSessionMode: max clients reached - in Session mode max clients are limited to pool_size',
+    kind: 'postgres',
+    code: 'XX000',
+    severity: 'FATAL',
+    message: 'MaxClientsInSessionMode: max clients reached - in Session mode max clients are limited to pool_size',
+    detail: undefined,
+    column: undefined,
+    hint: undefined
+  },
+  clientVersion: '7.2.0'
+}
+❌ Falló envio STRESS-1769620376478-17: MaxClientsInSessionMode: max clients reached - in Session mode max clients are limited to pool_size
+[SSE] Broadcast: invalidate to 0 clients
+[SSE] Broadcast: invalidate to 0 clients
+prisma:error MaxClientsInSessionMode: max clients reached - in Session mode max clients are limited to pool_size
+[EventoService] Error: DriverAdapterError: MaxClientsInSessionMode: max clients reached - in Session mode max clients are limited to pool_size
+    at PrismaPgAdapter.onError (/mnt/e/FREECLOUD/FREECLOUD-IA/PROYECTOS/gesneu_api/node_modules/@prisma/adapter-pg/dist/index.js:687:11)
+    at PrismaPgAdapter.performIO (/mnt/e/FREECLOUD/FREECLOUD-IA/PROYECTOS/gesneu_api/node_modules/@prisma/adapter-pg/dist/index.js:682:12)
+    at process.processTicksAndRejections (node:internal/process/task_queues:95:5)
+    at async PrismaPgAdapter.queryRaw (/mnt/e/FREECLOUD/FREECLOUD-IA/PROYECTOS/gesneu_api/node_modules/@prisma/adapter-pg/dist/index.js:602:30)
+    at async <anonymous> (/mnt/e/FREECLOUD/FREECLOUD-IA/PROYECTOS/gesneu_api/node_modules/@prisma/client-engine-runtime/src/tracing.ts:68:22)
+    at async fr (/mnt/e/FREECLOUD/FREECLOUD-IA/PROYECTOS/gesneu_api/node_modules/@prisma/client-engine-runtime/src/tracing.ts:56:10)
+    at async e.interpretNode (/mnt/e/FREECLOUD/FREECLOUD-IA/PROYECTOS/gesneu_api/node_modules/@prisma/client-engine-runtime/src/interpreter/query-interpreter.ts:190:26)
+    at async <anonymous> (/mnt/e/FREECLOUD/FREECLOUD-IA/PROYECTOS/gesneu_api/node_modules/@prisma/client-engine-runtime/src/interpreter/query-interpreter.ts:250:28)
+    at async Promise.all (index 1)
+    at async e.interpretNode (/mnt/e/FREECLOUD/FREECLOUD-IA/PROYECTOS/gesneu_api/node_modules/@prisma/client-engine-runtime/src/interpreter/query-interpreter.ts:247:27) {
+  cause: {
+    originalCode: 'XX000',
+    originalMessage: 'MaxClientsInSessionMode: max clients reached - in Session mode max clients are limited to pool_size',
+    kind: 'postgres',
+    code: 'XX000',
+    severity: 'FATAL',
+    message: 'MaxClientsInSessionMode: max clients reached - in Session mode max clients are limited to pool_size',
+    detail: undefined,
+    column: undefined,
+    hint: undefined
+  },
+  clientVersion: '7.2.0'
+}
+❌ Falló envio STRESS-1769620372796-2: MaxClientsInSessionMode: max clients reached - in Session mode max clients are limited to pool_size
+   ⏱️  Envío completado en 5.83s
+   🔎 Estado Check: 15/20 en REENCAUCHE.
+4. Ejecutando RETORNOS masivos (Transaction Locking Test)...
+prisma:error 
+Invalid `tx.neumatico.update()` invocation in
+/mnt/e/FREECLOUD/FREECLOUD-IA/PROYECTOS/gesneu_api/src/lib/services/reencauche.service.ts:80:52
+
+  77 const result = await prisma.$transaction(async (tx) => {
+  78 
+  79     // A. Actualizar Neumático (Atomic Check: Must be EN_REENCAUCHE)
+→ 80     const updatedTire = await tx.neumatico.update(
+An operation failed because it depends on one or more records that were required but not found. No record was found for an update.
+prisma:error 
+Invalid `tx.neumatico.update()` invocation in
+/mnt/e/FREECLOUD/FREECLOUD-IA/PROYECTOS/gesneu_api/src/lib/services/reencauche.service.ts:80:52
+
+  77 const result = await prisma.$transaction(async (tx) => {
+  78 
+  79     // A. Actualizar Neumático (Atomic Check: Must be EN_REENCAUCHE)
+→ 80     const updatedTire = await tx.neumatico.update(
+An operation failed because it depends on one or more records that were required but not found. No record was found for an update.
+prisma:error 
+Invalid `tx.neumatico.update()` invocation in
+/mnt/e/FREECLOUD/FREECLOUD-IA/PROYECTOS/gesneu_api/src/lib/services/reencauche.service.ts:80:52
+
+  77 const result = await prisma.$transaction(async (tx) => {
+  78 
+  79     // A. Actualizar Neumático (Atomic Check: Must be EN_REENCAUCHE)
+→ 80     const updatedTire = await tx.neumatico.update(
+An operation failed because it depends on one or more records that were required but not found. No record was found for an update.
+prisma:error 
+Invalid `tx.neumatico.update()` invocation in
+/mnt/e/FREECLOUD/FREECLOUD-IA/PROYECTOS/gesneu_api/src/lib/services/reencauche.service.ts:80:52
+
+  77 const result = await prisma.$transaction(async (tx) => {
+  78 
+  79     // A. Actualizar Neumático (Atomic Check: Must be EN_REENCAUCHE)
+→ 80     const updatedTire = await tx.neumatico.update(
+An operation failed because it depends on one or more records that were required but not found. No record was found for an update.
+
+📊 RESULTADOS DE ESTRÉS:
+   Total Intentos:    20
+   Éxitos:            11 ✅
+   Fallos:            9 ❌
+   Tiempo Total Ret:  1.54s
+   TPS (Tx/Sec):      12.99
+   ⚠️ Causas de fallo: [
+  '\n' +
+    'Invalid `tx.neumatico.update()` invocation in\n' +
+    '/mnt/e/FREECLOUD/FREECLOUD-IA/PROYECTOS/gesneu_api/src/lib/services/reencauche.service.ts:80:52\n' +
+    '\n' +
+    '  77 const result = await prisma.$transaction(async (tx) => {\n' +
+    '  78 \n' +
+    '  79     // A. Actualizar Neumático (Atomic Check: Must be EN_REENCAUCHE)\n' +
+    '→ 80     const updatedTire = await tx.neumatico.update(\n' +
+    'An operation failed because it depends on one or more records that were required but not found. No record was found for an update.',
+  '\n' +
+    'Invalid `tx.neumatico.update()` invocation in\n' +
+    '/mnt/e/FREECLOUD/FREECLOUD-IA/PROYECTOS/gesneu_api/src/lib/services/reencauche.service.ts:80:52\n' +
+    '\n' +
+    '  77 const result = await prisma.$transaction(async (tx) => {\n' +
+    '  78 \n' +
+    '  79     // A. Actualizar Neumático (Atomic Check: Must be EN_REENCAUCHE)\n' +
+    '→ 80     const updatedTire = await tx.neumatico.update(\n' +
+    'An operation failed because it depends on one or more records that were required but not found. No record was found for an update.',
+  '\n' +
+    'Invalid `tx.neumatico.update()` invocation in\n' +
+    '/mnt/e/FREECLOUD/FREECLOUD-IA/PROYECTOS/gesneu_api/src/lib/services/reencauche.service.ts:80:52\n' +
+    '\n' +
+    '  77 const result = await prisma.$transaction(async (tx) => {\n' +
+    '  78 \n' +
+    '  79     // A. Actualizar Neumático (Atomic Check: Must be EN_REENCAUCHE)\n' +
+    '→ 80     const updatedTire = await tx.neumatico.update(\n' +
+    'An operation failed because it depends on one or more records that were required but not found. No record was found for an update.',
+  '\n' +
+    'Invalid `tx.neumatico.update()` invocation in\n' +
+    '/mnt/e/FREECLOUD/FREECLOUD-IA/PROYECTOS/gesneu_api/src/lib/services/reencauche.service.ts:80:52\n' +
+    '\n' +
+    '  77 const result = await prisma.$transaction(async (tx) => {\n' +
+    '  78 \n' +
+    '  79     // A. Actualizar Neumático (Atomic Check: Must be EN_REENCAUCHE)\n' +
+    '→ 80     const updatedTire = await tx.neumatico.update(\n' +
+    'An operation failed because it depends on one or more records that were required but not found. No record was found for an update.',
+  'MaxClientsInSessionMode: max clients reached - in Session mode max clients are limited to pool_size'
+]

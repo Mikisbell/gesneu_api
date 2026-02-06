@@ -1,74 +1,86 @@
 import { prisma } from '@/lib/prisma';
-import { CreateInspeccionDTO } from '@/lib/validators/inspeccion.validator';
-import { BusinessError } from '@/lib/errors/business.error';
-import { TipoEventoNeumaticoEnum, EstadoNeumaticoEnum } from '@prisma/client';
-import { AlertasService } from './alertas.service';
-
-const PRESION_MINIMA_PSI = 80; // Umbral mínimo de presión
+import { EventBus } from '../events/core';
+import { InspeccionEvents } from '../events/inspeccion.events';
+import { FuenteLectura } from '@prisma/client';
 
 export class InspeccionService {
-    private alertasService = new AlertasService();
 
-    async registrarManual(data: CreateInspeccionDTO, userId: string) {
-
-        // 1. Verificar Neumático con Modelo
-        const neumatico = await prisma.neumatico.findUnique({
-            where: { id: data.neumatico_id },
-            include: { modelo: true }
-        });
-
-        if (!neumatico) throw BusinessError.notFound('Neumático', data.neumatico_id);
-        if (!neumatico.activo) throw BusinessError.badRequest('El neumático no está activo');
-
-        // 2. Registrar Lectura
+    /**
+     * Registra una lectura de presión.
+     * Side Effects (handled by observers): Alertas, Actualización de Neumático.
+     */
+    async registrarPresion(data: {
+        neumaticoId: string;
+        presionPsi: number;
+        empresaId: string; // Contexto Single Tenant (opcional pero bueno mantenerlo)
+        usuarioId?: string;
+        fuente?: FuenteLectura;
+        temperatura?: number;
+    }) {
+        // 1. Persistir Lectura (Fast Write)
         const lectura = await prisma.lecturaPresion.create({
             data: {
-                neumatico_id: data.neumatico_id,
-                presion_psi: data.presion_psi,
-                temperatura_c: data.temperatura_c,
-                fuente: 'MANUAL',
-                creado_por: userId
+                neumatico_id: data.neumaticoId,
+                presion_psi: data.presionPsi,
+                fuente: data.fuente || 'MANUAL',
+                temperatura_c: data.temperatura,
+                creado_por: data.usuarioId,
             }
         });
 
-        // 3. Actualizar Estado Neumático (Snapshot)
-        await prisma.neumatico.update({
-            where: { id: data.neumatico_id },
-            data: {
-                presion_actual_psi: data.presion_psi,
-                actualizado_en: new Date()
-            }
+        // 2. Emitir Evento
+        await EventBus.publish(InspeccionEvents.PRESSURE_READ, {
+            lecturaId: lectura.id,
+            neumaticoId: data.neumaticoId,
+            empresaId: data.empresaId,
+            presionPsi: Number(data.presionPsi),
+            fuente: lectura.fuente,
+            usuarioId: data.usuarioId
         });
-
-        // 4. Crear Evento de Inspección (Audit Trail completo)
-        await prisma.eventoNeumatico.create({
-            data: {
-                tipo_evento: TipoEventoNeumaticoEnum.INSPECCION,
-                neumatico_id: data.neumatico_id,
-                fecha_evento: new Date(),
-                presion_psi: data.presion_psi,
-                notas: data.observaciones || 'Inspección manual de presión',
-                creado_por: userId
-            }
-        });
-
-        // 5. Disparar alerta dinámina
-        // Si hay presión recomendada, usamos el 80% como umbral crítico. Si no, fallback a 80 PSI.
-        // Convertir decimal a number si viene de Prisma.
-        const recomendada = neumatico.modelo.presion_recomendada_psi
-            ? Number(neumatico.modelo.presion_recomendada_psi)
-            : 100; // Valor base si no existe (asume 100 para dar 80 de umbral)
-
-        const umbralMinimo = neumatico.modelo.presion_recomendada_psi
-            ? Math.round(recomendada * 0.8)
-            : PRESION_MINIMA_PSI;
-
-        await this.alertasService.generarAlertaPresion(
-            data.neumatico_id,
-            data.presion_psi,
-            umbralMinimo
-        );
 
         return lectura;
+    }
+
+    /**
+     * Registra una medición de profundidad (Desgaste).
+     */
+    async registrarProfundidad(data: {
+        neumaticoId: string;
+        profundidades: { int: number; cen: number; ext: number };
+        empresaId: string;
+        kilometraje?: number;
+        usuarioId?: string;
+        observaciones?: string;
+    }) {
+        const { int, cen, ext } = data.profundidades;
+        const promedio = (int + cen + ext) / 3;
+
+        // 1. Persistir Medición
+        const medicion = await prisma.medicionProfundidad.create({
+            data: {
+                neumatico_id: data.neumaticoId,
+                fecha_medicion: new Date(),
+                profundidad_int: int,
+                profundidad_cen: cen,
+                profundidad_ext: ext,
+                profundidad_prom: promedio,
+                kilometraje: data.kilometraje,
+                observaciones: data.observaciones,
+                creado_por: data.usuarioId
+            }
+        });
+
+        // 2. Emitir Evento
+        await EventBus.publish(InspeccionEvents.DEPTH_READ, {
+            medicionId: medicion.id,
+            neumaticoId: data.neumaticoId,
+            empresaId: data.empresaId,
+            profundidadPromedio: promedio,
+            profunidades: { int, cen, ext },
+            kilometraje: data.kilometraje,
+            usuarioId: data.usuarioId
+        });
+
+        return medicion;
     }
 }

@@ -1,206 +1,130 @@
-/**
- * Neumatico Mappers - Transformaciones entre Capas
- * 
- * Este módulo contiene funciones puras que transforman objetos
- * entre las diferentes capas de la aplicación:
- * - DTO → Prisma Input
- * - Entity → Response
- * - Response → ViewModel
- * 
- * @see docs/10_TIPADO_PROFESIONAL.md
- */
 
 import { Prisma } from '@prisma/client';
-// Trigger HMR rebuild - Force Cache Clear
-import {
-    NeumaticoEntity,
-    NeumaticoResponse,
-    CreateNeumaticoDTO,
-    UpdateNeumaticoDTO,
-    NeumaticoCardViewModel,
-} from '@/types/domain/neumatico.types';
-import {
-    asNeumaticoId,
-    asAlmacenId,
-    asVehiculoId,
-} from '@/types/branded.types';
+import { CreateNeumaticoDTO, UpdateNeumaticoDTO, NeumaticoEntity, NeumaticoResponse } from '@/types/domain/neumatico.types';
 
-// HOTFIX: Server cache is stale. Defining local helper to bypass import error.
-const asPosicionNeumaticoId = (id: string) => id as any;
+export function mapDtoToPrismaCreate(dto: CreateNeumaticoDTO, userId: string, empresaId: string): Prisma.NeumaticoCreateInput {
+    // Basic mapping. 
+    // Relations (Modelo, Proveedor, Almacen) must be connected.
+    // Dates need parsing if string.
 
-// ============================================
-// DTO → PRISMA INPUT
-// ============================================
-
-/**
- * Transforma un DTO de creación al formato esperado por Prisma.
- * Maneja la lógica de ubicación inicial (Almacén vs Vehículo).
- */
-export function mapDtoToPrismaCreate(dto: CreateNeumaticoDTO): Prisma.NeumaticoCreateInput {
-    // Definir estado inicial basado en ubicación
-    let estadoActual: any = 'EN_STOCK';
-    if (dto.ubicacion_vehiculo_id) {
-        estadoActual = 'MONTADO';
-    }
-
-    const input: Prisma.NeumaticoCreateInput = {
+    const data: Prisma.NeumaticoCreateInput = {
+        empresa: { connect: { id: empresaId } },
+        modelo: { connect: { id: dto.modelo_id } },
         numero_serie: dto.numero_serie,
         dot: dto.dot,
-        estado_actual: dto.estado === 'REENCAUCHADO' ? estadoActual : estadoActual, // Si es reencauchado, mantiene ub
-        es_reencauchado: dto.estado === 'REENCAUCHADO',
+        sensor_id: dto.sensor_id,
+        es_reencauchado: dto.es_reencauchado,
 
-        // Costos y Compras
+        fecha_compra: new Date(dto.fecha_compra),
+        fecha_fabricacion: dto.fecha_fabricacion ? new Date(dto.fecha_fabricacion) : undefined,
         costo_compra: dto.costo_compra,
-        moneda_compra: dto.moneda_compra ?? 'PEN',
-        fecha_compra: dto.fecha_compra ?? new Date(),
-        fecha_fabricacion: dto.fecha_fabricacion,
+        moneda_compra: dto.moneda_compra,
 
-        // Mediciones Iniciales
-        profundidad_remanente_actual_mm: dto.profundidad_inicial ?? 0, // Se actualizará con modelo
-        profundidad_inicial_mm: dto.profundidad_inicial,
-        kilometraje_acumulado: dto.kilometraje_acumulado ?? 0,
+        profundidad_inicial_mm: dto.profundidad_inicial_mm,
+        profundidad_remanente_actual_mm: dto.profundidad_actual_mm,
+        profundidad_int: dto.profundidad_int,
+        profundidad_cen: dto.profundidad_cen,
+        profundidad_ext: dto.profundidad_ext,
+        presion_actual_psi: dto.presion_actual_psi,
 
-        // Relaciones
-        modelo: { connect: { id: dto.modelo_id } },
+        creado_por: userId,
+        activo: true,
     };
 
-    // Proveedor opcional
-    if (dto.proveedor_id) {
-        input.proveedor_compra = { connect: { id: dto.proveedor_id } };
+    if (dto.proveedor_compra_id) {
+        data.proveedor_compra = { connect: { id: dto.proveedor_compra_id } };
     }
 
-    // Lógica Ubicación: Exclusividad Almacén vs Vehículo
     if (dto.ubicacion_almacen_id) {
-        input.ubicacion_almacen = { connect: { id: dto.ubicacion_almacen_id } };
-        // Limpiar otros
-        input.ubicacion_vehiculo = undefined;
-        input.ubicacion_posicion = undefined;
-    } else if (dto.ubicacion_vehiculo_id && dto.ubicacion_posicion_id) {
-        input.ubicacion_vehiculo = { connect: { id: dto.ubicacion_vehiculo_id } };
-        input.ubicacion_posicion = { connect: { id: dto.ubicacion_posicion_id } };
-        // Limpiar almacén
-        input.ubicacion_almacen = undefined;
+        data.ubicacion_almacen = { connect: { id: dto.ubicacion_almacen_id } };
+        data.estado_actual = 'EN_STOCK'; // Default state in Almacen
     }
 
-    return input;
+    return data;
 }
 
-/**
- * Transforma un DTO de actualización.
- */
-export function mapDtoToPrismaUpdate(dto: UpdateNeumaticoDTO): Prisma.NeumaticoUpdateInput {
-    const update: Prisma.NeumaticoUpdateInput = {};
+export function mapDtoToPrismaUpdate(dto: UpdateNeumaticoDTO, userId: string): Prisma.NeumaticoUpdateInput {
+    const data: Prisma.NeumaticoUpdateInput = {
+        actualizado_por: userId,
+        actualizado_en: new Date()
+    };
 
-    if (dto.numero_serie !== undefined) update.numero_serie = dto.numero_serie;
-    if (dto.dot !== undefined) update.dot = dto.dot;
-    if (dto.costo_compra !== undefined) update.costo_compra = dto.costo_compra;
-    if (dto.fecha_compra !== undefined) update.fecha_compra = dto.fecha_compra;
-    if (dto.fecha_fabricacion !== undefined) update.fecha_fabricacion = dto.fecha_fabricacion;
-    if (dto.sensor_id !== undefined) update.sensor_id = dto.sensor_id;
-    // if (dto.notas !== undefined) update.notas = dto.notas; // Property 'notas' does not exist in Prisma schema
-    if (dto.activo !== undefined) update.activo = dto.activo;
+    if (dto.numero_serie !== undefined) data.numero_serie = dto.numero_serie;
+    if (dto.dot !== undefined) data.dot = dto.dot;
+    if (dto.sensor_id !== undefined) data.sensor_id = dto.sensor_id;
+    if (dto.activo !== undefined) data.activo = dto.activo;
 
-    if (dto.proveedor_id !== undefined) {
-        update.proveedor_compra = { connect: { id: dto.proveedor_id } };
-    }
-
-    return update;
+    return data;
 }
 
-// ============================================
-// ENTITY → RESPONSE
-// ============================================
-
-/**
- * Transforma una Entity de Prisma al formato de respuesta de la API.
- */
 export function mapEntityToResponse(entity: NeumaticoEntity): NeumaticoResponse {
-    const e = entity as any;
-
-    // Calcular ubicación legible
-    let ubicacionTexto = 'No asignado';
-    if (e.ubicacion_almacen) {
-        ubicacionTexto = `Almacén: ${e.ubicacion_almacen.nombre}`;
-    } else if (e.ubicacion_vehiculo && e.ubicacion_posicion) {
-        ubicacionTexto = `${e.ubicacion_vehiculo.placa} - Pos ${e.ubicacion_posicion.codigo_posicion}`;
-    }
+    let ubicacionTipo: NeumaticoResponse['ubicacion']['tipo'] = 'DESCONOCIDO';
+    if (entity.ubicacion_almacen_id) ubicacionTipo = 'ALMACEN';
+    else if (entity.ubicacion_vehiculo_id) ubicacionTipo = 'VEHICULO';
+    else if (entity.motivo_desecho_id) ubicacionTipo = 'DESECHO'; // implied state
 
     return {
-        id: asNeumaticoId(e.id),
-        identificacion: {
-            serie: e.numero_serie ?? null,
-            dot: e.dot ?? null,
-            marca: e.modelo?.fabricante?.nombre ?? 'Desconocida',
-            modelo: e.modelo?.nombre_modelo ?? 'Desconocido', // nombre_modelo en DB
-            medida: e.modelo?.medida ?? 'N/A',
-            diseno: e.modelo?.patron_dibujo ?? null,
+        id: entity.id,
+        numeroSerie: entity.numero_serie,
+        codigo: entity.numero_serie ?? 'S/N', // Fallback
+        deviceId: entity.sensor_id,
+        dot: entity.dot,
+        estado: entity.estado_actual,
+
+        modelo: {
+            id: entity.modelo?.id ?? '',
+            nombre: entity.modelo?.nombre_modelo ?? 'Desconocido',
+            medida: entity.modelo?.medida ?? '',
+            fabricante: {
+                id: entity.modelo?.fabricante.id ?? '',
+                nombre: entity.modelo?.fabricante.nombre ?? ''
+            }
         },
-        estado: {
-            condicion: e.es_reencauchado ? 'REENCAUCHADO' : (e.estado_actual === 'DESECHO' ? 'DESECHO' : (e.kilometraje_acumulado > 0 ? 'USADO' : 'NUEVO')),
-            estadoActual: e.estado_actual,
-            ubicacion: ubicacionTexto,
-            esReencauchado: e.es_reencauchado,
-            vidaActual: e.vida_actual,
+
+        condicion: {
+            esReencauchado: entity.es_reencauchado,
+            reencauchesRealizados: entity.reencauches_realizados,
+            vidaActual: entity.vida_actual
         },
+
         mediciones: {
-            profundidadRemanente: Number(e.profundidad_remanente_actual_mm ?? 0),
-            presion: e.presion_actual_psi ? Number(e.presion_actual_psi) : null,
-            kilometrajeAcumulado: Number(e.kilometraje_acumulado ?? 0),
-            horasAcumuladas: Number(e.horas_acumuladas ?? 0),
+            profundidadActual: Number(entity.profundidad_remanente_actual_mm),
+            profundidadInicial: entity.profundidad_inicial_mm ? Number(entity.profundidad_inicial_mm) : null,
+            presion: entity.presion_actual_psi ? Number(entity.presion_actual_psi) : null,
         },
-        costos: {
-            valorCompra: e.costo_compra ? Number(e.costo_compra) : null,
-            moneda: e.moneda_compra,
-            proveedor: e.proveedor_compra?.nombre_comercial ?? null,
-        },
-        fechas: {
-            compra: e.fecha_compra?.toISOString() ?? null,
-            fabricacion: e.fecha_fabricacion?.toISOString() ?? null,
-            ultimoEvento: e.fecha_ultimo_evento?.toISOString() ?? null,
-        },
+
         ubicacion: {
-            almacenId: e.ubicacion_almacen_id ? asAlmacenId(e.ubicacion_almacen_id) : null,
-            vehiculoId: e.ubicacion_vehiculo_id ? asVehiculoId(e.ubicacion_vehiculo_id) : null,
-            posicionId: e.ubicacion_posicion_id ? asPosicionNeumaticoId(e.ubicacion_posicion_id) : null,
+            tipo: ubicacionTipo,
+            almacen: entity.ubicacion_almacen ? {
+                id: entity.ubicacion_almacen.id,
+                nombre: entity.ubicacion_almacen.nombre
+            } : undefined,
+            vehiculo: entity.ubicacion_vehiculo ? {
+                id: entity.ubicacion_vehiculo.id,
+                placa: entity.ubicacion_vehiculo.placa ?? 'SIN-PLACA'
+            } : undefined,
+            posicion: entity.ubicacion_posicion ? {
+                id: entity.ubicacion_posicion.id,
+                codigo: entity.ubicacion_posicion.codigo_posicion
+            } : undefined
         },
-        activo: e.activo,
-        createdAt: e.creado_en?.toISOString() ?? new Date().toISOString(),
-        updatedAt: e.actualizado_en?.toISOString() ?? new Date().toISOString(),
+
+        compra: {
+            fecha: entity.fecha_compra.toISOString(),
+            costo: entity.costo_compra ? Number(entity.costo_compra) : null,
+            moneda: entity.moneda_compra,
+            proveedorId: entity.proveedor_compra_id
+        },
+
+        estadisticas: {
+            kmAcumulados: Number(entity.kilometraje_acumulado),
+            horasAcumuladas: Number(entity.horas_acumuladas),
+            costoPorKm: null, // To be implemented or removed
+            proximaInspeccionKm: entity.proxima_inspeccion_km ? Number(entity.proxima_inspeccion_km) : null,
+            proximaInspeccionFecha: entity.proxima_inspeccion_fecha?.toISOString() ?? null
+        },
+
+        createdAt: entity.creado_en.toISOString(),
+        updatedAt: entity.actualizado_en?.toISOString() ?? null
     };
-}
-
-// ============================================
-// RESPONSE → VIEWMODEL
-// ============================================
-
-export function mapResponseToCardViewModel(response: NeumaticoResponse): NeumaticoCardViewModel {
-    const isMontado = response.estado.estadoActual === 'MONTADO';
-    const isAlmacen = response.estado.estadoActual === 'EN_STOCK';
-
-    return {
-        id: response.id,
-        displayName: `${response.identificacion.marca} ${response.identificacion.modelo} - ${response.identificacion.serie || response.identificacion.dot || 'S/N'}`,
-        ubicacionBadge: {
-            label: response.estado.ubicacion,
-            color: isMontado ? 'blue' : (isAlmacen ? 'purple' : 'gray'),
-        },
-        condicionBadge: {
-            label: response.estado.condicion,
-            color: response.estado.condicion === 'NUEVO' ? 'green' : 'orange',
-        },
-        remanente: {
-            valor: response.mediciones.profundidadRemanente,
-            color: response.mediciones.profundidadRemanente > 5 ? 'green' : (response.mediciones.profundidadRemanente > 2 ? 'yellow' : 'red'),
-        },
-        km: `${response.mediciones.kilometrajeAcumulado.toLocaleString()} km`,
-        costoKm: '$0.00 / km', // Pendiente de implementar cálculo real
-    };
-}
-
-// ============================================
-// BATCH MAPPERS
-// ============================================
-
-export function mapEntitiesToResponses(entities: NeumaticoEntity[]): NeumaticoResponse[] {
-    return entities.map(mapEntityToResponse);
 }

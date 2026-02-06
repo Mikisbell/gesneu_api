@@ -2,7 +2,15 @@ import { prisma } from '@/lib/prisma';
 
 // Helper simple para limpieza y creación de datos de prueba
 async function clearTestData() {
+    // 1. Dependencias de Neumático (Tablas hijas)
+    await prisma.medicionProfundidad.deleteMany();
+    await prisma.lecturaPresion.deleteMany();
+    await prisma.alerta.deleteMany();
+    await prisma.historialEstadoNeumatico.deleteMany();
     await prisma.eventoNeumatico.deleteMany();
+    await prisma.garantiaNeumatico.deleteMany();
+
+    // 2. Tablas principales
     await prisma.neumatico.deleteMany();
     await prisma.modeloNeumatico.deleteMany();
     await prisma.fabricanteNeumatico.deleteMany();

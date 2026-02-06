@@ -20,11 +20,15 @@ export type AlmacenEntity = Prisma.AlmacenGetPayload<{}>;
 // 2. DTOs (Input)
 // ============================================
 
+// ============================================
+// 2. DTOs (Input)
+// ============================================
+
 export interface CreateAlmacenDTO {
     codigo: string;
     nombre: string;
-    descripcion?: string;
-    ubicacion?: string;
+    tipo?: string;
+    direccion?: string;
     activo?: boolean;
 }
 
@@ -38,8 +42,8 @@ export interface AlmacenResponse {
     id: AlmacenId;
     codigo: string;
     nombre: string;
-    descripcion: string | null;
-    ubicacion: string | null;
+    tipo: string | null;
+    direccion: string | null;
     activo: boolean;
     createdAt: string;
     updatedAt: string;

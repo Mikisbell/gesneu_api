@@ -50,6 +50,9 @@ export class VehiculoRepository extends BaseRepository<Vehiculo, CreateVehiculoD
         if (filters.activo !== undefined) {
             where.activo = filters.activo;
         }
+        if (filters.empresa_id) {
+            where.empresa_id = filters.empresa_id;
+        }
 
         try {
             const result = await this.model.findMany({

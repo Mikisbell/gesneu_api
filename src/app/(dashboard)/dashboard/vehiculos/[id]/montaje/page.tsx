@@ -2,6 +2,7 @@ import { Metadata } from 'next';
 import { notFound } from 'next/navigation';
 import { NeumaticoService } from '@/lib/services/neumatico.service';
 import { VehiculoService } from '@/lib/services/vehiculo.service';
+import { requireAuth } from '@/lib/auth/authorization';
 import MontajeClient from './montaje-client';
 import { EstadoNeumaticoEnum } from '@prisma/client';
 import { VehiculoId } from '@/types/branded.types';
@@ -25,23 +26,29 @@ const neumaticoService = new NeumaticoService();
 
 export default async function MontajePage({ params }: PageProps) {
     const { id } = await params;
+    const session = await requireAuth();
+
+    if (!session.user.empresa_id) {
+        notFound(); // O redirect a error
+    }
 
     // 1. Obtener Vehículo (Result pattern)
-    const vehiculoResult = await vehiculoService.getByIdWithFullConfig(id as VehiculoId);
+    const vehiculoResult = await vehiculoService.getByIdWithFullConfig(session.user.empresa_id!, id as VehiculoId);
     if (!vehiculoResult.success) {
         notFound();
     }
     const vehiculo = vehiculoResult.data;
 
     // 2. Obtener Neumáticos Instalados en este vehículo (Optimizado)
-    const neumaticosInstaladosResult = await neumaticoService.getAll({
+    const neumaticosInstaladosResult = await neumaticoService.getAll(session.user.empresa_id!, {
         ubicacion_vehiculo_id: id,
         estado_actual: EstadoNeumaticoEnum.INSTALADO
     });
     const neumaticosInstalados = neumaticosInstaladosResult.success ? neumaticosInstaladosResult.data : [];
 
     // 3. Obtener Stock Disponible (Optimizado)
-    const stockResult = await neumaticoService.getAll({
+    // 3. Obtener Stock Disponible (Optimizado)
+    const stockResult = await neumaticoService.getAll(session.user.empresa_id!, {
         estado_actual: EstadoNeumaticoEnum.EN_STOCK
     });
     const stock = stockResult.success ? stockResult.data : [];

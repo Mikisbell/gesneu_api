@@ -1,0 +1,84 @@
+🔍 Deep Analyzing: CONTROL DE MANTENIMIENTO NEUMÁTICOS_Rev. A.xlsx
+
+
+============== HOJA MAESTRA: Tablas ==============
+📍 Headers (27):
+   [0] COD EQUIPO
+   [1] PLACA
+   [2] DESCRIPCION
+   [3] FLOTA
+   [4] MARCA
+   [5] MODELO
+   [6] AÑO
+   [7] Nº SERIE
+   [8] CARRETA
+   [9] TIPO
+   [10] COD_CECO
+   [11] CENTRO DE COSTO
+   [12] AREA
+   [13] 
+   [14] VALOR NEUMATICO
+   [15] MARACA
+   [16] MEDIDA
+   [17] DISEÑO
+   [18] N-R
+   [19] PR
+   [20] NSK
+   [21] PSI
+   [22] PRECIO ($)
+   [23] COSTO CC  ($/mm)
+   [24] NSK Reen
+   [25] 
+   [26] 
+
+📍 Sample Data (First 3 Rows):
+   Row 1: ["TC-100","F8U-901","TRACTO","LINEA BLANCA","VOLVO","FH 440 6X4T",2014,"YV2AS02D5EB686875","TOU-972","ENCAPSULADO","650101","TRANSPORTE COMERCIAL Y DE MERCANCIAS","TRANSPORTE COMERCIAL","","AGC28","AEOLUS","445/65R22.5","HIBRID AGC28","N",20,16.5,110,542.373,32.87109090909091,6,"",""]
+   Row 2: ["TC-102","F8U-787","TRACTO","LINEA BLANCA","VOLVO","FH 440 6X4T",2014,"YV2AS02D9EB686362","TOU-986","ENCAPSULADO","650101","TRANSPORTE COMERCIAL Y DE MERCANCIAS","TRANSPORTE COMERCIAL","","AEOLZY3","AEOLUS","445/65R22.5","LZY3","R",20,21,110,"",0,6,"",""]
+   Row 3: ["TC-104","F8U-872","TRACTO","LINEA BLANCA","VOLVO","FH 440 6X4T",2014,"","TOU-979","ENCAPSULADO","650101","TRANSPORTE COMERCIAL Y DE MERCANCIAS","TRANSPORTE COMERCIAL","","AGLZY3","AEOLUS","425/65R22.5","LZY3","R",20,20,110,"",0,6,"",""]
+
+--------------------------------------------------------------
+
+============== HISTORIAL: Neumaticos_Tractos ==============
+✅ Header found at Row 3:
+   Columns: ["POSICION","CODIGO","MARCA","MODELO","FECHA","MEDIDA","KM","HR","OT","CODIGO","MARCA","MODELO","FECHA","MEDIDA","KM","HR","OT","","","","","","","",""]
+
+📍 Sample History Data (Next 3 rows):
+   Entry 1: ["P1",101,"","","","","","","",101,"","","","","","","","","","","","","","",""]
+   Entry 2: ["P2",102,"","","","","","","",102,"","","","","","","","","","","","","","",""]
+   Entry 3: ["P3",103,"","","","","","","",103,"","","","","","","","","","","","","","",""]
+
+============== HISTORIAL: Neumaticos_Remolques ==============
+✅ Header found at Row 3:
+   Columns: ["POSICION","CODIGO","MARCA","MODELO","FECHA","MEDIDA","KM","HR","OT","CODIGO","MARCA","MODELO","FECHA","MEDIDA","KM","HR","OT"]
+
+📍 Sample History Data (Next 3 rows):
+   Entry 1: ["P1","HCCA.100.1","AEOLUS","445/65 R22.5",45266,16.5,340032.4,17333.4,"N000362","HCCA.100.1","AEOLUS","445/65 R22.5",45016,16.5,340032.4,17333.4,"N000132"]
+   Entry 2: ["P2","HCCA.100.2","AEOLUS","445/65 R22.5",45266,16.5,340032.4,17333.4,"N000362","HCCA.100.2","AEOLUS","445/65 R22.5",45016,16.5,340032.4,17333.4,"N000132"]
+   Entry 3: ["P3",103,"","","","","","","",103,"","","","","","",""]
+
+============== HISTORIAL: Neumaticos_Volquete ==============
+✅ Header found at Row 3:
+   Columns: ["","CODIGO","MARCA","MODELO","FECHA","MEDIDA","KM","HR","OT","MARCA","RECORRIDO KM","OT","TIEMPO DE CAMBIO (DÍAS)","MARCA","RECORRIDO KM","OT","TIEMPO DE CAMBIO (DÍAS)","MARCA","RECORRIDO KM","OT","TIEMPO DE CAMBIO (DÍAS)","MARCA","RECORRIDO KM","OT","TIEMPO DE CAMBIO (DÍAS)"]
+
+📍 Sample History Data (Next 3 rows):
+   Entry 1: ["POSICION","","MARCA","MODELO","FECHA","MEDIDA","KM","HR","N°OT","","","","","","","","","","","","","","","",""]
+   Entry 2: ["P1",101,"GOODYEAR","12x24",44915,"",55246.7,16094,"N000057","","","","","","","","","","","","","","","",""]
+   Entry 3: ["P2",102,"GOODYEAR","12x24",44915,"",55246.7,16094,"N000057","","","","","","","","","","","","","","","",""]
+
+============== HISTORIAL: Neumaticos_Linea Amarilla ==============
+✅ Header found at Row 3:
+   Columns: ["","CODIGO","MARCA","MODELO","FECHA","MEDIDA","KM","HR","OT","MARCA","RECORRIDO KM","OT","TIEMPO DE CAMBIO (DÍAS)","MARCA","RECORRIDO KM","OT","TIEMPO DE CAMBIO (DÍAS)","MARCA","RECORRIDO KM","OT","TIEMPO DE CAMBIO (DÍAS)","MARCA","RECORRIDO KM","OT","TIEMPO DE CAMBIO (DÍAS)"]
+
+📍 Sample History Data (Next 3 rows):
+   Entry 1: ["POSICION","","MARCA","MODELO","FECHA","MEDIDA","KM","HR","N°OT","","","","","","","","","","","","","","","",""]
+   Entry 2: ["P1",101,"","","","","","","","","","","","","","","","","","","","","","",""]
+   Entry 3: ["P2",102,"","","","","","","","","","","","","","","","","","","","","","",""]
+
+============== HISTORIAL: Neumaticos_Livianos ==============
+✅ Header found at Row 3:
+   Columns: ["","CODIGO","MARCA","MODELO","FECHA","MEDIDA","KM","HR","OT","MARCA","RECORRIDO KM","OT","TIEMPO DE CAMBIO (DÍAS)","MARCA","RECORRIDO KM","OT","TIEMPO DE CAMBIO (DÍAS)","MARCA","RECORRIDO KM","OT","TIEMPO DE CAMBIO (DÍAS)","MARCA","RECORRIDO KM","OT","TIEMPO DE CAMBIO (DÍAS)"]
+
+📍 Sample History Data (Next 3 rows):
+   Entry 1: ["POSICION","","MARCA","MODELO","FECHA","MEDIDA","KM","HR","N°OT","","","","","","","","","","","","","","","",""]
+   Entry 2: ["P1",101,"","","","","","","","","","","","","","","","","","","","","","",""]
+   Entry 3: ["P2",102,"","","","","","","","","","","","","","","","","","","","","","",""]

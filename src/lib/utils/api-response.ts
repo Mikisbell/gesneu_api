@@ -151,4 +151,12 @@ export class ApiResponseHelper {
       hasPrev: page > 1
     }
   }
+  static fromResult<T>(result: { success: boolean, data?: T, error?: any }, successStatus: number = 200, successMessage?: string): NextResponse {
+    if (result.success) {
+      if (successStatus === 201) return this.created(result.data, successMessage);
+      return this.success(result.data, successMessage);
+    } else {
+      return this.handleError(result.error);
+    }
+  }
 }

@@ -83,56 +83,69 @@ export async function cleanTestData() {
     });
 }
 
-// Alias for compatibility
-export const clearDatabase = cleanTestData;
+/**
+ * Create test fabricante
+ */
+export async function createTestFabricante(empresaId?: string) {
+    return await prisma.fabricanteNeumatico.create({
+        data: {
+            nombre: `Michelin Test ${Date.now()}`,
+        }
+    });
+}
 
 /**
- * Create test neumatico
+ * Create test modelo
  */
-export async function createTestNeumatico(overrides: any = {}) {
-    // First, ensure we have a modelo
-    let modelo = await prisma.modeloNeumatico.findFirst({
-        where: { nombre_modelo: { endsWith: 'Test' } }
-    });
-
-    if (!modelo) {
-        // Create a test manufacturer first
-        let fabricante = await prisma.fabricanteNeumatico.findFirst({
-            where: { nombre: { endsWith: 'Test' } }
-        });
-
-        if (!fabricante) {
-            fabricante = await prisma.fabricanteNeumatico.create({
-                data: { nombre: 'Michelin Test' }
-            });
-        }
-
-        modelo = await prisma.modeloNeumatico.create({
-            data: {
-                nombre_modelo: 'X Multi Z Test',
-                medida: '295/80R22.5',
-                profundidad_original_mm: 18.5,
-                fabricante_id: fabricante.id,
-                reencauches_maximos: 2
-            }
-        });
-    }
-
-    const neumatico = await prisma.neumatico.create({
+export async function createTestModelo(fabricanteId: string, overrides: any = {}) {
+    return await prisma.modeloNeumatico.create({
         data: {
-            numero_serie: `TEST-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
-            modelo_id: modelo.id,
-            dot: '2024',
-            estado_actual: 'EN_STOCK',
-            profundidad_inicial_mm: 20,
-            profundidad_remanente_actual_mm: 20,
-            activo: true,
-            empresa_id: (await getOrCreateTestEnterprise()).id,
+            nombre_modelo: `X Multi Z Test ${Date.now()}`,
+            medida: '295/80R22.5',
+            profundidad_original_mm: 18.5,
+            fabricante_id: fabricanteId,
+            reencauches_maximos: 2,
             ...overrides
         }
     });
+}
 
-    return neumatico;
+/**
+ * Create test neumatico
+ * Updated signature to accept modeloId and empresaId explicitly
+ */
+export async function createTestNeumatico(modeloIdOrOverrides?: string | any, empresaIdOrOverrides?: string | any) {
+    let modelo_id: string;
+    let empresa_id: string;
+    let overrides: any = {};
+
+    // Handle different parameter combinations
+    if (typeof modeloIdOrOverrides === 'string') {
+        // First param is modeloId
+        modelo_id = modeloIdOrOverrides;
+        if (typeof empresaIdOrOverrides === 'string') {
+            empresa_id = empresaIdOrOverrides;
+        } else {
+            empresa_id = (await getOrCreateTestEnterprise()).id;
+            overrides = empresaIdOrOverrides || {};
+        }
+    } else {
+        // Legacy mode: first param is overrides object
+        overrides = modeloIdOrOverrides || {};
+        // Ensure modelo exists
+        let modelo = await prisma.modeloNeumatico.findFirst({
+            where: { nombre_modelo: { endsWith: 'Test' } }
+        });
+
+        if (!modelo) {
+            const fabricante = await createTestFabricante();
+            modelo = await createTestModelo(fabricante.id);
+        }
+        modelo_id = modelo.id;
+        empresa_id = (await getOrCreateTestEnterprise()).id;
+    }
+
+
 }
 
 /**

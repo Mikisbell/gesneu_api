@@ -68,8 +68,9 @@ describe('ReportesService: CPK', () => {
             }
         });
 
-        // 3. Llamar al servicio
-        const metrics = await service.getCPK(neumatico.id);
+        // 3. Llamar al servicio (usando empresaId de prueba)
+        const testEmpresaId = '00000000-0000-0000-0000-000000000001';
+        const metrics = await service.getCPK(testEmpresaId, neumatico.id);
 
         // 4. Verificar
         expect(metrics.cpk).toBe(0.6); // (500 + 100) / 1000 = 0.6
@@ -84,14 +85,16 @@ describe('ReportesService: CPK', () => {
             kilometraje_acumulado: 0
         });
 
-        const metrics = await service.getCPK(neumatico.id);
+        const testEmpresaId = '00000000-0000-0000-0000-000000000001';
+        const metrics = await service.getCPK(testEmpresaId, neumatico.id);
 
         expect(metrics.cpk).toBe(0);
         expect(metrics.kilometraje_total).toBe(0);
     });
 
     it('debería lanzar error si neumático no existe', async () => {
-        await expect(service.getCPK('00000000-0000-0000-0000-000000000000')).rejects.toThrow('Neumático no encontrado');
+        const testEmpresaId = '00000000-0000-0000-0000-000000000001';
+        await expect(service.getCPK(testEmpresaId, '00000000-0000-0000-0000-000000000000')).rejects.toThrow('Neumático no encontrado');
     });
 });
 
@@ -116,7 +119,8 @@ describe('ReportesService: Desgaste Promedio', () => {
             kilometraje_acumulado: 10000
         });
 
-        const metrics = await service.getDesgastePromedio(neumatico.id);
+        const testEmpresaId = '00000000-0000-0000-0000-000000000001';
+        const metrics = await service.getDesgastePromedio(testEmpresaId, neumatico.id);
 
         expect(metrics.desgaste_mm_por_1000km).toBe(0.4);
         expect(metrics.desgaste_total_mm).toBe(4);
@@ -130,7 +134,8 @@ describe('ReportesService: Desgaste Promedio', () => {
             kilometraje_acumulado: 50000
         });
 
-        const metrics = await service.getDesgastePromedio(neumatico.id);
+        const testEmpresaId = '00000000-0000-0000-0000-000000000001';
+        const metrics = await service.getDesgastePromedio(testEmpresaId, neumatico.id);
 
         expect(metrics.estado).toBe('CRITICO');
     });
@@ -145,7 +150,8 @@ describe('ReportesService: Desgaste Promedio', () => {
             kilometraje_acumulado: 10000
         });
 
-        const metrics = await service.getDesgastePromedio(neumatico.id);
+        const testEmpresaId = '00000000-0000-0000-0000-000000000001';
+        const metrics = await service.getDesgastePromedio(testEmpresaId, neumatico.id);
 
         expect(metrics.vida_restante_estimada_km).toBe(25000);
     });
@@ -174,7 +180,8 @@ describe('ReportesService: Comparativo Marcas', () => {
             kilometraje_acumulado: 1200
         });
 
-        const result = await service.getComparativoMarcas();
+        const testEmpresaId = '00000000-0000-0000-0000-000000000001';
+        const result = await service.getComparativoMarcas(testEmpresaId);
 
         expect(result.marcas.length).toBeGreaterThanOrEqual(1);
         expect(result.fecha_calculo).toBeDefined();
@@ -183,7 +190,8 @@ describe('ReportesService: Comparativo Marcas', () => {
     it('debería retornar lista vacía si no hay neumáticos con km > 0', async () => {
         await clearTestData();
 
-        const result = await service.getComparativoMarcas();
+        const testEmpresaId = '00000000-0000-0000-0000-000000000001';
+        const result = await service.getComparativoMarcas(testEmpresaId);
 
         expect(result.marcas).toEqual([]);
         expect(result.mejor_marca).toBeNull();

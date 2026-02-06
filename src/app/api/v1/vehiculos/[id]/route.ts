@@ -71,7 +71,10 @@ export async function GET(
         const id = asVehiculoId((await params).id);
 
         // 4. Business logic with Result handling
-        const result = await service.getById(id);
+        if (!session.user.empresa_id) {
+            return ApiResponseHelper.error('Usuario no tiene empresa asignada', 403);
+        }
+        const result = await service.getById(session.user.empresa_id, id);
 
         if (!result.success) {
             return ApiResponseHelper.error(
@@ -158,7 +161,10 @@ export async function PUT(
         }
 
         // 5. Business logic with Result handling
-        const result = await service.update(id, validation.data);
+        if (!session.user.empresa_id) {
+            return ApiResponseHelper.error('Usuario no tiene empresa asignada', 403);
+        }
+        const result = await service.update(session.user.empresa_id, id, validation.data);
 
         if (!result.success) {
             if (isBusinessError(result.error)) {
@@ -227,7 +233,10 @@ export async function DELETE(
         const id = asVehiculoId((await params).id);
 
         // 4. Business logic with Result handling
-        const result = await service.delete(id);
+        if (!session.user.empresa_id) {
+            return ApiResponseHelper.error('Usuario no tiene empresa asignada', 403);
+        }
+        const result = await service.delete(session.user.empresa_id, id);
 
         if (!result.success) {
             if (isBusinessError(result.error)) {

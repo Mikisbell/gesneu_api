@@ -260,6 +260,8 @@ export interface VehiculoFilters {
     activo?: boolean;
     /** Búsqueda de texto libre */
     search?: string;
+    /** Multi-tenancy filter */
+    empresa_id?: string;
 }
 
 // ============================================

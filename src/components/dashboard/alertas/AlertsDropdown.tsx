@@ -35,7 +35,8 @@ export function AlertsDropdown() {
     const { data: alerts = [], isLoading } = useQuery<Alerta[]>({
         queryKey: ['alertas-unread'],
         queryFn: () => apiClient('/alertas?leida=false&limit=10'),
-        refetchInterval: 30000, // Poll every 30s
+        staleTime: Infinity, // Only refetch when SSE triggers invalidation
+        refetchOnWindowFocus: false,
     });
 
     const unreadCount = alerts.length;

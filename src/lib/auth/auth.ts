@@ -5,6 +5,7 @@ import * as bcrypt from 'bcryptjs';
 import { prisma } from '@/lib/prisma';
 import { SYSTEM_ROLES } from './permissions';
 import { authOptions } from './config';
+import { DEFAULT_TENANT_ID } from '@/lib/constants';
 
 export const { handlers, auth, signIn, signOut } = NextAuth({
     ...authOptions,
@@ -16,7 +17,6 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
                 password: { label: 'Contraseña', type: 'password' }
             },
             async authorize(credentials) {
-                console.log('[Auth] Authorize called with:', credentials?.identifier);
                 if (!credentials?.identifier || !credentials?.password) {
                     throw new Error('Credenciales inválidas');
                 }
@@ -57,9 +57,10 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
                     name: usuario.nombre_completo,
                     email: usuario.email,
                     username: usuario.username,
-                    empresa_id: usuario.empresa_id,
+                    empresa_id: usuario.empresa_id, // Use actual tenant
+                    rol: roleName,
                     roles: [roleName],
-                    permissions: permisos
+                    permissions: permisos as string[]
                 };
             }
         })

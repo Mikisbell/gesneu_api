@@ -12,8 +12,8 @@ interface InventorySidebarProps {
 
 export function InventorySidebar({ neumaticos }: InventorySidebarProps) {
     // 1. Separación Lógica de Grupos
-    const originales = neumaticos.filter(n => !n.es_reencauchado);
-    const reencauchados = neumaticos.filter(n => n.es_reencauchado);
+    const originales = neumaticos.filter(n => !n.condicion.esReencauchado);
+    const reencauchados = neumaticos.filter(n => n.condicion.esReencauchado);
 
     return (
         <div className="w-80 h-[calc(100vh-4rem)] border-r border-slate-200 bg-white flex flex-col shadow-sm z-20">

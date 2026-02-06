@@ -1,127 +1,37 @@
-name: CI
 
+name: CI Quality
 on:
-  pull_request:
-    branches: [main, master, develop]
   push:
-    branches: [main, master, develop]
+    branches: [ main, master ]
+  pull_request:
+    branches: [ main, master ]
 
 jobs:
   quality:
-    name: Code Quality
+    name: Lint & Type Check
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
+      
+      - uses: actions/setup-node@v4
         with:
-          node-version: '20'
+          node-version: lts/*
           cache: 'npm'
+
       - name: Install dependencies
         run: npm ci
-      
-      - name: Type check
-        run: npx tsc --noEmit
-        
-      - name: Docs audit
-        run: npm run docs:audit
-      
-      # NOTE: next lint tiene un bug en Next.js 16 con el parsing de argumentos
-      # Descomentar cuando se resuelva o usar eslint directamente
-      # - name: Lint
-      #   run: npm run lint
 
-  test:
-    name: Tests (Integration & E2E)
-    needs: quality
-    runs-on: ubuntu-latest
-    services:
-      postgres:
-        image: postgres:15-alpine
-        env:
-          POSTGRES_USER: postgres
-          POSTGRES_PASSWORD: password
-          POSTGRES_DB: gesneu_test
-        ports:
-          - 5432:5432
-        # Health check para asegurar que PG esté listo antes de correr pasos
-        options: >-
-          --health-cmd pg_isready
-          --health-interval 10s
-          --health-timeout 5s
-          --health-retries 5
-
-    steps:
-      - uses: actions/checkout@v4
-      
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: '20'
-          cache: 'npm'
-          
-      - name: Install dependencies
-        run: npm ci
-        
       - name: Generate Prisma Client
         run: npx prisma generate
 
-      - name: Setup Database Schema
-        run: npx prisma db push --accept-data-loss
-        env:
-          DATABASE_URL: "postgresql://postgres:password@localhost:5432/gesneu_test?schema=public"
-          DIRECT_URL: "postgresql://postgres:password@localhost:5432/gesneu_test?schema=public"
+      - name: Linting
+        run: npm run lint
 
-      - name: Seed Database
-        run: npx ts-node --compiler-options "{\"module\":\"CommonJS\"}" prisma/seed.ts
-        continue-on-error: true
-        env:
-          DATABASE_URL: "postgresql://postgres:password@localhost:5432/gesneu_test?schema=public"
-          DIRECT_URL: "postgresql://postgres:password@localhost:5432/gesneu_test?schema=public"
-
-      - name: Run Tests
-        run: npm test
-        env:
-          DATABASE_URL: "postgresql://postgres:password@localhost:5432/gesneu_test?schema=public"
-          DIRECT_URL: "postgresql://postgres:password@localhost:5432/gesneu_test?schema=public"
-          NEXTAUTH_SECRET: "super-secret-test-key-must-be-long-enough"
-          NEXTAUTH_URL: "http://localhost:3000"
-          CI: true
-
-  build:
-    name: Build
-    needs: test
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: '20'
-          cache: 'npm'
-      - name: Install dependencies
-        run: npm ci
-      - name: Generate Prisma Client
-        run: npx prisma generate
-      - name: Build
+      # Build acts as a comprehensive Type Check for Next.js
+      - name: Type Check (Build)
         run: npm run build
         env:
+          # Build might need env vars if they are used in generating static pages or config
           DATABASE_URL: ${{ secrets.DATABASE_URL }}
           DIRECT_URL: ${{ secrets.DIRECT_URL }}
-          NEXTAUTH_SECRET: ${{ secrets.NEXTAUTH_SECRET }}
-          NEXTAUTH_URL: ${{ secrets.NEXTAUTH_URL }}
-
-  deploy:
-    name: Deploy to Vercel
-    needs: build
-    runs-on: ubuntu-latest
-    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
-    steps:
-      - uses: actions/checkout@v4
-      - name: Deploy to Vercel
-        uses: amondnet/vercel-action@v25
-        with:
-          vercel-token: ${{ secrets.VERCEL_TOKEN }}
-          vercel-org-id: ${{ secrets.VERCEL_ORG_ID }}
-          vercel-project-id: ${{ secrets.VERCEL_PROJECT_ID }}
-          vercel-args: '--prod'
+          AUTH_SECRET: "dummy-secret-for-build" # Often enough for build

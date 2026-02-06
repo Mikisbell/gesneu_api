@@ -54,7 +54,7 @@ export class WebhookService {
         });
 
         // Firma HMAC-SHA256
-        const signature = this.sign(payloadString, webhook.secret);
+        const signature = this.generateSignature(payloadString, webhook.secret);
 
         let responseBody: string | undefined;
         let statusCode: number | undefined;
@@ -119,10 +119,62 @@ export class WebhookService {
     // --- Legacy Private Method Removed ---
     // private async sendToWebhook(...) { ... }
 
+    // --- CRUD Methods (Migration from API Routes) ---
+
+    async getAll(empresaId: string) {
+        // Ocultar secret parcialmente handled in Service or Transformer?
+        // Service should return domain entities. Transformer/Serializer handles view.
+        // But for simplicity, we return sanitized here or raw?
+        // Let's return Raw and let Route standardizer handle it? Or sanitize here.
+        // Security best practice: Don't leak secrets from Service if possible.
+        const webhooks = await prisma.webhookConfig.findMany({
+            where: { empresa_id: empresaId },
+            orderBy: { id: 'desc' }
+        });
+
+        return webhooks.map(w => ({
+            ...w,
+            secret: w.secret.substring(0, 4) + '****'
+        }));
+    }
+
+    async findById(id: string, empresaId: string) {
+        return prisma.webhookConfig.findFirst({
+            where: { id, empresa_id: empresaId }
+        });
+    }
+
+    async create(data: any, userId: string, empresaId: string) {
+        return prisma.webhookConfig.create({
+            data: {
+                ...data,
+                creado_por: userId,
+                empresa_id: empresaId
+            }
+        });
+    }
+
+    async update(id: string, data: any, empresaId: string) {
+        const count = await prisma.webhookConfig.updateMany({
+            where: { id, empresa_id: empresaId },
+            data
+        });
+        if (count.count === 0) throw new Error('Webhook no encontrado o sin permiso');
+        return { id, ...data };
+    }
+
+    async delete(id: string, empresaId: string) {
+        const result = await prisma.webhookConfig.deleteMany({
+            where: { id, empresa_id: empresaId }
+        });
+        if (result.count === 0) throw new Error('Webhook no encontrado o sin permiso');
+        return true;
+    }
+
     /**
      * Genera firma HMAC-SHA256
      */
-    private sign(payload: string, secret: string): string {
+    private generateSignature(payload: string, secret: string): string {
         return createHmac('sha256', secret)
             .update(payload)
             .digest('hex');

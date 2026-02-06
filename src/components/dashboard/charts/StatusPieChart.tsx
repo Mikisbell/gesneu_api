@@ -48,7 +48,7 @@ export function StatusPieChart({ data }: StatusPieChartProps) {
                 <CardDescription>Estado actual de los neumáticos</CardDescription>
             </CardHeader>
             <CardContent>
-                <div className="h-[300px]">
+                <div className="h-[300px] w-full min-h-[300px]">
                     <ResponsiveContainer width="100%" height="100%">
                         <PieChart>
                             <Pie

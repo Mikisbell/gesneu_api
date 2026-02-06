@@ -46,8 +46,14 @@ export async function GET(
         requirePermission(session, PERMISSIONS.VEHICULOS_READ);
 
         // 3. Business logic
+        // 3. Business logic
         const id = asVehiculoId((await params).id);
-        const result = await service.getByIdWithFullConfig(id);
+
+        if (!session.user.empresa_id) {
+            return ApiResponseHelper.error('Usuario no tiene empresa asignada', 403);
+        }
+
+        const result = await service.getByIdWithFullConfig(session.user.empresa_id, id);
 
         if (!result.success) {
             return ApiResponseHelper.error(result.error.message, result.error.statusCode);

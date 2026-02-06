@@ -45,29 +45,29 @@ export function DraggableTire({ neumatico }: DraggableTireProps) {
                 "relative p-3 mb-2 bg-white rounded-lg border shadow-sm cursor-grab active:cursor-grabbing hover:shadow-md transition-all select-none group",
                 isDragging && "ring-2 ring-blue-500 shadow-xl opacity-80",
                 // Borde naranja si es reencauchada para diferenciar visualmente
-                neumatico.es_reencauchado ? "border-l-4 border-l-orange-400" : "border-l-4 border-l-blue-500"
+                neumatico.condicion.esReencauchado ? "border-l-4 border-l-orange-400" : "border-l-4 border-l-blue-500"
             )}
         >
             <div className="pl-2 flex justify-between items-start">
                 <div>
                     <div className="flex items-center gap-1.5">
-                        <p className="font-bold text-sm text-slate-800">{neumatico.numero_serie}</p>
+                        <p className="font-bold text-sm text-slate-800">{neumatico.numeroSerie}</p>
                         {/* Badge distintivo */}
-                        {neumatico.es_reencauchado && (
+                        {neumatico.condicion.esReencauchado && (
                             <span className="text-[9px] font-bold bg-orange-100 text-orange-700 px-1.5 py-0.5 rounded-full border border-orange-200">
-                                R{neumatico.reencauches_realizados}
+                                R{neumatico.condicion.reencauchesRealizados}
                             </span>
                         )}
                     </div>
-                    <p className="text-xs text-slate-500 mt-0.5">{neumatico.modelo?.nombre_modelo}</p>
+                    <p className="text-xs text-slate-500 mt-0.5">{neumatico.modelo?.nombre}</p>
                 </div>
 
                 {/* Indicador de Profundidad */}
                 <Badge variant="outline" className={cn(
                     "text-[10px] h-5",
-                    toNumber(neumatico.profundidad_remanente_actual_mm) < 5 ? "border-red-200 bg-red-50 text-red-700" : "border-slate-200"
+                    toNumber(neumatico.mediciones.profundidadActual) < 5 ? "border-red-200 bg-red-50 text-red-700" : "border-slate-200"
                 )}>
-                    {toNumber(neumatico.profundidad_remanente_actual_mm)}mm
+                    {toNumber(neumatico.mediciones.profundidadActual)}mm
                 </Badge>
             </div>
 

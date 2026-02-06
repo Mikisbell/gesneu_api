@@ -1,0 +1,2 @@
+-- AlterTable
+ALTER TABLE "webhook_configs" ALTER COLUMN "empresa_id" SET DEFAULT '00000000-0000-0000-0000-000000000000';

@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { auth } from '@/lib/auth/auth';
+import { requireAuth } from '@/lib/auth/authorization';
 import { NeumaticoService } from '@/lib/services/neumatico.service';
 import { EventoNeumaticoCreateSchema } from '@/lib/validators/evento-neumatico';
 import { ApiResponseHelper } from '@/lib/utils/api-response';
@@ -8,9 +8,9 @@ const neumaticoService = new NeumaticoService();
 
 export async function POST(req: Request) {
     try {
-        const session = await auth();
-        if (!session || !session.user || !session.user.id) {
-            return ApiResponseHelper.unauthorized();
+        const session = await requireAuth();
+        if (!session.user.empresa_id) {
+            return ApiResponseHelper.error('Usuario no tiene empresa asignada', 403);
         }
 
         const body = await req.json();
@@ -25,7 +25,8 @@ export async function POST(req: Request) {
         // 2. Ejecución Lógica Transaccional
         const resultado = await neumaticoService.registrarEvento(
             validation.data,
-            session.user.id
+            session.user.id,
+            session.user.empresa_id
         );
 
         return ApiResponseHelper.success(resultado, 'Evento registrado correctamente');

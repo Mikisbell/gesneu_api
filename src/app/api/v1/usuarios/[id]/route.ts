@@ -24,7 +24,7 @@ export async function GET(
         requirePermission(session, PERMISSIONS.USUARIOS_READ);
 
         const { id } = await context.params;
-        const usuario = await service.getById(id);
+        const usuario = await service.getById(session.user.empresa_id!, id);
 
         return ApiResponseHelper.success(usuario);
     } catch (error) {
@@ -55,7 +55,7 @@ export async function PUT(
             return ApiResponseHelper.validationError(validation.error);
         }
 
-        const updatedUser = await service.update(id, validation.data);
+        const updatedUser = await service.update(session.user.empresa_id!, id, validation.data);
 
         return ApiResponseHelper.success(updatedUser);
     } catch (error) {
@@ -79,7 +79,7 @@ export async function DELETE(
         requirePermission(session, PERMISSIONS.USUARIOS_DELETE);
 
         const { id } = await context.params;
-        const result = await service.delete(id);
+        const result = await service.delete(session.user.empresa_id!, id);
 
         return ApiResponseHelper.success(result);
     } catch (error) {

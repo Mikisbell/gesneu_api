@@ -19,7 +19,7 @@ export async function GET(request: NextRequest) {
         const session = await requireAuth();
         requirePermission(session, PERMISSIONS.NEUMATICOS_READ);
 
-        const data = await service.getFlotaStatus();
+        const data = await service.getFlotaStatus(session.user.empresa_id!);
 
         return ApiResponseHelper.success(data);
     } catch (error) {

@@ -1,180 +1,81 @@
-# Guía de Contribución
 
-¡Gracias por tu interés en contribuir a GES_NEU API! Este documento te guiará a través del proceso de contribución.
+# 🤝 Contribuir a GesNeu API
 
-## 📋 Tabla de Contenidos
+¡Gracias por tu interés en contribuir! Este documento establece los lineamientos para mantener la calidad y estabilidad de nuestro sistema crítico de gestión de flota.
 
-- [Guía de Contribución](#guía-de-contribución)
-  - [📋 Tabla de Contenidos](#-tabla-de-contenidos)
-  - [Código de Conducta](#código-de-conducta)
-  - [¿Cómo Contribuir?](#cómo-contribuir)
-  - [Configuración del Entorno](#configuración-del-entorno)
-  - [Convenciones de Código](#convenciones-de-código)
-    - [Estilo de Código](#estilo-de-código)
-    - [Estructura de Commits](#estructura-de-commits)
-  - [Flujo de Trabajo](#flujo-de-trabajo)
-  - [Enviando Cambios](#enviando-cambios)
-  - [Reportando Errores](#reportando-errores)
-  - [Solicitando Características](#solicitando-características)
+## 🛠️ Desarrollo Local
 
-## Código de Conducta
+1. **Requisitos Previos**:
+   - Node.js > v20 LTS
+   - Base de datos PostgreSQL local o remota (Supabase recomendado)
+   - Git configurado
 
-Al participar en este proyecto, aceptas cumplir con nuestro [Código de Conducta](CODE_OF_CONDUCT.md).
-
-## ¿Cómo Contribuir?
-
-1. Haz un fork del repositorio
-2. Crea una rama para tu característica (`git checkout -b feature/amazing-feature`)
-3. Haz commit de tus cambios (`git commit -m 'Add some amazing feature'`)
-4. Haz push a la rama (`git push origin feature/amazing-feature`)
-5. Abre un Pull Request
-
-## Configuración del Entorno
-
-Sigue estos pasos para configurar tu entorno de desarrollo:
-
-1. Clona el repositorio:
+2. **Setup Rápido**:
    ```bash
-   git clone https://github.com/tu-usuario/ges_neu_api.git
-   cd ges_neu_api
+   git clone [repo-url]
+   npm install
+   cp .env.example .env # Configurar credenciales DB
+   npx prisma generate
+   npm run dev
    ```
 
-2. Crea y activa un entorno virtual:
-   ```bash
-   python -m venv venv
-   source venv/bin/activate  # En Windows: .\venv\Scripts\activate
-   ```
+## 🧪 Estándares de Calidad (Automáticos)
 
-3. Instala las dependencias de desarrollo:
-   ```bash
-   pip install -e ".[dev]"
-   ```
+Hemos integrado **Husky** y **GitHub Actions** para asegurar la calidad.
 
-4. Configura el archivo de entorno:
-   ```bash
-   cp .env.example .env
-   # Edita el archivo .env con tus configuraciones
-   ```
+### Antes de hacer Commit (Husky)
+Al ejecutar `git commit`, localmente se verificará automáticamente:
+- **Linting (ESLint)**: Verificación de sintaxis y reglas de código.
+- **Prettier**: Formato consistente.
+*Si falla alguno, el commit será rechazado. Ejecuta `npm run lint --fix` si tienes problemas.*
 
-5. Ejecuta las migraciones de la base de datos:
-   ```bash
-   alembic upgrade head
-   ```
+### Flujo de Pull Request (GitHub Actions)
+Cada PR dispara automáticamente:
+1. **CI Quality**: Linting y Type Checking (Build dry-run).
+2. **Playwright E2E**: Ejecuta la suite completa de tests End-to-End.
 
-## Convenciones de Código
+## 🧪 Testing
 
-### Estilo de Código
-
-- Seguimos [PEP 8](https://www.python.org/dev/peps/pep-0008/) para el estilo de código Python.
-- Usamos [Black](https://github.com/psf/black) para el formateo automático.
-- Usamos [isort](https://pycqa.github.io/isort/) para ordenar los imports.
-- Usamos [Flake8](https://flake8.pycqa.org/) para el análisis estático.
-
-### Estructura de Commits
-
-Usamos [Conventional Commits](https://www.conventionalcommits.org/):
-
-- `feat`: Nueva característica
-- `fix`: Corrección de errores
-- `docs`: Cambios en la documentación
-- `style`: Cambios de formato (puntos y comas, espacios, etc.)
-- `refactor`: Cambios en el código que no corrigen errores ni agregan características
-- `perf`: Mejoras de rendimiento
-- `test`: Agregar o corregir pruebas
-- `chore`: Cambios en el proceso de compilación o herramientas auxiliares
-
-Ejemplo:
-```
-feat(auth): agregar autenticación con JWT
-fix(api): corregir error en el endpoint de usuarios
-docs: actualizar README con instrucciones de instalación
-```
-
-## Flujo de Trabajo
-
-1. Actualiza tu rama principal:
-   ```bash
-   git checkout main
-   git pull origin main
-   ```
-
-2. Crea una nueva rama para tu característica:
-   ```bash
-   git checkout -b feature/descripcion-breve
-   ```
-
-3. Realiza tus cambios y haz commits siguiendo las convenciones.
-
-4. Ejecuta las pruebas y verifica la calidad del código:
-   ```bash
-   # Formatear código
-   black .
-   isort .
-   
-   # Verificar estilo y tipos
-   flake8
-   mypy .
-   
-   # Ejecutar pruebas
-   pytest
-   ```
-
-## Database-First y Verificación de Alineación
-
-Para este proyecto, la base de datos PostgreSQL es la fuente de verdad. Los modelos deben adaptarse al esquema real descrito en `ESQUEMA_COMPLETO_BD.md`.
-
-### Reglas obligatorias
-
-- No modificar el esquema existente de la BD para que coincida con los modelos.
-- Los modelos SQLModel deben coincidir exactamente con nombres de tablas, columnas, tipos, constraints y enums.
-- Solo se permiten migraciones para funcionalidades nuevas (campos/tablas nuevas), sin romper compatibilidad.
-
-### Verificación automática
-
-- Pre-commit ejecuta una verificación que bloquea el commit si hay desalineación.
-- El pipeline de CI falla si la verificación no es 100%.
-
-### Cómo verificar localmente
-
+### Tests E2E (Playwright)
+Son obligatorios para cualquier nueva funcionalidad crítica.
 ```bash
-# Instalar hooks (una sola vez)
-poetry run pre-commit install
+# Ejecutar suite completa (headless)
+npm run test:e2e
 
-# Verificar alineación manualmente (debe dar 100% y sin tablas extra/faltantes)
-poetry run verify-alignment
+# Modo UI interactivo (útil para debug)
+npm run test:e2e:ui
 ```
 
-Si la verificación falla, adapta los modelos/servicios para alinearlos con `ESQUEMA_COMPLETO_BD.md` antes de abrir un Pull Request.
+### Tests de Integración (Jest)
+Para lógica de negocio compleja y utilidades.
+```bash
+npm test
+```
 
-5. Sube tus cambios y crea un Pull Request:
-   ```bash
-   git push -u origin feature/descripcion-breve
-   ```
+## 📝 Convenciones
 
-## Enviando Cambios
+1. **Commits Semánticos**:
+   - `feat: ...` para nuevas funcionalidades
+   - `fix: ...` para corrección de bugs
+   - `docs: ...` para documentación
+   - `chore: ...` para configuración (CI, deps)
 
-1. Asegúrate de que todas las pruebas pasen.
-2. Actualiza la documentación si es necesario.
-3. Asegúrate de que tu código cumpla con las guías de estilo.
-4. Envía un Pull Request a la rama `main`.
+2. **Ramas**:
+   - `main`: Producción estable.
+   - `feature/nombre-tarea`: Desarrollo de nuevas features.
+   - `fix/nombre-bug`: Correcciones rápidas.
 
-## Reportando Errores
+## 🚨 Monitoreo (Logging Interno)
+Usa el `LoggerService` para eventos críticos, NO uses `console.log` en producción.
 
-Por favor, usa el [seguimiento de problemas](https://github.com/tu-usuario/ges_neu_api/issues) para informar sobre errores. Incluye:
+```typescript
+import { logger } from '@/lib/logger';
 
-- Descripción clara del problema
-- Pasos para reproducir
-- Comportamiento esperado vs. comportamiento real
-- Capturas de pantalla si es relevante
-- Versión del software y entorno
+// ✅ Correcto
+await logger.error('Fallo en pago', error, { userId });
 
-## Solicitando Características
+// ❌ Incorrecto
+console.log('Error pago', error);
+```
 
-Abre un nuevo issue con la etiqueta "feature request" y describe:
-
-- La característica que te gustaría ver
-- Por qué es útil
-- Cómo debería funcionar
-- Cualquier otra información relevante
-
-¡Gracias por contribuir a GES_NEU API! 🚀
+¡Gracias por ayudar a construir un sistema robusto! 🚛

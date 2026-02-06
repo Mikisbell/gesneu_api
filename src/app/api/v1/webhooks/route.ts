@@ -1,54 +1,28 @@
-
-import { NextRequest } from 'next/server';
-import { prisma } from '@/lib/prisma';
-import { ApiResponseHelper } from '@/lib/utils/api-response';
-import { requireAuth, requireRole } from '@/lib/auth/authorization';
+import { apiHandler } from '@/lib/utils/api-handler';
+import { webhookService } from '@/lib/container';
 import { CreateWebhookSchema } from '@/lib/validators/webhook.validator';
+import { ApiResponseHelper } from '@/lib/utils/api-response';
 
-// GET: Listar webhooks (Scoped by Tenant)
-export async function GET(request: NextRequest) {
-    try {
-        const session = await requireAuth();
-        requireRole(session, ['ADMIN', 'ADMINISTRADOR']);
+export const GET = apiHandler(
+    async (req, session) => {
+        return webhookService.getAll(session.user.empresa_id!);
+    },
+    { roles: ['ADMIN', 'ADMINISTRADOR'] }
+);
 
-        const webhooks = await prisma.webhookConfig.findMany({
-            where: {
-                empresa_id: session.user.empresa_id
-            },
-            orderBy: { id: 'desc' }
-        });
-
-        // Ocultar secret parcialmente
-        const safeWebhooks = webhooks.map(w => ({
-            ...w,
-            secret: w.secret.substring(0, 4) + '****'
-        }));
-
-        return ApiResponseHelper.success(safeWebhooks);
-    } catch (error) {
-        return ApiResponseHelper.handleError(error);
-    }
-}
-
-// POST: Crear webhook (Scoped by Tenant)
-export async function POST(request: NextRequest) {
-    try {
-        const session = await requireAuth();
-        requireRole(session, ['ADMIN', 'ADMINISTRADOR']);
-
-        const json = await request.json();
-        const body = CreateWebhookSchema.parse(json);
-
-        const webhook = await prisma.webhookConfig.create({
-            data: {
-                ...body,
-                creado_por: session.user.id,
-                empresa_id: session.user.empresa_id || '00000000-0000-0000-0000-000000000000' // Fallback handled by DB default usually
-            }
-        });
-
+export const POST = apiHandler(
+    async (req, session, _, body) => {
+        // Note: apiHandler parser might return typed body if generic is used, 
+        // implies we trust it or cast it. using schema option.
+        const webhook = await webhookService.create(
+            body,
+            session.user.id,
+            session.user.empresa_id!
+        );
         return ApiResponseHelper.created(webhook);
-    } catch (error) {
-        return ApiResponseHelper.handleError(error);
+    },
+    {
+        roles: ['ADMIN', 'ADMINISTRADOR'],
+        schema: CreateWebhookSchema
     }
-}
+);

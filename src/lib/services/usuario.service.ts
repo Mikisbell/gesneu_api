@@ -5,8 +5,8 @@ import { BusinessError } from '@/lib/errors/business.error';
 
 export class UsuarioService {
 
-    async getAll(filters?: { activo?: boolean, busqueda?: string }) {
-        const where: any = {};
+    async getAll(empresaId: string, filters?: { activo?: boolean, busqueda?: string }) {
+        const where: any = { empresa_id: empresaId };
 
         if (filters?.activo !== undefined) {
             where.activo = filters.activo;
@@ -29,9 +29,9 @@ export class UsuarioService {
         return usuarios.map(u => this._sanitize(u));
     }
 
-    async getPaginated(params: { page: number, limit: number, search?: string }) {
+    async getPaginated(empresaId: string, params: { page: number, limit: number, search?: string }) {
         const skip = (params.page - 1) * params.limit;
-        const where: any = {};
+        const where: any = { empresa_id: empresaId };
 
         if (params.search) {
             where.OR = [
@@ -62,13 +62,19 @@ export class UsuarioService {
         };
     }
 
-    async getById(id: string) {
+    async getById(empresaId: string, id: string) {
         const usuario = await prisma.usuario.findUnique({ where: { id } });
-        if (!usuario) throw BusinessError.notFound('Usuario', id);
+        // Verificación de tenant
+        if (!usuario || usuario.empresa_id !== empresaId) throw BusinessError.notFound('Usuario', id);
         return this._sanitize(usuario);
     }
 
-    async create(data: any) {
+    async create(empresaId: string, data: any) {
+        // Verificar único dentro de la misma empresa o globalmente?
+        // Email y Username suelen ser globally unique en muchos sistemas SaaS simples,
+        // pero idealmente email es unico por sistema, username puede ser por tenant si es un subdomain app,
+        // pero aquí parece una SPA unificada. Mantengamos unicidad global de email/username por simplicidad de login.
+
         const existing = await prisma.usuario.findFirst({
             where: {
                 OR: [{ username: data.username }, { email: data.email }]
@@ -84,6 +90,7 @@ export class UsuarioService {
         const newUser = await prisma.usuario.create({
             data: {
                 ...userData,
+                empresa_id: empresaId,
                 password_hash: passwordHash,
                 activo: true
             }
@@ -92,9 +99,9 @@ export class UsuarioService {
         return this._sanitize(newUser);
     }
 
-    async update(id: string, data: any) {
+    async update(empresaId: string, id: string, data: any) {
         const usuario = await prisma.usuario.findUnique({ where: { id } });
-        if (!usuario) throw BusinessError.notFound('Usuario', id);
+        if (!usuario || usuario.empresa_id !== empresaId) throw BusinessError.notFound('Usuario', id);
 
         const { password, ...updateData } = data;
         let passwordData = {};
@@ -102,6 +109,10 @@ export class UsuarioService {
         if (password) {
             passwordData = { password_hash: await hash(password, 10) };
         }
+
+        // Prevent updating critical fields like empresa_id via spread
+        // Zod validation should handle this, but for safety:
+        delete (updateData as any).empresa_id;
 
         const updated = await prisma.usuario.update({
             where: { id },
@@ -114,9 +125,9 @@ export class UsuarioService {
         return this._sanitize(updated);
     }
 
-    async delete(id: string) {
+    async delete(empresaId: string, id: string) {
         const usuario = await prisma.usuario.findUnique({ where: { id } });
-        if (!usuario) throw BusinessError.notFound('Usuario', id);
+        if (!usuario || usuario.empresa_id !== empresaId) throw BusinessError.notFound('Usuario', id);
 
         // Soft Delete
         await prisma.usuario.update({

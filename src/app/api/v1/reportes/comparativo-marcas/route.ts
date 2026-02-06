@@ -42,10 +42,11 @@ export async function GET(request: NextRequest) {
         requirePermission(session, PERMISSIONS.NEUMATICOS_READ);
 
         // 3. Service Call
-        const result = await service.getComparativoMarcas();
+        const data = await service.getComparativoMarcas(session.user.empresa_id || '');
 
-        return ApiResponseHelper.success(result);
+        return ApiResponseHelper.success(data);
     } catch (error) {
         return ApiResponseHelper.handleError(error);
     }
 }
+

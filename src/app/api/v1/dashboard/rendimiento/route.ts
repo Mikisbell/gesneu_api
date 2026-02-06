@@ -35,8 +35,8 @@ export async function GET(request: NextRequest) {
         const { searchParams } = new URL(request.url);
         const limit = parseInt(searchParams.get('limit') || '10');
 
-        const reporte = await service.getReporteRendimiento(limit);
-        return ApiResponseHelper.success(reporte);
+        const report = await service.getReporteRendimiento(session.user.empresa_id!, limit);
+        return ApiResponseHelper.success(report);
     } catch (error) {
         return ApiResponseHelper.handleError(error);
     }

@@ -1,111 +1,64 @@
-import { NextRequest } from 'next/server';
-import { NeumaticoService } from '@/lib/services/neumatico.service';
-import { ApiResponseHelper } from '@/lib/utils/api-response';
-import {
-    validateCreateNeumatico,
-    validateNeumaticoFilters,
-    formatZodErrors
-} from '@/lib/validators/neumatico.validator';
-import { requireAuth, requirePermission } from '@/lib/auth/authorization';
+import { NextRequest, NextResponse } from 'next/server';
+import { apiHandler } from '@/lib/utils/api-wrapper';
+import { neumaticoService } from '@/lib/services/neumatico.service';
 import { PERMISSIONS } from '@/lib/auth/permissions';
+import { CreateNeumaticoSchema } from '@/lib/validators/neumatico.validator';
+import { NeumaticoFilters } from '@/types/domain/neumatico.types';
+import { ApiResponseHelper } from '@/lib/utils/api-response';
 import { asEmpresaId, asUsuarioId } from '@/types/branded.types';
-
-const service = new NeumaticoService();
 
 /**
  * @swagger
  * /api/v1/neumaticos:
  *   get:
  *     summary: Listar neumáticos
- *     description: Obtiene una lista paginada de neumáticos con opciones de filtrado.
  *     tags: [Neumáticos]
- *     security:
- *       - bearerAuth: []
  */
-export async function GET(request: NextRequest) {
-    try {
-        // 1. Authentication
-        const session = await requireAuth();
+export const GET = apiHandler(
+    async (req, session) => {
+        const { searchParams } = new URL(req.url);
 
-        // 2. Authorization
-        requirePermission(session, PERMISSIONS.NEUMATICOS_READ);
-
-        // 3. Validation & Parsing
-        const { searchParams } = new URL(request.url);
-        const filtersRaw = {
+        // Parse basic filters
+        const filters: NeumaticoFilters = {
             search: searchParams.get('q') || undefined,
-            serie: searchParams.get('numero_serie') || undefined,
-            marca: searchParams.get('marca') || undefined,
-            estado: searchParams.get('estado') || undefined,
-            vehiculo_id: searchParams.get('vehiculo_id') || undefined,
-            ubicacion: searchParams.get('ubicacion') || undefined // ALMACEN assigned in Zod?
+            numero_serie: searchParams.get('numero_serie') || undefined,
+            modelo_id: searchParams.get('modelo_id') || undefined,
+            estado_actual: searchParams.get('estado') as any || undefined,
+            ubicacion_vehiculo_id: searchParams.get('vehiculo_id') || undefined,
+            ubicacion_almacen_id: searchParams.get('almacen_id') || undefined,
+            dot: searchParams.get('dot') || undefined,
         };
 
-        const validation = validateNeumaticoFilters(filtersRaw);
-        if (!validation.success) {
-            return ApiResponseHelper.validationError(formatZodErrors(validation.error));
-        }
-
-        // 4. Business Logic
-        const result = await service.getAll(validation.data);
-
-        if (!result.success) {
-            return ApiResponseHelper.handleError(result.error);
-        }
+        const result = await neumaticoService.getAll(session.user.empresa_id, filters);
+        if (!result.success) throw result.error;
 
         return ApiResponseHelper.success(result.data);
-    } catch (error) {
-        return ApiResponseHelper.handleError(error);
-    }
-}
+    },
+    { permission: PERMISSIONS.NEUMATICOS_READ }
+);
 
 /**
  * @swagger
  * /api/v1/neumaticos:
  *   post:
  *     summary: Crear neumático
- *     description: Crea un nuevo neumático en el sistema.
  *     tags: [Neumáticos]
  */
-export async function POST(request: NextRequest) {
-    try {
-        // 1. Authentication
-        const session = await requireAuth();
-
-        // 2. Authorization
-        requirePermission(session, PERMISSIONS.NEUMATICOS_CREATE);
-
-        if (!session.user?.id) {
-            return ApiResponseHelper.unauthorized();
-        }
-
-        // Ensure multi-tenancy
-        const empresaId = session.user.empresa_id;
-        if (!empresaId) {
-            return ApiResponseHelper.forbidden('Usuario no asociado a una empresa');
-        }
-
-        // 3. Validation
-        const json = await request.json();
-        const validation = validateCreateNeumatico(json);
-
-        if (!validation.success) {
-            return ApiResponseHelper.validationError(formatZodErrors(validation.error));
-        }
-
-        // 4. Business logic
-        const result = await service.create(
-            validation.data,
-            asEmpresaId(empresaId),
-            asUsuarioId(session.user.id)
+export const POST = apiHandler(
+    async (req, session, _, body) => {
+        // Body is strictly typed by schema validation in apiHandler
+        const result = await neumaticoService.create(
+            body,
+            session.user.empresa_id,
+            session.user.id
         );
 
-        if (!result.success) {
-            return ApiResponseHelper.handleError(result.error);
-        }
+        if (!result.success) throw result.error;
 
         return ApiResponseHelper.created(result.data, 'Neumático creado exitosamente');
-    } catch (error) {
-        return ApiResponseHelper.handleError(error);
+    },
+    {
+        permission: PERMISSIONS.NEUMATICOS_CREATE,
+        schema: CreateNeumaticoSchema
     }
-}
+);

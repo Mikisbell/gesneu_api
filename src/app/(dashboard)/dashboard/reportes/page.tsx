@@ -64,18 +64,18 @@ export default function ReportesPage() {
     // Fetch dashboard stats for quick preview
     const { data: stats, isLoading } = useQuery({
         queryKey: ['dashboard-stats'],
-        queryFn: () => apiClient<any>('/api/v1/dashboard'),
+        queryFn: () => apiClient<any>('/dashboard'),
     });
 
     // Fetch Chart Data
     const { data: inventoryData } = useQuery({
         queryKey: ['reporte-inventario'],
-        queryFn: () => apiClient<any>('/api/v1/reportes/inventario'),
+        queryFn: () => apiClient<any>('/reportes/inventario'),
     });
 
     const { data: cpkData } = useQuery({
         queryKey: ['reporte-cpk-brands'],
-        queryFn: () => apiClient<any>('/api/v1/reportes/comparativo-marcas'),
+        queryFn: () => apiClient<any>('/reportes/comparativo-marcas'),
     });
 
     const handleGenerateReport = async (report: ReportCard) => {

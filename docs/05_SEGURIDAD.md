@@ -142,6 +142,17 @@ Protege:
 
 ---
 
+## Aislamiento de Datos (Sistema Interno)
+
+### Política de Sistema Interno Single-Tenant
+GesNeu opera como un **sistema interno privado** para una sola empresa de transporte. No es un SaaS multi-cliente.
+
+*   **Tenant ID Único**: Todas las operaciones usan el UUID fijo `00000000-0000-0000-0000-000000000000` (Constante `DEFAULT_TENANT_ID`).
+*   **Sin Multi-Tenancy**: Aunque el schema DB incluye `empresa_id` por diseño histórico, **no hay ni habrá múltiples empresas** en el sistema.
+*   **Seguridad Simplificada**: No se requiere aislamiento entre tenants ya que solo existe uno.
+
+---
+
 ## Audit Trail
 
 ### Campos en Entidades

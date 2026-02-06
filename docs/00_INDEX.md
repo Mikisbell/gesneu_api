@@ -20,6 +20,13 @@ Bienvenido a la documentación técnica de **GesNeu API**, el sistema integral p
     *   Configuración de Vercel, Supabase y variables de entorno.
 8.  [**Integraciones & Webhooks**](./08_INTEGRACIONES.md) 🆕
     *   Guía para conectar ERPs y sistemas externos.
+9.  [**Sistema de Eventos (Event-Driven Architecture)**](./events/README.md) 🔔
+    *   Ver [suite completa](./events/) (8 documentos especializados por audiencia).
+10. [**Tipado Profesional**](./10_TIPADO_PROFESIONAL.md)
+    *   Guía avanzada de TypeScript y branded types.
+11. [**Changelog**](./99_CHANGELOG.md)
+
+    *   Historial de cambios y versiones.
 
 ---
 

@@ -1,0 +1,65 @@
+# Page snapshot
+
+```yaml
+- generic [active] [ref=e1]:
+  - generic [ref=e2]:
+    - complementary [ref=e3]
+    - generic [ref=e4]:
+      - banner [ref=e5]:
+        - generic [ref=e6]:
+          - combobox [ref=e7] [cursor=pointer]:
+            - img [ref=e8]
+            - generic: Seleccionar empresa
+            - img [ref=e12]
+          - heading [level=2]
+        - generic [ref=e14]:
+          - button [ref=e15] [cursor=pointer]:
+            - img
+          - button "U" [ref=e16] [cursor=pointer]:
+            - generic [ref=e18]: U
+      - main [ref=e19]:
+        - generic [ref=e20]:
+          - generic [ref=e21]:
+            - generic [ref=e22]:
+              - heading "Centro de Reportes" [level=1] [ref=e23]:
+                - img [ref=e24]
+                - text: Centro de Reportes
+              - paragraph [ref=e27]: Métricas en tiempo real y descarga de informes
+            - generic [ref=e28]:
+              - generic [ref=e29]: "Formato Descarga:"
+              - combobox [ref=e30] [cursor=pointer]:
+                - generic: PDF
+                - img [ref=e31]
+          - generic [ref=e33]:
+            - tablist [ref=e34]:
+              - tab "Dashboard Analítico" [selected] [ref=e35] [cursor=pointer]:
+                - img [ref=e36]
+                - text: Dashboard Analítico
+              - tab "Zona de Descargas" [ref=e39] [cursor=pointer]:
+                - img [ref=e40]
+                - text: Zona de Descargas
+            - tabpanel "Dashboard Analítico" [ref=e43]:
+              - generic [ref=e44]:
+                - generic [ref=e47]:
+                  - paragraph [ref=e48]: Vehículos
+                  - paragraph [ref=e49]: "-"
+                - generic [ref=e52]:
+                  - paragraph [ref=e53]: Neumáticos
+                  - paragraph [ref=e54]: "-"
+                - generic [ref=e57]:
+                  - paragraph [ref=e58]: En Stock
+                  - paragraph [ref=e59]: "-"
+                - generic [ref=e62]:
+                  - paragraph [ref=e63]: Alertas Activas
+                  - paragraph [ref=e64]: "-"
+              - generic [ref=e65]:
+                - generic [ref=e66]:
+                  - generic [ref=e68]: Costo por Kilómetro (CPK)
+                  - generic [ref=e69]: Sin datos de kilometraje suficiente
+                - generic [ref=e70]:
+                  - generic [ref=e72]: Inventario por Marca
+                  - generic [ref=e73]: Sin datos disponibles
+  - button "Open Next.js Dev Tools" [ref=e79] [cursor=pointer]:
+    - img [ref=e80]
+  - alert [ref=e83]
+```

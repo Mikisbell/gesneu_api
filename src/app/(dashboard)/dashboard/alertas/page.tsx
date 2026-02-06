@@ -41,17 +41,21 @@ const TIPO_LABELS: Record<string, string> = {
     PRESION_ALTA: 'Presión Alta',
 };
 
+import { useSSE } from '@/components/providers/SSEProvider';
+import { Play } from 'lucide-react';
+
 export default function AlertasPage() {
     const { toast } = useToast();
     const queryClient = useQueryClient();
     const [severidadFilter, setSeveridadFilter] = useState<string>('all');
     const [estadoFilter, setEstadoFilter] = useState<string>('pendientes');
+    const { isConnected } = useSSE();
 
     // Fetch alertas
     const { data: alertas, isLoading, refetch } = useQuery({
         queryKey: ['alertas', severidadFilter, estadoFilter],
         queryFn: async () => {
-            let url = '/api/v1/alertas?limit=100';
+            let url = '/alertas?limit=100';
             if (severidadFilter !== 'all') url += `&severidad=${severidadFilter}`;
             if (estadoFilter === 'pendientes') url += '&resuelta=false';
             if (estadoFilter === 'resueltas') url += '&resuelta=true';
@@ -61,10 +65,29 @@ export default function AlertasPage() {
         },
     });
 
+    // Generate alerts mutation
+    const generateMutation = useMutation({
+        mutationFn: () => apiClient('/alertas/generar', { method: 'POST' }),
+        onSuccess: (data: any) => {
+            // SSE will trigger refresh, but we notify user of result
+            toast({
+                title: '✅ Análisis completado',
+                description: `Se detectaron ${data.total} alertas.`
+            });
+        },
+        onError: () => {
+            toast({
+                variant: "destructive",
+                title: 'Error en análisis',
+                description: 'No se pudo completar el análisis de neumáticos.'
+            });
+        }
+    });
+
     // Mark as read mutation
     const markAsReadMutation = useMutation({
         mutationFn: (id: string) =>
-            apiClient(`/api/v1/alertas/${id}/leer`, { method: 'POST' }),
+            apiClient(`/alertas/${id}/leer`, { method: 'POST' }),
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ['alertas'] });
             toast({ title: '✅ Alerta marcada como leída' });
@@ -74,7 +97,7 @@ export default function AlertasPage() {
     // Resolve mutation
     const resolveMutation = useMutation({
         mutationFn: (id: string) =>
-            apiClient(`/api/v1/alertas/${id}/resolver`, { method: 'POST' }),
+            apiClient(`/alertas/${id}/resolver`, { method: 'POST' }),
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ['alertas'] });
             toast({ title: '✅ Alerta resuelta' });
@@ -96,12 +119,35 @@ export default function AlertasPage() {
                 <div>
                     <h1 className="text-3xl font-bold tracking-tight flex items-center gap-2">
                         <Bell className="h-8 w-8" /> Alertas
+                        {isConnected ? (
+                            <Badge variant="outline" className="ml-2 bg-green-50 text-green-700 border-green-200 animate-pulse">
+                                <span className="w-2 h-2 rounded-full bg-green-500 mr-1.5" /> En Vivo
+                            </Badge>
+                        ) : (
+                            <Badge variant="outline" className="ml-2 bg-gray-50 text-gray-500 border-gray-200">
+                                <span className="w-2 h-2 rounded-full bg-gray-400 mr-1.5" /> Offline
+                            </Badge>
+                        )}
                     </h1>
                     <p className="text-muted-foreground">Centro de notificaciones y alertas del sistema</p>
                 </div>
-                <Button variant="outline" onClick={() => refetch()}>
-                    <RefreshCw className="h-4 w-4 mr-2" /> Actualizar
-                </Button>
+                <div className="flex gap-2">
+                    <Button
+                        variant="default"
+                        onClick={() => generateMutation.mutate()}
+                        disabled={generateMutation.isPending}
+                    >
+                        {generateMutation.isPending ? (
+                            <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                        ) : (
+                            <Play className="h-4 w-4 mr-2" />
+                        )}
+                        Ejecutar Análisis
+                    </Button>
+                    <Button variant="outline" onClick={() => refetch()}>
+                        <RefreshCw className="h-4 w-4 mr-2" /> Actualizar
+                    </Button>
+                </div>
             </div>
 
             {/* Stats Cards */}

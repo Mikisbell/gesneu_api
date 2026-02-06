@@ -28,8 +28,11 @@ export function useOptimisticFleet(initialTires: INeumatico[]) {
                         ...currentTires,
                         {
                             ...action.neumatico,
-                            ubicacion_posicion_id: action.posicionId,
-                            estado_actual: 'INSTALADO'
+                            ubicacion: {
+                                ...action.neumatico.ubicacion,
+                                posicion: { id: action.posicionId, codigo: 'PENDING' }
+                            },
+                            estado: 'INSTALADO'
                         } as INeumatico
                     ];
 
@@ -39,12 +42,12 @@ export function useOptimisticFleet(initialTires: INeumatico[]) {
 
                 case 'ROTATE':
                     // Intercambiamos posiciones visualmente (Swap complejo)
-                    const tireA = currentTires.find(t => t.ubicacion_posicion_id === action.origenPosId);
-                    const tireB = currentTires.find(t => t.ubicacion_posicion_id === action.destinoPosId);
+                    const tireA = currentTires.find(t => t.ubicacion.posicion?.id === action.origenPosId);
+                    const tireB = currentTires.find(t => t.ubicacion.posicion?.id === action.destinoPosId);
 
                     return currentTires.map(t => {
-                        if (t.id === tireA?.id) return { ...t, ubicacion_posicion_id: action.destinoPosId };
-                        if (t.id === tireB?.id) return { ...t, ubicacion_posicion_id: action.origenPosId };
+                        if (t.id === tireA?.id) return { ...t, ubicacion: { ...t.ubicacion, posicion: { id: action.destinoPosId, codigo: 'Pending' } } };
+                        if (t.id === tireB?.id) return { ...t, ubicacion: { ...t.ubicacion, posicion: { id: action.origenPosId, codigo: 'Pending' } } };
                         return t;
                     });
 
@@ -88,7 +91,7 @@ export function useOptimisticFleet(initialTires: INeumatico[]) {
                 throw new Error(errorData.error || 'Falló el montaje');
             }
 
-            toast.success(`Neumático ${neumatico.numero_serie} montado`);
+            toast.success(`Neumático ${neumatico.numeroSerie} montado`);
             router.refresh(); // Sincroniza la verdad oficial
 
         } catch (error) {
@@ -99,7 +102,7 @@ export function useOptimisticFleet(initialTires: INeumatico[]) {
     };
 
     const rotateTires = async (origenPosId: string, destinoPosId: string, vehiculoId: string) => {
-        const tire = optimisticTires.find(t => t.ubicacion_posicion_id === origenPosId);
+        const tire = optimisticTires.find(t => t.ubicacion.posicion?.id === origenPosId);
         if (!tire) return;
 
         startTransition(() => {

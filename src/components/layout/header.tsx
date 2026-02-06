@@ -15,8 +15,16 @@ import { User, LogOut, Settings } from 'lucide-react';
 import { AlertsDropdown } from '@/components/dashboard/alertas/AlertsDropdown';
 import { TenantSwitcher } from './TenantSwitcher';
 
+import { useState, useEffect } from 'react';
+
 export function Header() {
     const { data: session } = useSession();
+    const [mounted, setMounted] = useState(false);
+
+    useEffect(() => {
+        setMounted(true);
+    }, []);
+
     const user = session?.user;
     const initials = user?.name
         ?.split(' ')
@@ -24,6 +32,20 @@ export function Header() {
         .join('')
         .toUpperCase()
         .slice(0, 2) || 'U';
+
+    if (!mounted) {
+        return (
+            <header className="hidden md:flex items-center justify-between px-6 py-3 bg-white dark:bg-gray-900 border-b">
+                <div className="flex items-center gap-4">
+                    <div className="w-48 h-8 rounded bg-gray-100 animate-pulse" />
+                </div>
+                <div className="flex items-center gap-4">
+                    <div className="h-9 w-9 rounded-full bg-gray-100 animate-pulse" />
+                </div>
+            </header>
+        );
+    }
+
     return (
         <header className="hidden md:flex items-center justify-between px-6 py-3 bg-white dark:bg-gray-900 border-b">
             {/* Left side spacer or Breadcrumbs if implemented later */}

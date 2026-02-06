@@ -46,7 +46,7 @@ export async function GET(request: NextRequest) {
         let filename = '';
 
         if (tipo === 'inventario') {
-            const reporte = await service.getReporteInventario();
+            const reporte = await service.getReporteInventario(session.user.empresa_id!);
             csv = 'Almacen,Estado,Modelo,Medida,Cantidad\n';
             reporte.detalle.forEach(d => {
                 csv += `"${d.almacen?.nombre || 'N/A'}","${d.estado}","${d.modelo.nombre}","${d.modelo.medida}",${d.cantidad}\n`;
@@ -54,7 +54,7 @@ export async function GET(request: NextRequest) {
             filename = 'inventario_neumaticos.csv';
         }
         else if (tipo === 'rendimiento') {
-            const reporte = await service.getReporteRendimiento(50);
+            const reporte = await service.getReporteRendimiento(session.user.empresa_id!, 50);
             csv = 'Numero Serie,Modelo,CPK,Kilometraje,Estado,Ranking\n';
             reporte.top_mejores.forEach((n, i) => {
                 csv += `"${n.numero_serie}","${n.modelo}",${n.cpk},${n.kilometraje},"${n.estado}","Top ${i + 1}"\n`;
@@ -65,7 +65,7 @@ export async function GET(request: NextRequest) {
             filename = 'rendimiento_cpk.csv';
         }
         else if (tipo === 'desechos') {
-            const reporte = await service.getReporteDesechos();
+            const reporte = await service.getReporteDesechos(session.user.empresa_id!);
             csv = 'Motivo,Cantidad,Porcentaje\n';
             reporte.por_motivo.forEach(m => {
                 csv += `"${m.motivo}",${m.cantidad},${m.porcentaje}%\n`;

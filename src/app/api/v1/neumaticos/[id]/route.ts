@@ -1,15 +1,8 @@
-import { NextRequest } from 'next/server';
-import { NeumaticoService } from '@/lib/services/neumatico.service';
+import { neumaticoService } from '@/lib/services/neumatico.service';
 import { ApiResponseHelper } from '@/lib/utils/api-response';
-import {
-    validateUpdateNeumatico,
-    formatZodErrors
-} from '@/lib/validators/neumatico.validator';
-import { requireAuth, requirePermission } from '@/lib/auth/authorization';
+import { UpdateNeumaticoSchema } from '@/lib/validators/neumatico.validator';
 import { PERMISSIONS } from '@/lib/auth/permissions';
-import { asNeumaticoId } from '@/types/branded.types';
-
-const service = new NeumaticoService();
+import { apiHandler } from '@/lib/utils/api-handler';
 
 /**
  * @swagger
@@ -17,25 +10,17 @@ const service = new NeumaticoService();
  *   get:
  *     summary: Obtener neumático
  */
-export async function GET(
-    request: NextRequest,
-    context: { params: Promise<{ id: string }> }
-) {
-    try {
-        await requireAuth();
-        const { id } = await context.params;
+export const GET = apiHandler(
+    async (req, session, context) => {
+        const params = await context.params;
+        const id = params.id;
+        const result = await neumaticoService.getById(session.user!.empresa_id, id);
 
-        const result = await service.getById(asNeumaticoId(id));
-
-        if (!result.success) {
-            return ApiResponseHelper.handleError(result.error);
-        }
-
+        if (!result.success) throw result.error;
         return ApiResponseHelper.success(result.data);
-    } catch (error) {
-        return ApiResponseHelper.handleError(error);
-    }
-}
+    },
+    { permission: PERMISSIONS.NEUMATICOS_READ }
+);
 
 /**
  * @swagger
@@ -43,33 +28,25 @@ export async function GET(
  *   put:
  *     summary: Actualizar neumático
  */
-export async function PUT(
-    request: NextRequest,
-    context: { params: Promise<{ id: string }> }
-) {
-    try {
-        const session = await requireAuth();
-        requirePermission(session, PERMISSIONS.NEUMATICOS_UPDATE);
-        const { id } = await context.params;
+export const PUT = apiHandler(
+    async (req, session, context, body) => {
+        const params = await context.params;
+        const id = params.id;
+        const result = await neumaticoService.update(
+            session.user!.empresa_id,
+            id,
+            body,
+            session.user!.id
+        );
 
-        const json = await request.json();
-        const validation = validateUpdateNeumatico(json);
-
-        if (!validation.success) {
-            return ApiResponseHelper.validationError(formatZodErrors(validation.error));
-        }
-
-        const result = await service.update(asNeumaticoId(id), validation.data);
-
-        if (!result.success) {
-            return ApiResponseHelper.handleError(result.error);
-        }
-
+        if (!result.success) throw result.error;
         return ApiResponseHelper.success(result.data, 'Neumático actualizado exitosamente');
-    } catch (error) {
-        return ApiResponseHelper.handleError(error);
+    },
+    {
+        permission: PERMISSIONS.NEUMATICOS_UPDATE,
+        schema: UpdateNeumaticoSchema
     }
-}
+);
 
 /**
  * @swagger
@@ -77,23 +54,14 @@ export async function PUT(
  *   delete:
  *     summary: Eliminar neumático
  */
-export async function DELETE(
-    request: NextRequest,
-    context: { params: Promise<{ id: string }> }
-) {
-    try {
-        const session = await requireAuth();
-        requirePermission(session, PERMISSIONS.NEUMATICOS_DELETE);
-        const { id } = await context.params;
+export const DELETE = apiHandler(
+    async (req, session, context) => {
+        const params = await context.params;
+        const id = params.id;
+        const result = await neumaticoService.delete(session.user!.empresa_id, id);
 
-        const result = await service.delete(asNeumaticoId(id));
-
-        if (!result.success) {
-            return ApiResponseHelper.handleError(result.error);
-        }
-
+        if (!result.success) throw result.error;
         return ApiResponseHelper.success(null, 'Neumático eliminado exitosamente');
-    } catch (error) {
-        return ApiResponseHelper.handleError(error);
-    }
-}
+    },
+    { permission: PERMISSIONS.NEUMATICOS_DELETE }
+);

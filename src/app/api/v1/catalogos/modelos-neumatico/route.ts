@@ -1,55 +1,24 @@
-import { NextRequest } from 'next/server'
-import { prisma } from '@/lib/prisma'
-import { ApiResponseHelper } from '@/lib/utils/api-response'
-import { requireAuth, requirePermission } from '@/lib/auth/authorization'
-import { PERMISSIONS } from '@/lib/auth/permissions'
 
-/**
- * @swagger
- * /api/v1/catalogos/modelos-neumatico:
- *   get:
- *     summary: Listar modelos de neumáticos
- *     description: Obtiene una lista de todos los modelos de neumáticos activos.
- *     tags: [Catálogos]
- *     security:
- *       - bearerAuth: []
- *     responses:
- *       200:
- *         description: Lista de modelos recuperada exitosamente
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 data:
- *                   type: array
- *                   items:
- *                     $ref: '#/components/schemas/ModeloNeumatico'
- *       401:
- *         description: No autenticado
- *       403:
- *         description: Permisos insuficientes
- */
-export async function GET(request: NextRequest) {
-    try {
-        // 1. Authentication
-        const session = await requireAuth();
+import { NextRequest } from 'next/server';
+import { apiHandler } from '@/lib/utils/api-handler';
+import { modeloNeumaticoService } from '@/lib/services/modelo-neumatico.service';
+import { CreateModeloNeumaticoSchema } from '@/lib/validators/modelo-neumatico.validator';
+import { ApiResponseHelper } from '@/lib/utils/api-response';
+import { PERMISSIONS } from '@/lib/auth/permissions';
 
-        // 2. Authorization (Usamos NEUMATICOS_READ ya que es intrínseco)
-        requirePermission(session, PERMISSIONS.NEUMATICOS_READ);
-
-        // 3. Business logic
-        const modelos = await prisma.modeloNeumatico.findMany({
-            include: {
-                fabricante: true
-            },
-            orderBy: {
-                nombre_modelo: 'asc'
-            }
-        })
-
-        return ApiResponseHelper.success(modelos)
-    } catch (error) {
-        return ApiResponseHelper.handleError(error)
+export const GET = apiHandler({
+    permission: PERMISSIONS.CATALOGOS_FABRICANTES_READ, // Use same permission family
+    handler: async () => {
+        const result = await modeloNeumaticoService.getAll();
+        return ApiResponseHelper.fromResult(result);
     }
-}
+});
+
+export const POST = apiHandler({
+    schema: CreateModeloNeumaticoSchema,
+    permission: PERMISSIONS.CATALOGOS_FABRICANTES_CREATE,
+    handler: async (req: NextRequest, session, context, body) => {
+        const result = await modeloNeumaticoService.create(body);
+        return ApiResponseHelper.fromResult(result, 201);
+    }
+});

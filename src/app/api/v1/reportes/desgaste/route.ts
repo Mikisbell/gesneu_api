@@ -59,7 +59,7 @@ export async function GET(request: NextRequest) {
         }
 
         // 4. Service Call
-        const metrics = await service.getDesgastePromedio(neumaticoId);
+        const metrics = await service.getDesgastePromedio(session.user.empresa_id!, neumaticoId);
 
         return ApiResponseHelper.success(metrics);
     } catch (error) {

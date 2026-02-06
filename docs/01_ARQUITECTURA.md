@@ -1,6 +1,6 @@
 # 🏗️ Arquitectura - GesNeu API
 
-> **Última actualización**: Diciembre 2025
+> **Última actualización**: Enero 2026
 
 ## Stack Tecnológico
 
@@ -34,6 +34,19 @@ graph TD
         C --> F[DashboardService]
         C --> G[InspeccionService]
         C --> H[AlertasService]
+        C --> R[ReencaucheService]
+    end
+    
+    subgraph "Event-Driven Layer 🔔"
+        E --> EB[EventBus Core]
+        G --> EB
+        R --> EB
+        EB --> O1[AuditObserver]
+        EB --> O2[NotificationObserver]
+        EB --> O3[AnalyticsObserver]
+        EB --> O4[AlertObserver]
+        EB --> O5[CacheObserver]
+        EB --> O6[NeumaticoUpdateObserver]
     end
     
     subgraph "Data Access Layer"
@@ -41,6 +54,11 @@ graph TD
         F --> I
         G --> I
         H --> I
+        R --> I
+        O1 --> I
+        O2 --> I
+        O4 --> I
+        O6 --> I
     end
     
     subgraph "Database Layer"
@@ -49,6 +67,7 @@ graph TD
     
     style A fill:#e1f5ff
     style B fill:#fff4e1
+    style EB fill:#ffe1e1
     style I fill:#e1ffe1
     style J fill:#f5e1ff
 ```
@@ -122,9 +141,11 @@ src/
 │   │   ├── neumaticos/      # CRUD + eventos
 │   │   ├── vehiculos/       # CRUD + montaje
 │   │   ├── catalogos/       # Proveedores, almacenes
+│   │   ├── operaciones/     # Montaje, desecho, rotación
 │   │   ├── dashboard/       # KPIs, reportes
 │   │   ├── alertas/         # Gestión alertas
-│   │   ├── inspecciones/    # Lecturas presión
+│   │   ├── inspecciones/    # Lecturas presión/profundidad
+│   │   ├── reencauche/      # Envío/retorno
 │   │   └── webhooks/        # Integración ERP
 │   ├── (pages)/             # UI Dashboard
 │   └── layout.tsx
@@ -133,10 +154,25 @@ src/
 │   ├── auth/                # NextAuth config
 │   │   ├── config.ts
 │   │   └── authorization.ts
+│   ├── events/              # 🔔 Event-Driven System
+│   │   ├── core.ts          # EventBus singleton
+│   │   ├── neumatico.events.ts  # 11 eventos de neumáticos
+│   │   ├── inspeccion.events.ts # Eventos de inspección
+│   │   ├── reencauche.events.ts # Eventos de reencauche
+│   │   └── registry.ts      # Registro de observers
+│   ├── observers/           # 🔔 6 Observers
+│   │   ├── audit.observer.ts
+│   │   ├── notification.observer.ts
+│   │   ├── analytics.observer.ts
+│   │   ├── alerta.observer.ts
+│   │   ├── cache.observer.ts
+│   │   └── neumatico-update.observer.ts
 │   ├── services/            # Business Logic
 │   │   ├── neumatico.service.ts
+│   │   ├── evento-neumatico.service.ts  # Emite eventos
 │   │   ├── dashboard.service.ts
 │   │   ├── inspeccion.service.ts
+│   │   ├── reencauche.service.ts
 │   │   └── webhook.service.ts
 │   ├── validators/          # Zod schemas
 │   └── utils/
@@ -165,6 +201,73 @@ src/
 - Audit trail automático (`creado_por`, timestamps)
 - Trazabilidad completa
 
+### Event-Driven Architecture (Patrón Observer) 🔔
+
+**Implementado en:** Enero 2026
+
+GesNeu usa una arquitectura orientada a eventos para desacoplar la lógica de negocio de las side-effects (cache, notificaciones, analytics).
+
+#### EventBus (Core)
+Singleton basado en Node.js `EventEmitter` que proporciona:
+- **Publicación de eventos**: `EventBus.publish<PayloadType>(eventName, payload)`
+- **Suscripción**: `EventBus.subscribe<PayloadType>(eventName, handler)`
+- **Type-safe**: Payloads fuertemente tipados con TypeScript
+
+#### Eventos Definidos (11 tipos)
+
+```typescript
+// src/lib/events/neumatico.events.ts
+NEUMATICO.PURCHASED        // Compra
+NEUMATICO.MOUNTED          // Instalación
+NEUMATICO.DISMOUNTED       // Desmontaje
+NEUMATICO.ROTATED          // Rotación
+NEUMATICO.SCRAPPED         // Desecho
+NEUMATICO.REPAIR_STARTED   // Entrada a taller
+NEUMATICO.REPAIR_COMPLETED // Salida de taller
+NEUMATICO.RETREAD_SENT     // Envío a reencauche
+NEUMATICO.RETREAD_RETURNED // Retorno reencauchado
+```
+
+#### Observers Activos (6 totales)
+
+| Observer | Responsabilidad | Eventos |
+|----------|----------------|---------|
+| **AuditObserver** | Logging universal de eventos | Todos (9) |
+| **NotificationObserver** | Alertas automáticas (alto costo, desgaste prematuro) | SCRAPPED, REPAIR_COMPLETED, DISMOUNTED |
+| **AnalyticsObserver** | Invalidación de caché, KPIs en tiempo real | MOUNTED, DISMOUNTED, ROTATED, SCRAPPED |
+| **AlertObserver** | Alertas de inspección (presión/profundidad) | PRESSURE_READ, DEPTH_READ |
+| **CacheObserver** | Invalidación de caché (inspecciones/reencauche) | RETREAD_SENT, RETREAD_RETURNED |
+| **NeumaticoUpdateObserver** | Sincronización de snapshots | PRESSURE_READ, DEPTH_READ |
+
+#### Flujo de Eventos
+
+```mermaid
+sequenceDiagram
+    participant API as API Route
+    participant Svc as EventoNeumaticoService
+    participant DB as PostgreSQL
+    participant Bus as EventBus
+    participant Obs as Observers
+
+    API->>Svc: registrarEvento(DESECHO)
+    Svc->>DB: $transaction { ... }
+    DB-->>Svc: Success
+    Svc->>Bus: publish(SCRAPPED, payload)
+    Bus->>Obs: notify(event)
+    Obs->>DB: create alerta (async)
+    Obs->>Obs: invalidate cache
+    Obs->>Obs: console.log(audit)
+    Svc-->>API: Response
+```
+
+#### Ventajas del Patrón
+
+- **Desacoplamiento**: Observers independientes, fácil agregar/eliminar
+- **Extensibilidad**: Nuevas features sin tocar código existente
+- **Auditoría**: Trazabilidad completa de ciclo de vida
+- **Performance**: Invalidación selectiva de caché
+- **Tolerancia a fallos**: Errores en observers no rompen transacciones
+
 ---
 
 ## Decisiones Arquitectónicas (ADR)
@@ -184,6 +287,22 @@ src/
 ### ADR-004: Database-First
 **Decisión**: El esquema PostgreSQL es la fuente de verdad.  
 **Razón**: 37 tablas ya optimizadas, `prisma db pull` para sincronizar.
+
+### ADR-005: Sistema Interno Single-Tenant
+**Decisión**: Operar exclusivamente como **Single-Tenant** (sistema interno para una sola empresa).  
+**Razón**: GesNeu es una aplicación **privada** para una empresa de transporte específica, **no es un SaaS** multi-cliente.  
+**Implementación**: Todas las operaciones usan `DEFAULT_TENANT_ID` (`00000000-0000-0000-0000-000000000000`) automáticamente.  
+**Nota Técnica**: Aunque el schema incluye `empresa_id` en las tablas por diseño histórico de la base de datos, el sistema **no opera ni operará** como multi-tenant.
+
+### ADR-006: Event-Driven Architecture (Observer Pattern)
+**Decisión**: Implementar patrón Observer para todas las operaciones de neumáticos, inspecciones y reencauche.
+**Razón**: Desacoplar side-effects (cache, notificaciones, analytics) de la lógica transaccional core.
+**Beneficios**: 
+- Extensibilidad sin modificar código existente
+- Auditoría completa de eventos
+- Performance mejorado con invalidación selectiva de caché
+- Tolerancia a fallos (observers nunca rompen transacciones)
+**Fecha**: Enero 2026
 
 ---
 

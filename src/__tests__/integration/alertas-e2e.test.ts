@@ -53,12 +53,21 @@ describe('Alertas E2E Flow', () => {
 
     it('should generate LOW PRESSURE alert automatically when inspection reports low psi', async () => {
         // 1. Registrar Inspección con presión crítica (e.g. 50 PSI vs 80 min)
-        const inspeccion = await inspeccionService.registrarManual({
+        // 1. Registrar Inspección con presión crítica (e.g. 50 PSI vs 80 min)
+        // Usamos NeumaticoService ya que InspeccionService está deprecado
+        const neumaticoService = new (require('@/lib/services/neumatico.service').NeumaticoService)();
+
+        // Obtener usuario completo para empresaId
+        const userFull = await prisma.usuario.findUnique({ where: { id: userId } });
+
+        const inspeccion = await neumaticoService.registrarEvento({
+            tipo_evento: 'INSPECCION', // TipoEventoNeumaticoEnum.INSPECCION
             neumatico_id: neumaticoId,
             presion_psi: 50, // Critically low
-            temperatura_c: 25,
-            observaciones: 'Prueba E2E Alerta'
-        }, userId);
+            // temperatura_c: 25, // TODO: Add support in Event Service
+            observaciones: 'Prueba E2E Alerta',
+            fecha_evento: new Date().toISOString()
+        }, userId, userFull?.empresa_id!);
 
         expect(inspeccion).toBeDefined();
 

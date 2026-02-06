@@ -88,8 +88,9 @@ function LoginForm() {
                     title: "¡Bienvenido!",
                     description: "Iniciando sesión...",
                 })
-                router.push(callbackUrl)
-                router.refresh()
+                // Use window.location.href for more reliable navigation
+                // This ensures Playwright tests can detect the redirect properly
+                window.location.href = callbackUrl
             } else {
                 toast({
                     variant: "destructive",

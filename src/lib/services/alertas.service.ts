@@ -1,6 +1,7 @@
 import { prisma } from '@/lib/prisma';
-import { TipoAlertaEnum, SeveridadAlertaEnum } from '@prisma/client';
+import { TipoAlertaEnum, SeveridadAlertaEnum, Prisma } from '@prisma/client';
 import { EmailService } from './email.service';
+import { sseEmitter } from './sse-emitter.service';
 
 export interface AlertaFilters {
     tipo?: TipoAlertaEnum;
@@ -97,6 +98,8 @@ export class AlertasService {
         // Enviar emails para alertas críticas
         if (alertasCreadas.length > 0) {
             await this.enviarNotificacionesEmail(alertasCreadas);
+            // SSE: Notificar a clientes conectados
+            sseEmitter.notifyAlertsUpdate(neumaticosCriticos[0]?.empresa_id || '');
         }
 
         return count;
@@ -139,6 +142,8 @@ export class AlertasService {
                     }
                 });
                 count++;
+                // SSE: Notificar a clientes conectados
+                sseEmitter.notifyAlertsUpdate(n.empresa_id);
             }
         }
 
@@ -152,13 +157,14 @@ export class AlertasService {
     async generarAlertaPresion(
         neumaticoId: string,
         presionActual: number,
-        presionMinima: number = 80 // PSI mínimo por defecto
+        presionMinima: number = 80,
+        tx: Prisma.TransactionClient = prisma
     ): Promise<boolean> {
         // Solo generar si presión está por debajo del umbral
         if (presionActual >= presionMinima) return false;
 
         // Obtener datos del neumático
-        const neumatico = await prisma.neumatico.findUnique({
+        const neumatico = await tx.neumatico.findUnique({
             where: { id: neumaticoId },
             select: {
                 numero_serie: true,
@@ -171,7 +177,7 @@ export class AlertasService {
         if (!neumatico) return false;
 
         // Verificar si ya existe alerta no resuelta para este neumático
-        const alertaExistente = await prisma.alerta.findFirst({
+        const alertaExistente = await tx.alerta.findFirst({
             where: {
                 neumatico_id: neumaticoId,
                 tipo: TipoAlertaEnum.PRESION_BAJA,
@@ -187,7 +193,7 @@ export class AlertasService {
             : SeveridadAlertaEnum.WARNING;
 
         // Crear alerta
-        const alerta = await prisma.alerta.create({
+        const alerta = await tx.alerta.create({
             data: {
                 tipo: TipoAlertaEnum.PRESION_BAJA,
                 severidad,
@@ -211,6 +217,9 @@ export class AlertasService {
             const webhookService = new (require('./webhook.service').WebhookService)();
             await webhookService.dispatch('ALERTA_CRITICAL', alertData, neumatico.empresa_id);
         }
+
+        // SSE: Notificar a clientes conectados
+        sseEmitter.notifyAlertsUpdate(neumatico.empresa_id);
 
         return true;
     }

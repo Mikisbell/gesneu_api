@@ -15,6 +15,13 @@ import {
     FormLabel,
     FormMessage,
 } from "@/components/ui/form"
+import {
+    Select,
+    SelectContent,
+    SelectItem,
+    SelectTrigger,
+    SelectValue,
+} from "@/components/ui/select"
 import { Input } from "@/components/ui/input"
 import { useToast } from "@/components/ui/use-toast"
 import { almacenesApi } from "@/lib/api/almacenes"
@@ -22,8 +29,8 @@ import { almacenesApi } from "@/lib/api/almacenes"
 const formSchema = z.object({
     codigo: z.string().min(2, "El código debe tener al menos 2 caracteres"),
     nombre: z.string().min(2, "El nombre debe tener al menos 2 caracteres"),
-    ubicacion: z.string().optional(),
-    descripcion: z.string().optional(),
+    tipo: z.string().min(1, "Seleccione un tipo"),
+    direccion: z.string().optional(),
 })
 
 type FormValues = z.infer<typeof formSchema>
@@ -42,8 +49,8 @@ export function AlmacenForm({ initialData, onSuccess }: AlmacenFormProps) {
         defaultValues: {
             codigo: initialData?.codigo || "",
             nombre: initialData?.nombre || "",
-            ubicacion: initialData?.ubicacion || "",
-            descripcion: initialData?.descripcion || "",
+            tipo: initialData?.tipo || "PRINCIPAL",
+            direccion: initialData?.direccion || initialData?.ubicacion || "",
         },
     })
 
@@ -113,25 +120,35 @@ export function AlmacenForm({ initialData, onSuccess }: AlmacenFormProps) {
                 <div className="grid grid-cols-2 gap-4">
                     <FormField
                         control={form.control}
-                        name="ubicacion"
+                        name="tipo"
                         render={({ field }) => (
                             <FormItem>
-                                <FormLabel>Ubicación</FormLabel>
-                                <FormControl>
-                                    <Input placeholder="Nave 3, Sector B" {...field} />
-                                </FormControl>
+                                <FormLabel>Tipo *</FormLabel>
+                                <Select onValueChange={field.onChange} defaultValue={field.value}>
+                                    <FormControl>
+                                        <SelectTrigger>
+                                            <SelectValue placeholder="Seleccione tipo" />
+                                        </SelectTrigger>
+                                    </FormControl>
+                                    <SelectContent>
+                                        <SelectItem value="PRINCIPAL">Principal</SelectItem>
+                                        <SelectItem value="TRANSITORIO">Transitorio</SelectItem>
+                                        <SelectItem value="SCRAP">Scrap (Desecho)</SelectItem>
+                                        <SelectItem value="MOVIL">Móvil (Auxilio)</SelectItem>
+                                    </SelectContent>
+                                </Select>
                                 <FormMessage />
                             </FormItem>
                         )}
                     />
                     <FormField
                         control={form.control}
-                        name="descripcion"
+                        name="direccion"
                         render={({ field }) => (
                             <FormItem>
-                                <FormLabel>Descripción</FormLabel>
+                                <FormLabel>Dirección</FormLabel>
                                 <FormControl>
-                                    <Input placeholder="Almacén principal de neumáticos nuevos" {...field} />
+                                    <Input placeholder="Nave 3, Sector B" {...field} />
                                 </FormControl>
                                 <FormMessage />
                             </FormItem>

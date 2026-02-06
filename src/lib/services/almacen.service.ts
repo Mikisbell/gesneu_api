@@ -1,13 +1,11 @@
-/**
- * AlmacenService - Simple Catalog Service
- */
 import { AlmacenRepository } from '@/lib/repositories/almacen.repository';
 import { CreateAlmacenDTO, UpdateAlmacenDTO, AlmacenResponse } from '@/types/domain/almacen.types';
-import { AlmacenId, EmpresaId } from '@/types/branded.types';
+import { AlmacenId } from '@/types/branded.types';
 import { Result, ok, err, NotFoundError, ConflictError, BusinessError } from '@/types/result.types';
 import { mapDtoToPrismaCreate, mapDtoToPrismaUpdate, mapEntityToResponse } from '@/lib/mappers/almacen.mapper';
 import { canDeactivateAlmacen } from '@/lib/validators/domain-rules/almacen.rules';
-import { prisma } from '@/lib/prisma'; // Accesing prisma directly only for counting tires (optimized)
+import { prisma } from '@/lib/prisma';
+import { DEFAULT_TENANT_ID } from '@/lib/constants';
 
 export class AlmacenService {
     private repository: AlmacenRepository;
@@ -16,12 +14,12 @@ export class AlmacenService {
         this.repository = new AlmacenRepository();
     }
 
-    async getAll(empresaId: EmpresaId): Promise<Result<AlmacenResponse[], BusinessError>> {
+    async getAll(): Promise<Result<AlmacenResponse[], BusinessError>> {
         try {
-            // Catalogs are usually filtered by tenant
-            const entities = await this.repository.findAll();
-            // TODO: Add tenant filtering to BaseRepository or override findAll
-            // For now assuming BaseRepository will support criteria
+            // Filtrar por Tenant por defecto
+            const entities = await this.repository.findAll({
+                where: { empresa_id: DEFAULT_TENANT_ID, activo: true } // RNF10: Listar solo activos por defecto
+            });
             const responses = entities.map(mapEntityToResponse);
             return ok(responses);
         } catch (error) {
@@ -32,17 +30,24 @@ export class AlmacenService {
     async getById(id: AlmacenId): Promise<Result<AlmacenResponse, NotFoundError>> {
         const entity = await this.repository.findById(id);
         if (!entity) return err(new NotFoundError('Almacén', id));
+        // Validar tenant (seguridad)
+        if (entity.empresa_id !== DEFAULT_TENANT_ID) return err(new NotFoundError('Almacén', id));
+
         return ok(mapEntityToResponse(entity));
     }
 
-    async create(dto: CreateAlmacenDTO, empresaId: EmpresaId): Promise<Result<AlmacenResponse, ConflictError | BusinessError>> {
+    async create(dto: CreateAlmacenDTO): Promise<Result<AlmacenResponse, ConflictError | BusinessError>> {
         const existing = await this.repository.findByCodigo(dto.codigo);
-        if (existing) return err(new ConflictError(`Código ${dto.codigo} ya existe`));
+        if (existing && existing.empresa_id === DEFAULT_TENANT_ID) {
+            return err(new ConflictError(`Código ${dto.codigo} ya existe`));
+        }
 
         try {
             const input = mapDtoToPrismaCreate(dto);
-            // Manual tenant injection until Repository handles it seamlessly
-            const createData = { ...input, empresa: { connect: { id: empresaId } } };
+            const createData = {
+                ...input,
+                empresa: { connect: { id: DEFAULT_TENANT_ID } }
+            };
 
             const entity = await this.repository.create(createData as any);
             return ok(mapEntityToResponse(entity));
@@ -54,11 +59,10 @@ export class AlmacenService {
 
     async update(id: AlmacenId, dto: UpdateAlmacenDTO): Promise<Result<AlmacenResponse, NotFoundError | BusinessError>> {
         const existing = await this.repository.findById(id);
-        if (!existing) return err(new NotFoundError('Almacén', id));
+        if (!existing || existing.empresa_id !== DEFAULT_TENANT_ID) return err(new NotFoundError('Almacén', id));
 
-        // Domain Rule: Deactivation check
+        // Validación de desactivación (RF57)
         if (dto.activo === false && existing.activo) {
-            // Count tires in stock
             const tireCount = await prisma.neumatico.count({
                 where: { ubicacion_almacen_id: id, activo: true }
             });
@@ -75,14 +79,10 @@ export class AlmacenService {
         }
     }
 
-    async delete(id: AlmacenId): Promise<Result<void, BusinessError>> {
-        // Usually catalogs are soft-deleted or just deactivated
-        // Implementing strict delete for completeness
-        try {
-            await this.repository.delete(id);
-            return ok(undefined);
-        } catch (error) {
-            return err(new BusinessError('Error eliminando almacén', 'DELETE_ERROR', 500));
-        }
+    async delete(id: AlmacenId): Promise<Result<void, BusinessError | NotFoundError>> {
+        // RNF10: Soft Delete via update
+        const result = await this.update(id, { activo: false });
+        if (!result.success) return err(result.error);
+        return ok(undefined);
     }
 }

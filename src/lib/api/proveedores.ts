@@ -4,10 +4,11 @@ import { Proveedor } from '@prisma/client';
 export interface CreateProveedorDTO {
     nombre: string;
     ruc?: string;
+    tipo: string;
     email?: string;
     telefono?: string;
     direccion?: string;
-    contacto?: string;
+    contacto_principal?: string;
     activo?: boolean;
 }
 

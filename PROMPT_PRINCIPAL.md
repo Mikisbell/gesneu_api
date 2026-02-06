@@ -29,9 +29,12 @@ Cada vez que te presente una idea, haz lo siguiente:
 | **Validación** | Zod schemas (DTOs) |
 | **Deploy** | Vercel (producción) |
 | **Puerto Local** | 3005 |
+| **Tenant** | Single-Tenant (Flota Única) |
 
 ### Módulos Principales
 - 🛞 **Neumáticos**: CRUD + estados (EN_STOCK, INSTALADO, EN_REPARACION, etc.)
+*Este archivo es la autoridad máxima de comportamiento para este proyecto.*
+*Última actualización: Enero 2026*
 - 🚛 **Vehículos**: Gestión de flota con soporte para Km y Horómetro
 - ⚙️ **Operaciones**: Montaje, desmontaje, rotación, inspección, reparación, reencauche, desecho
 - 📦 **Catálogos**: Almacenes, proveedores, fabricantes, modelos

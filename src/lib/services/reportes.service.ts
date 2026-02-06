@@ -52,9 +52,12 @@ export class ReportesService {
      * Calcula el Costo Por Kilómetro (CPK) de un neumático específico.
      * CPK = (Costo Compra + Costos Mantenimiento) / Kilometraje Acumulado
      */
-    async getCPK(neumaticoId: string): Promise<CPKMetrics> {
-        const neumatico = await prisma.neumatico.findUnique({
-            where: { id: neumaticoId },
+    async getCPK(empresaId: string, neumaticoId: string): Promise<CPKMetrics> {
+        const neumatico = await prisma.neumatico.findFirst({
+            where: {
+                id: neumaticoId,
+                empresa_id: empresaId
+            },
             include: {
                 eventos: {
                     where: {
@@ -119,9 +122,12 @@ export class ReportesService {
      * Calcula el Desgaste Promedio de un neumático.
      * Fórmula: (profundidad_inicial - profundidad_actual) / km * 1000 = mm por cada 1000 km
      */
-    async getDesgastePromedio(neumaticoId: string): Promise<WearRateMetrics> {
-        const neumatico = await prisma.neumatico.findUnique({
-            where: { id: neumaticoId }
+    async getDesgastePromedio(empresaId: string, neumaticoId: string): Promise<WearRateMetrics> {
+        const neumatico = await prisma.neumatico.findFirst({
+            where: {
+                id: neumaticoId,
+                empresa_id: empresaId
+            }
         });
 
         if (!neumatico) {
@@ -174,10 +180,11 @@ export class ReportesService {
      * Compara el CPK promedio entre diferentes fabricantes/marcas.
      * Agrupa todos los neumáticos con kilometraje > 0 por fabricante.
      */
-    async getComparativoMarcas(): Promise<BrandComparisonResult> {
-        // Obtener todos los neumáticos con km > 0 y sus fabricantes
+    async getComparativoMarcas(empresaId: string): Promise<BrandComparisonResult> {
+        // Obtener todos los neumáticos del tenant con km > 0 y sus fabricantes
         const neumaticos = await prisma.neumatico.findMany({
             where: {
+                empresa_id: empresaId,
                 kilometraje_acumulado: { gt: 0 }
             },
             include: {
@@ -274,20 +281,20 @@ export class ReportesService {
      * Obtiene el estado general de la flota.
      * Vehículos activos, neumáticos instalados vs stock.
      */
-    async getFlotaStatus() {
+    async getFlotaStatus(empresaId: string) {
         // Vehículos
-        const totalVehiculos = await prisma.vehiculo.count({ where: { activo: true } });
+        const totalVehiculos = await prisma.vehiculo.count({ where: { activo: true, empresa_id: empresaId } });
 
         // Neumáticos
-        const totalNeumaticos = await prisma.neumatico.count({ where: { activo: true, estado_actual: { not: 'DESECHADO' } } });
-        const instalados = await prisma.neumatico.count({ where: { activo: true, estado_actual: 'INSTALADO' } });
-        const stock = await prisma.neumatico.count({ where: { activo: true, estado_actual: 'EN_STOCK' } });
-        const reencauche = await prisma.neumatico.count({ where: { activo: true, estado_actual: 'EN_REENCAUCHE' } });
-        const reparacion = await prisma.neumatico.count({ where: { activo: true, estado_actual: 'EN_REPARACION' } });
+        const totalNeumaticos = await prisma.neumatico.count({ where: { activo: true, empresa_id: empresaId, estado_actual: { not: 'DESECHADO' } } });
+        const instalados = await prisma.neumatico.count({ where: { activo: true, empresa_id: empresaId, estado_actual: 'INSTALADO' } });
+        const stock = await prisma.neumatico.count({ where: { activo: true, empresa_id: empresaId, estado_actual: 'EN_STOCK' } });
+        const reencauche = await prisma.neumatico.count({ where: { activo: true, empresa_id: empresaId, estado_actual: 'EN_REENCAUCHE' } });
+        const reparacion = await prisma.neumatico.count({ where: { activo: true, empresa_id: empresaId, estado_actual: 'EN_REPARACION' } });
 
         // Valor inventario (estimado)
         const valorInventario = await prisma.neumatico.aggregate({
-            where: { activo: true, estado_actual: { not: 'DESECHADO' } },
+            where: { activo: true, empresa_id: empresaId, estado_actual: { not: 'DESECHADO' } },
             _sum: { costo_compra: true }
         });
 
@@ -307,14 +314,14 @@ export class ReportesService {
     /**
      * Obtiene el inventario detallado por almacén.
      */
-    async getInventoryStatus() {
+    async getInventoryStatus(empresaId: string) {
         const almacenes = await prisma.almacen.findMany({
-            where: { activo: true },
+            where: { activo: true, empresa_id: empresaId },
             include: {
                 _count: {
                     select: {
                         neumaticos: {
-                            where: { activo: true, estado_actual: { not: 'DESECHADO' } }
+                            where: { activo: true, empresa_id: empresaId, estado_actual: { not: 'DESECHADO' } }
                         }
                     }
                 }
@@ -324,7 +331,7 @@ export class ReportesService {
         // Agrupación por fabricante (marca) para stock
         // Prisma groupBy no soporta relaciones, lo hacemos en memoria (o raw query si fuera masivo)
         const stockItems = await prisma.neumatico.findMany({
-            where: { estado_actual: 'EN_STOCK', activo: true },
+            where: { estado_actual: 'EN_STOCK', activo: true, empresa_id: empresaId },
             select: {
                 modelo: {
                     select: {
@@ -358,6 +365,194 @@ export class ReportesService {
                 total_items: a._count.neumaticos
             })),
             stock_por_marca: stockDetalle
+        };
+    }
+
+    /**
+     * Reporte detallado de rendimiento de toda la flota (DET_REND).
+     * Devuelve métricas financieras individuales para tabla masiva.
+     */
+    async getFleetPerformance(empresaId: string) {
+        const neumaticos = await prisma.neumatico.findMany({
+            where: {
+                empresa_id: empresaId,
+                // Opcional: filtrar solo activos o con km > 0
+                activo: true
+            },
+            include: {
+                modelo: { include: { fabricante: true } },
+                ubicacion_vehiculo: { select: { placa: true, tipo_vehiculo: { select: { nombre: true } } } },
+                eventos: { // Optimización: solo traer costos
+                    where: { costo_evento: { not: null } },
+                    select: { costo_evento: true }
+                }
+            }
+        });
+
+        const details = neumaticos.map(n => {
+            const costoCompra = Number(n.costo_compra ?? 0);
+            const costoMantenimiento = n.eventos.reduce((sum, e) => sum + Number(e.costo_evento ?? 0), 0);
+            const costoTotal = costoCompra + costoMantenimiento;
+            const km = toNumber(n.kilometraje_acumulado);
+
+            const cpk = km > 0 ? costoTotal / km : 0;
+
+            // Proyecciones simples (misma lógica que NeumaticoService pero simplificada para bulk)
+            const profOriginal = toNumber(n.modelo.profundidad_original_mm);
+            const profActual = toNumber(n.profundidad_remanente_actual_mm);
+            const profMin = toNumber(n.modelo.profundidad_minima_retiro_mm);
+
+            const desgaste = Math.max(0, profOriginal - profActual);
+            const rendimiento = desgaste > 0 ? km / desgaste : 0;
+            const remanenteUtil = Math.max(0, profActual - profMin);
+            const vidaRestante = rendimiento * remanenteUtil; // si rendimiento 0, esto es 0
+            const vidaTotal = km + vidaRestante;
+            const cpkProy = vidaTotal > 0 ? costoTotal / vidaTotal : 0;
+
+            return {
+                id: n.id,
+                serie: n.numero_serie,
+                marca: n.modelo.fabricante.nombre,
+                modelo: n.modelo.nombre_modelo,
+                medida: n.modelo.medida,
+                vehiculo: n.ubicacion_vehiculo?.placa || 'ALMACÉN',
+                tipo_vehiculo: n.ubicacion_vehiculo?.tipo_vehiculo.nombre || '-',
+                estado: n.estado_actual,
+
+                costo_total: Number(costoTotal.toFixed(2)),
+                km_actual: Number(km.toFixed(2)),
+                cpk_actual: Number(cpk.toFixed(6)),
+
+                prof_actual_mm: Number(profActual.toFixed(2)),
+                vida_estimada_km: Number(vidaTotal.toFixed(0)),
+                cpk_proyectado: Number(cpkProy.toFixed(6))
+            };
+        });
+
+        // Ordenar por CPK descendente (los más costosos primero para atención)
+        details.sort((a, b) => b.cpk_actual - a.cpk_actual);
+
+        // Resumen global
+        const totalCost = details.reduce((sum, d) => sum + d.costo_total, 0);
+        const totalKm = details.reduce((sum, d) => sum + d.km_actual, 0);
+        const fleetCpk = totalKm > 0 ? totalCost / totalKm : 0;
+
+        return {
+            summary: {
+                total_neumaticos: details.length,
+                costo_flota_total: Number(totalCost.toFixed(2)),
+                km_rodados_total: Number(totalKm.toFixed(2)),
+                cpk_flota_promedio: Number(fleetCpk.toFixed(6))
+            },
+            data: details
+        };
+    }
+
+    /**
+     * KPIs de Gestión Avanzada (Reencauchabilidad + Scrap).
+     * Fase 6A: Incluye Pareto por CategoriaFalla (FATIGA/MECANICA/OPERACION).
+     */
+    async getManagementKPIs(empresaId: string) {
+        // --- 1. REENCAUCHABILIDAD ---
+        const neumaticos = await prisma.neumatico.findMany({
+            where: { empresa_id: empresaId, activo: true },
+            select: {
+                es_reencauchado: true,
+                reencauches_realizados: true,
+                vehiculo: { select: { tipo_vehiculo: { select: { nombre: true } } } }
+            }
+        });
+
+        const totalNeus = neumaticos.length;
+        const totalReencauchados = neumaticos.filter(n => n.es_reencauchado).length;
+        const sumaVidas = neumaticos.reduce((acc, n) => acc + (n.reencauches_realizados || 0), 0);
+
+        const indiceReencauchePerc = totalNeus > 0 ? (totalReencauchados / totalNeus) * 100 : 0;
+        const indiceVidasPromedio = totalNeus > 0 ? (sumaVidas / totalNeus) + 1 : 1;
+
+        // Distribución de vidas (0,1,2,3+)
+        const distribucionVidas = { '0': 0, '1': 0, '2': 0, '3+': 0 };
+        neumaticos.forEach(n => {
+            const vidas = n.reencauches_realizados || 0;
+            if (vidas === 0) distribucionVidas['0']++;
+            else if (vidas === 1) distribucionVidas['1']++;
+            else if (vidas === 2) distribucionVidas['2']++;
+            else distribucionVidas['3+']++;
+        });
+
+        // KPIs por tipo de vehículo
+        const kpisPorTipo: Record<string, { total: number; reencauchados: number; vidas: number }> = {};
+        neumaticos.forEach(n => {
+            const tipo = n.vehiculo?.tipo_vehiculo?.nombre || 'Sin Asignar';
+            if (!kpisPorTipo[tipo]) kpisPorTipo[tipo] = { total: 0, reencauchados: 0, vidas: 0 };
+            kpisPorTipo[tipo].total++;
+            if (n.es_reencauchado) kpisPorTipo[tipo].reencauchados++;
+            kpisPorTipo[tipo].vidas += (n.reencauches_realizados || 0);
+        });
+
+        const kpisTipoVehiculo = Object.entries(kpisPorTipo).map(([tipo, data]) => ({
+            tipo,
+            total: data.total,
+            reencauchados: data.reencauchados,
+            participacion: data.total > 0 ? Number(((data.reencauchados / data.total) * 100).toFixed(1)) : 0,
+            indice_vidas: data.total > 0 ? Number((data.vidas / data.total + 1).toFixed(2)) : 1
+        }));
+
+        // --- 2. SCRAP (DESECHOS) ---
+        const desechos = await prisma.neumatico.findMany({
+            where: {
+                empresa_id: empresaId,
+                estado_actual: 'DESECHADO',
+                motivo_desecho_id: { not: null }
+            },
+            include: { motivo_desecho: true }
+        });
+
+        // Pareto por Motivo
+        const scrapByReason: Record<string, number> = {};
+        desechos.forEach(d => {
+            const reason = d.motivo_desecho?.nombre || 'Sin Clasificar';
+            scrapByReason[reason] = (scrapByReason[reason] || 0) + 1;
+        });
+
+        const scrapPareto = Object.entries(scrapByReason)
+            .map(([name, count]) => ({ name, value: count }))
+            .sort((a, b) => b.value - a.value);
+
+        // Pareto por Categoría de Falla (FATIGA/MECANICA/OPERACION) - Fase 6A
+        const scrapByCategory: Record<string, number> = {
+            'FATIGA': 0,
+            'MECANICA': 0,
+            'OPERACION': 0,
+            'SIN_CLASIFICAR': 0
+        };
+        desechos.forEach(d => {
+            const categoria = d.motivo_desecho?.categoria_falla || 'SIN_CLASIFICAR';
+            scrapByCategory[categoria] = (scrapByCategory[categoria] || 0) + 1;
+        });
+
+        const scrapParetoCategoria = Object.entries(scrapByCategory)
+            .filter(([, count]) => count > 0)
+            .map(([name, count]) => ({ name, value: count }))
+            .sort((a, b) => b.value - a.value);
+
+        const totalScrap = desechos.length;
+        const tasaScrap = (totalNeus + totalScrap) > 0 ? (totalScrap / (totalNeus + totalScrap)) * 100 : 0;
+
+        return {
+            kpis: {
+                indice_reencauche_porcentaje: Number(indiceReencauchePerc.toFixed(1)),
+                indice_vidas_promedio: Number(indiceVidasPromedio.toFixed(2)),
+                total_activos: totalNeus,
+                total_desechados: totalScrap,
+                tasa_scrap_global: Number(tasaScrap.toFixed(1))
+            },
+            distribucion_vidas: distribucionVidas,
+            kpis_por_tipo_vehiculo: kpisTipoVehiculo,
+            charts: {
+                scrap_pareto: scrapPareto,
+                scrap_pareto_categoria: scrapParetoCategoria
+            }
         };
     }
 }

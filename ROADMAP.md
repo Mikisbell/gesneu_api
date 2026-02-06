@@ -1,8 +1,17 @@
 # 🚀 ROADMAP - GesNeu API
 
 > **Stack Tecnológico**: Next.js 16 + TypeScript + Prisma 7 + PostgreSQL (Supabase)  
-> **Última Actualización**: 2025-12-25  
+> **Última Actualización**: 2026-01-29  
 > **Basado en**: Requerimientos de Sistema API Ges_Neu_Final.pdf v2.1
+> **Basado en**: Requerimientos de Sistema API Ges_Neu_Final.pdf v2.1
+
+
+---
+
+## 🔔 Event-Driven Architecture Roadmap
+
+Para el roadmap detallado del sistema de eventos (Q1 2026 - 2027):
+👉 Ver [docs/events/07_ROADMAP_EVENTOS.md](./docs/events/07_ROADMAP_EVENTOS.md)
 
 ---
 
@@ -27,6 +36,11 @@
 | **Migración DB** | ✅ | Tabla `lecturas_presion` creada y sincronizada | ✅ |
 | **Alertas & Webhooks** | ✅ | Alertas, Colas y Notificaciones ERP | ✅ |
 | **Reportes PDF** | ✅ | Certificados de Operatividad y Inspección | ✅ Completado |
+| **Refactor Single-Tenant** | 🔄 | Refactorización de Catálogos y Servicios (`Almacen`, `Proveedor`) | En Progreso |
+| **Event-Driven Architecture** | ✅ | EventBus + 6 Observers + 13 Events + Documentación completa | ✅ Completado |
+
+> 🔔 **Event-Driven Architecture**: Ver [roadmap detallado](./docs/events/07_ROADMAP_EVENTOS.md) (Q1 2026 → 2027)
+
 
 ### Prioridad Media 🟡 (Mejoras UX)
 | Tarea | Estado | Detalle | Est. |
@@ -50,7 +64,6 @@
 
 | Tarea | Estado | Descripción | ETA |
 |-------|--------|-------------|-----|
-| **Multi-tenant** | 📋 | Soporte para múltiples empresas | Q2 2026 |
 | **App Nativa** | 📋 | React Native wrapper si PWA no es suficiente | Q2 2026 |
 
 ---
@@ -114,11 +127,11 @@
 
 ## 🔮 Visión Q2-Q4 2026
 
-- **Q2**: Multi-tenant, integración con ERPs (SAP, Oracle)
-- **Q3**: Machine Learning para predicción de vida útil
-- **Q4**: Marketplace de proveedores de reencauche
+- **Q2**: Integración con ERP interno, expansión de analytics internos
+- **Q3**: Machine Learning para predicción de vida útil basado en datos de la flota
+- **Q4**: Optimización de rutas de rotación basada en datos históricos
 
-*Estas son direcciones tentativas sujetas a validación con clientes.*
+*Estas son direcciones tentativas para mejorar la eficiencia operativa interna.*
 
 ---
 

@@ -53,8 +53,12 @@ export async function GET(request: NextRequest) {
         if (estado) filters.estado = estado as EstadoNeumaticoEnum;
         if (modelo_id) filters.modelo_id = modelo_id;
 
-        const reporte = await service.getReporteInventario(filters);
-        return ApiResponseHelper.success(reporte);
+        const report = await service.getReporteInventario(session.user.empresa_id!, {
+            almacen_id: almacen_id || undefined,
+            estado: estado as any,
+            modelo_id: modelo_id || undefined
+        });
+        return ApiResponseHelper.success(report);
     } catch (error) {
         return ApiResponseHelper.handleError(error);
     }

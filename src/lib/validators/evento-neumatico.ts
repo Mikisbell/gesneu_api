@@ -37,6 +37,7 @@ export const EventoNeumaticoCreateSchema = z.object({
     contador_vehiculo: z.number().nonnegative().optional(),
     profundidad_remanente: z.number().nonnegative().optional(),
     presion_psi: z.number().nonnegative().optional(),
+    temperatura_c: z.number().optional(), // Added for Inspeccion
     observaciones: z.string().optional(),
     costo_evento: z.number().nonnegative().optional(), // 🚨 Vital para reparaciones/reencauches
 

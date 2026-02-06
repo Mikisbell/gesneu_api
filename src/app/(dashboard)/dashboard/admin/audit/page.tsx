@@ -33,6 +33,7 @@ import {
     DialogContent,
     DialogHeader,
     DialogTitle,
+    DialogDescription,
     DialogTrigger,
 } from "@/components/ui/dialog"
 
@@ -329,6 +330,9 @@ export default function AdminAuditPage() {
                                                         <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
                                                             <DialogHeader>
                                                                 <DialogTitle>Detalles del Registro</DialogTitle>
+                                                                <DialogDescription>
+                                                                    Información detallada sobre la operación registrada.
+                                                                </DialogDescription>
                                                             </DialogHeader>
                                                             <div className="space-y-4">
                                                                 <div className="grid grid-cols-2 gap-4 text-sm">

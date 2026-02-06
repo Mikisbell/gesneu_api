@@ -1,0 +1,97 @@
+🔥 INICIANDO PRUEBA DE ESTRÉS: REENCAUCHE (20 ciclos concurrentes)
+1. Preparando datos maestros...
+2. Creando 20 neumáticos...
+   ✅ Neumáticos creados.
+3. Ejecutando ENVÍOS (Setup Sequential)...
+[SSE] Broadcast: invalidate to 0 clients
+"revalidateTag" without the second argument is now deprecated, add second argument of "max" or use "updateTag". See more info here: https://nextjs.org/docs/messages/revalidate-tag-single-arg
+❌ Falló envio setup STRESS-1769620945690-0: Invariant: static generation store missing in revalidateTag reencauche-metrics-2a69b902-31d7-4c20-af48-f46b8d99fb92
+[SSE] Broadcast: invalidate to 0 clients
+"revalidateTag" without the second argument is now deprecated, add second argument of "max" or use "updateTag". See more info here: https://nextjs.org/docs/messages/revalidate-tag-single-arg
+❌ Falló envio setup STRESS-1769620945962-1: Invariant: static generation store missing in revalidateTag reencauche-metrics-2a69b902-31d7-4c20-af48-f46b8d99fb92
+[SSE] Broadcast: invalidate to 0 clients
+"revalidateTag" without the second argument is now deprecated, add second argument of "max" or use "updateTag". See more info here: https://nextjs.org/docs/messages/revalidate-tag-single-arg
+❌ Falló envio setup STRESS-1769620946143-2: Invariant: static generation store missing in revalidateTag reencauche-metrics-2a69b902-31d7-4c20-af48-f46b8d99fb92
+[SSE] Broadcast: invalidate to 0 clients
+"revalidateTag" without the second argument is now deprecated, add second argument of "max" or use "updateTag". See more info here: https://nextjs.org/docs/messages/revalidate-tag-single-arg
+❌ Falló envio setup STRESS-1769620946322-3: Invariant: static generation store missing in revalidateTag reencauche-metrics-2a69b902-31d7-4c20-af48-f46b8d99fb92
+[SSE] Broadcast: invalidate to 0 clients
+"revalidateTag" without the second argument is now deprecated, add second argument of "max" or use "updateTag". See more info here: https://nextjs.org/docs/messages/revalidate-tag-single-arg
+❌ Falló envio setup STRESS-1769620946508-4: Invariant: static generation store missing in revalidateTag reencauche-metrics-2a69b902-31d7-4c20-af48-f46b8d99fb92
+[SSE] Broadcast: invalidate to 0 clients
+"revalidateTag" without the second argument is now deprecated, add second argument of "max" or use "updateTag". See more info here: https://nextjs.org/docs/messages/revalidate-tag-single-arg
+❌ Falló envio setup STRESS-1769620946691-5: Invariant: static generation store missing in revalidateTag reencauche-metrics-2a69b902-31d7-4c20-af48-f46b8d99fb92
+[SSE] Broadcast: invalidate to 0 clients
+"revalidateTag" without the second argument is now deprecated, add second argument of "max" or use "updateTag". See more info here: https://nextjs.org/docs/messages/revalidate-tag-single-arg
+❌ Falló envio setup STRESS-1769620946870-6: Invariant: static generation store missing in revalidateTag reencauche-metrics-2a69b902-31d7-4c20-af48-f46b8d99fb92
+[SSE] Broadcast: invalidate to 0 clients
+"revalidateTag" without the second argument is now deprecated, add second argument of "max" or use "updateTag". See more info here: https://nextjs.org/docs/messages/revalidate-tag-single-arg
+❌ Falló envio setup STRESS-1769620947050-7: Invariant: static generation store missing in revalidateTag reencauche-metrics-2a69b902-31d7-4c20-af48-f46b8d99fb92
+[SSE] Broadcast: invalidate to 0 clients
+"revalidateTag" without the second argument is now deprecated, add second argument of "max" or use "updateTag". See more info here: https://nextjs.org/docs/messages/revalidate-tag-single-arg
+❌ Falló envio setup STRESS-1769620947230-8: Invariant: static generation store missing in revalidateTag reencauche-metrics-2a69b902-31d7-4c20-af48-f46b8d99fb92
+[SSE] Broadcast: invalidate to 0 clients
+"revalidateTag" without the second argument is now deprecated, add second argument of "max" or use "updateTag". See more info here: https://nextjs.org/docs/messages/revalidate-tag-single-arg
+❌ Falló envio setup STRESS-1769620947411-9: Invariant: static generation store missing in revalidateTag reencauche-metrics-2a69b902-31d7-4c20-af48-f46b8d99fb92
+[SSE] Broadcast: invalidate to 0 clients
+"revalidateTag" without the second argument is now deprecated, add second argument of "max" or use "updateTag". See more info here: https://nextjs.org/docs/messages/revalidate-tag-single-arg
+❌ Falló envio setup STRESS-1769620947590-10: Invariant: static generation store missing in revalidateTag reencauche-metrics-2a69b902-31d7-4c20-af48-f46b8d99fb92
+[SSE] Broadcast: invalidate to 0 clients
+"revalidateTag" without the second argument is now deprecated, add second argument of "max" or use "updateTag". See more info here: https://nextjs.org/docs/messages/revalidate-tag-single-arg
+❌ Falló envio setup STRESS-1769620947771-11: Invariant: static generation store missing in revalidateTag reencauche-metrics-2a69b902-31d7-4c20-af48-f46b8d99fb92
+[SSE] Broadcast: invalidate to 0 clients
+"revalidateTag" without the second argument is now deprecated, add second argument of "max" or use "updateTag". See more info here: https://nextjs.org/docs/messages/revalidate-tag-single-arg
+❌ Falló envio setup STRESS-1769620947952-12: Invariant: static generation store missing in revalidateTag reencauche-metrics-2a69b902-31d7-4c20-af48-f46b8d99fb92
+[SSE] Broadcast: invalidate to 0 clients
+"revalidateTag" without the second argument is now deprecated, add second argument of "max" or use "updateTag". See more info here: https://nextjs.org/docs/messages/revalidate-tag-single-arg
+❌ Falló envio setup STRESS-1769620948127-13: Invariant: static generation store missing in revalidateTag reencauche-metrics-2a69b902-31d7-4c20-af48-f46b8d99fb92
+[SSE] Broadcast: invalidate to 0 clients
+"revalidateTag" without the second argument is now deprecated, add second argument of "max" or use "updateTag". See more info here: https://nextjs.org/docs/messages/revalidate-tag-single-arg
+❌ Falló envio setup STRESS-1769620948301-14: Invariant: static generation store missing in revalidateTag reencauche-metrics-2a69b902-31d7-4c20-af48-f46b8d99fb92
+[SSE] Broadcast: invalidate to 0 clients
+"revalidateTag" without the second argument is now deprecated, add second argument of "max" or use "updateTag". See more info here: https://nextjs.org/docs/messages/revalidate-tag-single-arg
+❌ Falló envio setup STRESS-1769620948482-15: Invariant: static generation store missing in revalidateTag reencauche-metrics-2a69b902-31d7-4c20-af48-f46b8d99fb92
+[SSE] Broadcast: invalidate to 0 clients
+"revalidateTag" without the second argument is now deprecated, add second argument of "max" or use "updateTag". See more info here: https://nextjs.org/docs/messages/revalidate-tag-single-arg
+❌ Falló envio setup STRESS-1769620948658-16: Invariant: static generation store missing in revalidateTag reencauche-metrics-2a69b902-31d7-4c20-af48-f46b8d99fb92
+[SSE] Broadcast: invalidate to 0 clients
+"revalidateTag" without the second argument is now deprecated, add second argument of "max" or use "updateTag". See more info here: https://nextjs.org/docs/messages/revalidate-tag-single-arg
+❌ Falló envio setup STRESS-1769620948837-17: Invariant: static generation store missing in revalidateTag reencauche-metrics-2a69b902-31d7-4c20-af48-f46b8d99fb92
+[SSE] Broadcast: invalidate to 0 clients
+"revalidateTag" without the second argument is now deprecated, add second argument of "max" or use "updateTag". See more info here: https://nextjs.org/docs/messages/revalidate-tag-single-arg
+❌ Falló envio setup STRESS-1769620949012-18: Invariant: static generation store missing in revalidateTag reencauche-metrics-2a69b902-31d7-4c20-af48-f46b8d99fb92
+[SSE] Broadcast: invalidate to 0 clients
+"revalidateTag" without the second argument is now deprecated, add second argument of "max" or use "updateTag". See more info here: https://nextjs.org/docs/messages/revalidate-tag-single-arg
+❌ Falló envio setup STRESS-1769620949186-19: Invariant: static generation store missing in revalidateTag reencauche-metrics-2a69b902-31d7-4c20-af48-f46b8d99fb92
+   ⏱️  Envío completado en 54.677s
+   🔎 Estado Check: 20/20 en REENCAUCHE.
+4. Ejecutando RETORNOS masivos (Transaction Locking Test)...
+"revalidateTag" without the second argument is now deprecated, add second argument of "max" or use "updateTag". See more info here: https://nextjs.org/docs/messages/revalidate-tag-single-arg
+"revalidateTag" without the second argument is now deprecated, add second argument of "max" or use "updateTag". See more info here: https://nextjs.org/docs/messages/revalidate-tag-single-arg
+"revalidateTag" without the second argument is now deprecated, add second argument of "max" or use "updateTag". See more info here: https://nextjs.org/docs/messages/revalidate-tag-single-arg
+"revalidateTag" without the second argument is now deprecated, add second argument of "max" or use "updateTag". See more info here: https://nextjs.org/docs/messages/revalidate-tag-single-arg
+"revalidateTag" without the second argument is now deprecated, add second argument of "max" or use "updateTag". See more info here: https://nextjs.org/docs/messages/revalidate-tag-single-arg
+"revalidateTag" without the second argument is now deprecated, add second argument of "max" or use "updateTag". See more info here: https://nextjs.org/docs/messages/revalidate-tag-single-arg
+"revalidateTag" without the second argument is now deprecated, add second argument of "max" or use "updateTag". See more info here: https://nextjs.org/docs/messages/revalidate-tag-single-arg
+"revalidateTag" without the second argument is now deprecated, add second argument of "max" or use "updateTag". See more info here: https://nextjs.org/docs/messages/revalidate-tag-single-arg
+"revalidateTag" without the second argument is now deprecated, add second argument of "max" or use "updateTag". See more info here: https://nextjs.org/docs/messages/revalidate-tag-single-arg
+"revalidateTag" without the second argument is now deprecated, add second argument of "max" or use "updateTag". See more info here: https://nextjs.org/docs/messages/revalidate-tag-single-arg
+"revalidateTag" without the second argument is now deprecated, add second argument of "max" or use "updateTag". See more info here: https://nextjs.org/docs/messages/revalidate-tag-single-arg
+"revalidateTag" without the second argument is now deprecated, add second argument of "max" or use "updateTag". See more info here: https://nextjs.org/docs/messages/revalidate-tag-single-arg
+"revalidateTag" without the second argument is now deprecated, add second argument of "max" or use "updateTag". See more info here: https://nextjs.org/docs/messages/revalidate-tag-single-arg
+"revalidateTag" without the second argument is now deprecated, add second argument of "max" or use "updateTag". See more info here: https://nextjs.org/docs/messages/revalidate-tag-single-arg
+"revalidateTag" without the second argument is now deprecated, add second argument of "max" or use "updateTag". See more info here: https://nextjs.org/docs/messages/revalidate-tag-single-arg
+
+📊 RESULTADOS DE ESTRÉS:
+   Total Intentos:    20
+   Éxitos:            0 ✅
+   Fallos:            20 ❌
+   Tiempo Total Ret:  2.024s
+   TPS (Tx/Sec):      9.88
+   ⚠️ Causas de fallo: [
+  'Invariant: static generation store missing in revalidateTag reencauche-metrics-2a69b902-31d7-4c20-af48-f46b8d99fb92',
+  'Invariant: static generation store missing in revalidateTag reencauche-metrics-2a69b902-31d7-4c20-af48-f46b8d99fb92',
+  'Invariant: static generation store missing in revalidateTag reencauche-metrics-2a69b902-31d7-4c20-af48-f46b8d99fb92',
+  'Invariant: static generation store missing in revalidateTag reencauche-metrics-2a69b902-31d7-4c20-af48-f46b8d99fb92',
+  'Invariant: static generation store missing in revalidateTag reencauche-metrics-2a69b902-31d7-4c20-af48-f46b8d99fb92'
+]

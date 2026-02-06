@@ -26,7 +26,16 @@ export function useNeumaticos(estado?: EstadoNeumaticoEnum) {
                 throw new Error('Error fetching neumaticos');
             }
             const data = await response.json();
-            return data.data || data; // Handle potential API response wrapper
+            // Debug logs to identify why it might be undefined
+            if (!data) {
+                console.error('[useNeumaticos] Response data is null/undefined');
+                return [];
+            }
+            if (data.success === false) {
+                throw new Error(data.message || 'API Error');
+            }
+            // Ensure we return an array
+            return data.data || (Array.isArray(data) ? data : []);
         },
     });
 }

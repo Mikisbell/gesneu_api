@@ -1,0 +1,184 @@
+🔥 INICIANDO PRUEBA DE ESTRÉS: REENCAUCHE (50 ciclos concurrentes)
+1. Preparando datos maestros...
+2. Creando 50 neumáticos...
+   ✅ Neumáticos creados.
+3. Ejecutando ENVÍOS masivos (Parallel)...
+prisma:error timeout exceeded when trying to connect
+[EventoService] Error: Error: timeout exceeded when trying to connect
+    at /mnt/e/FREECLOUD/FREECLOUD-IA/PROYECTOS/gesneu_api/node_modules/pg-pool/index.js:45:11
+    at async PrismaPgAdapter.performIO (/mnt/e/FREECLOUD/FREECLOUD-IA/PROYECTOS/gesneu_api/node_modules/@prisma/adapter-pg/dist/index.js:652:22)
+    at async PrismaPgAdapter.queryRaw (/mnt/e/FREECLOUD/FREECLOUD-IA/PROYECTOS/gesneu_api/node_modules/@prisma/adapter-pg/dist/index.js:602:30)
+    at async <anonymous> (/mnt/e/FREECLOUD/FREECLOUD-IA/PROYECTOS/gesneu_api/node_modules/@prisma/client-engine-runtime/src/tracing.ts:68:22)
+    at async fr (/mnt/e/FREECLOUD/FREECLOUD-IA/PROYECTOS/gesneu_api/node_modules/@prisma/client-engine-runtime/src/tracing.ts:56:10)
+    at async e.interpretNode (/mnt/e/FREECLOUD/FREECLOUD-IA/PROYECTOS/gesneu_api/node_modules/@prisma/client-engine-runtime/src/interpreter/query-interpreter.ts:190:26)
+    at async <anonymous> (/mnt/e/FREECLOUD/FREECLOUD-IA/PROYECTOS/gesneu_api/node_modules/@prisma/client-engine-runtime/src/interpreter/query-interpreter.ts:250:28)
+    at async Promise.all (index 4)
+    at async e.interpretNode (/mnt/e/FREECLOUD/FREECLOUD-IA/PROYECTOS/gesneu_api/node_modules/@prisma/client-engine-runtime/src/interpreter/query-interpreter.ts:247:27)
+    at async e.interpretNode (/mnt/e/FREECLOUD/FREECLOUD-IA/PROYECTOS/gesneu_api/node_modules/@prisma/client-engine-runtime/src/interpreter/query-interpreter.ts:276:41) {
+  clientVersion: '7.2.0'
+}
+❌ Falló envio STRESS-1769620112267-36: timeout exceeded when trying to connect
+prisma:error timeout exceeded when trying to connect
+[EventoService] Error: Error: timeout exceeded when trying to connect
+    at /mnt/e/FREECLOUD/FREECLOUD-IA/PROYECTOS/gesneu_api/node_modules/pg-pool/index.js:45:11
+    at runNextTicks (node:internal/process/task_queues:60:5)
+    at listOnTimeout (node:internal/timers:545:9)
+    at process.processTimers (node:internal/timers:519:7)
+    at async PrismaPgAdapter.performIO (/mnt/e/FREECLOUD/FREECLOUD-IA/PROYECTOS/gesneu_api/node_modules/@prisma/adapter-pg/dist/index.js:652:22)
+    at async PrismaPgAdapter.queryRaw (/mnt/e/FREECLOUD/FREECLOUD-IA/PROYECTOS/gesneu_api/node_modules/@prisma/adapter-pg/dist/index.js:602:30)
+    at async <anonymous> (/mnt/e/FREECLOUD/FREECLOUD-IA/PROYECTOS/gesneu_api/node_modules/@prisma/client-engine-runtime/src/tracing.ts:68:22)
+    at async fr (/mnt/e/FREECLOUD/FREECLOUD-IA/PROYECTOS/gesneu_api/node_modules/@prisma/client-engine-runtime/src/tracing.ts:56:10)
+    at async e.interpretNode (/mnt/e/FREECLOUD/FREECLOUD-IA/PROYECTOS/gesneu_api/node_modules/@prisma/client-engine-runtime/src/interpreter/query-interpreter.ts:190:26)
+    at async e.interpretNode (/mnt/e/FREECLOUD/FREECLOUD-IA/PROYECTOS/gesneu_api/node_modules/@prisma/client-engine-runtime/src/interpreter/query-interpreter.ts:132:29) {
+  clientVersion: '7.2.0'
+}
+❌ Falló envio STRESS-1769620113096-41: timeout exceeded when trying to connect
+prisma:error timeout exceeded when trying to connect
+[EventoService] Error: Error: timeout exceeded when trying to connect
+    at /mnt/e/FREECLOUD/FREECLOUD-IA/PROYECTOS/gesneu_api/node_modules/pg-pool/index.js:45:11
+    at async PrismaPgAdapter.performIO (/mnt/e/FREECLOUD/FREECLOUD-IA/PROYECTOS/gesneu_api/node_modules/@prisma/adapter-pg/dist/index.js:652:22)
+    at async PrismaPgAdapter.queryRaw (/mnt/e/FREECLOUD/FREECLOUD-IA/PROYECTOS/gesneu_api/node_modules/@prisma/adapter-pg/dist/index.js:602:30)
+    at async <anonymous> (/mnt/e/FREECLOUD/FREECLOUD-IA/PROYECTOS/gesneu_api/node_modules/@prisma/client-engine-runtime/src/tracing.ts:68:22)
+    at async fr (/mnt/e/FREECLOUD/FREECLOUD-IA/PROYECTOS/gesneu_api/node_modules/@prisma/client-engine-runtime/src/tracing.ts:56:10)
+    at async e.interpretNode (/mnt/e/FREECLOUD/FREECLOUD-IA/PROYECTOS/gesneu_api/node_modules/@prisma/client-engine-runtime/src/interpreter/query-interpreter.ts:190:26)
+    at async <anonymous> (/mnt/e/FREECLOUD/FREECLOUD-IA/PROYECTOS/gesneu_api/node_modules/@prisma/client-engine-runtime/src/interpreter/query-interpreter.ts:250:28)
+    at async Promise.all (index 1)
+    at async e.interpretNode (/mnt/e/FREECLOUD/FREECLOUD-IA/PROYECTOS/gesneu_api/node_modules/@prisma/client-engine-runtime/src/interpreter/query-interpreter.ts:247:27)
+    at async e.interpretNode (/mnt/e/FREECLOUD/FREECLOUD-IA/PROYECTOS/gesneu_api/node_modules/@prisma/client-engine-runtime/src/interpreter/query-interpreter.ts:276:41) {
+  clientVersion: '7.2.0'
+}
+❌ Falló envio STRESS-1769620112763-39: timeout exceeded when trying to connect
+prisma:error timeout exceeded when trying to connect
+[EventoService] Error: Error: timeout exceeded when trying to connect
+    at /mnt/e/FREECLOUD/FREECLOUD-IA/PROYECTOS/gesneu_api/node_modules/pg-pool/index.js:45:11
+    at runNextTicks (node:internal/process/task_queues:60:5)
+    at listOnTimeout (node:internal/timers:545:9)
+    at process.processTimers (node:internal/timers:519:7)
+    at async PrismaPgAdapter.performIO (/mnt/e/FREECLOUD/FREECLOUD-IA/PROYECTOS/gesneu_api/node_modules/@prisma/adapter-pg/dist/index.js:652:22)
+    at async PrismaPgAdapter.queryRaw (/mnt/e/FREECLOUD/FREECLOUD-IA/PROYECTOS/gesneu_api/node_modules/@prisma/adapter-pg/dist/index.js:602:30)
+    at async <anonymous> (/mnt/e/FREECLOUD/FREECLOUD-IA/PROYECTOS/gesneu_api/node_modules/@prisma/client-engine-runtime/src/tracing.ts:68:22)
+    at async fr (/mnt/e/FREECLOUD/FREECLOUD-IA/PROYECTOS/gesneu_api/node_modules/@prisma/client-engine-runtime/src/tracing.ts:56:10)
+    at async e.interpretNode (/mnt/e/FREECLOUD/FREECLOUD-IA/PROYECTOS/gesneu_api/node_modules/@prisma/client-engine-runtime/src/interpreter/query-interpreter.ts:190:26)
+    at async e.interpretNode (/mnt/e/FREECLOUD/FREECLOUD-IA/PROYECTOS/gesneu_api/node_modules/@prisma/client-engine-runtime/src/interpreter/query-interpreter.ts:132:29) {
+  clientVersion: '7.2.0'
+}
+❌ Falló envio STRESS-1769620112931-40: timeout exceeded when trying to connect
+prisma:error timeout exceeded when trying to connect
+[EventoService] Error: Error: timeout exceeded when trying to connect
+    at /mnt/e/FREECLOUD/FREECLOUD-IA/PROYECTOS/gesneu_api/node_modules/pg-pool/index.js:45:11
+    at async PrismaPgAdapter.performIO (/mnt/e/FREECLOUD/FREECLOUD-IA/PROYECTOS/gesneu_api/node_modules/@prisma/adapter-pg/dist/index.js:652:22)
+    at async PrismaPgAdapter.queryRaw (/mnt/e/FREECLOUD/FREECLOUD-IA/PROYECTOS/gesneu_api/node_modules/@prisma/adapter-pg/dist/index.js:602:30)
+    at async <anonymous> (/mnt/e/FREECLOUD/FREECLOUD-IA/PROYECTOS/gesneu_api/node_modules/@prisma/client-engine-runtime/src/tracing.ts:68:22)
+    at async fr (/mnt/e/FREECLOUD/FREECLOUD-IA/PROYECTOS/gesneu_api/node_modules/@prisma/client-engine-runtime/src/tracing.ts:56:10)
+    at async e.interpretNode (/mnt/e/FREECLOUD/FREECLOUD-IA/PROYECTOS/gesneu_api/node_modules/@prisma/client-engine-runtime/src/interpreter/query-interpreter.ts:190:26)
+    at async <anonymous> (/mnt/e/FREECLOUD/FREECLOUD-IA/PROYECTOS/gesneu_api/node_modules/@prisma/client-engine-runtime/src/interpreter/query-interpreter.ts:250:28)
+    at async Promise.all (index 2)
+    at async e.interpretNode (/mnt/e/FREECLOUD/FREECLOUD-IA/PROYECTOS/gesneu_api/node_modules/@prisma/client-engine-runtime/src/interpreter/query-interpreter.ts:247:27)
+    at async e.interpretNode (/mnt/e/FREECLOUD/FREECLOUD-IA/PROYECTOS/gesneu_api/node_modules/@prisma/client-engine-runtime/src/interpreter/query-interpreter.ts:276:41) {
+  clientVersion: '7.2.0'
+}
+❌ Falló envio STRESS-1769620113424-43: timeout exceeded when trying to connect
+prisma:error timeout exceeded when trying to connect
+[EventoService] Error: Error: timeout exceeded when trying to connect
+    at /mnt/e/FREECLOUD/FREECLOUD-IA/PROYECTOS/gesneu_api/node_modules/pg-pool/index.js:45:11
+    at runNextTicks (node:internal/process/task_queues:60:5)
+    at listOnTimeout (node:internal/timers:545:9)
+    at process.processTimers (node:internal/timers:519:7)
+    at async PrismaPgAdapter.performIO (/mnt/e/FREECLOUD/FREECLOUD-IA/PROYECTOS/gesneu_api/node_modules/@prisma/adapter-pg/dist/index.js:652:22)
+    at async PrismaPgAdapter.queryRaw (/mnt/e/FREECLOUD/FREECLOUD-IA/PROYECTOS/gesneu_api/node_modules/@prisma/adapter-pg/dist/index.js:602:30)
+    at async <anonymous> (/mnt/e/FREECLOUD/FREECLOUD-IA/PROYECTOS/gesneu_api/node_modules/@prisma/client-engine-runtime/src/tracing.ts:68:22)
+    at async fr (/mnt/e/FREECLOUD/FREECLOUD-IA/PROYECTOS/gesneu_api/node_modules/@prisma/client-engine-runtime/src/tracing.ts:56:10)
+    at async e.interpretNode (/mnt/e/FREECLOUD/FREECLOUD-IA/PROYECTOS/gesneu_api/node_modules/@prisma/client-engine-runtime/src/interpreter/query-interpreter.ts:190:26)
+    at async <anonymous> (/mnt/e/FREECLOUD/FREECLOUD-IA/PROYECTOS/gesneu_api/node_modules/@prisma/client-engine-runtime/src/interpreter/query-interpreter.ts:250:28) {
+  clientVersion: '7.2.0'
+}
+❌ Falló envio STRESS-1769620113755-45: timeout exceeded when trying to connect
+prisma:error timeout exceeded when trying to connect
+[EventoService] Error: Error: timeout exceeded when trying to connect
+    at /mnt/e/FREECLOUD/FREECLOUD-IA/PROYECTOS/gesneu_api/node_modules/pg-pool/index.js:45:11
+    at runNextTicks (node:internal/process/task_queues:60:5)
+    at listOnTimeout (node:internal/timers:545:9)
+    at process.processTimers (node:internal/timers:519:7)
+    at async PrismaPgAdapter.performIO (/mnt/e/FREECLOUD/FREECLOUD-IA/PROYECTOS/gesneu_api/node_modules/@prisma/adapter-pg/dist/index.js:652:22)
+    at async PrismaPgAdapter.queryRaw (/mnt/e/FREECLOUD/FREECLOUD-IA/PROYECTOS/gesneu_api/node_modules/@prisma/adapter-pg/dist/index.js:602:30)
+    at async <anonymous> (/mnt/e/FREECLOUD/FREECLOUD-IA/PROYECTOS/gesneu_api/node_modules/@prisma/client-engine-runtime/src/tracing.ts:68:22)
+    at async fr (/mnt/e/FREECLOUD/FREECLOUD-IA/PROYECTOS/gesneu_api/node_modules/@prisma/client-engine-runtime/src/tracing.ts:56:10)
+    at async e.interpretNode (/mnt/e/FREECLOUD/FREECLOUD-IA/PROYECTOS/gesneu_api/node_modules/@prisma/client-engine-runtime/src/interpreter/query-interpreter.ts:190:26)
+    at async e.interpretNode (/mnt/e/FREECLOUD/FREECLOUD-IA/PROYECTOS/gesneu_api/node_modules/@prisma/client-engine-runtime/src/interpreter/query-interpreter.ts:132:29) {
+  clientVersion: '7.2.0'
+}
+❌ Falló envio STRESS-1769620113260-42: timeout exceeded when trying to connect
+prisma:error timeout exceeded when trying to connect
+[EventoService] Error: Error: timeout exceeded when trying to connect
+    at /mnt/e/FREECLOUD/FREECLOUD-IA/PROYECTOS/gesneu_api/node_modules/pg-pool/index.js:45:11
+    at runNextTicks (node:internal/process/task_queues:60:5)
+    at listOnTimeout (node:internal/timers:545:9)
+    at process.processTimers (node:internal/timers:519:7)
+    at async PrismaPgAdapter.performIO (/mnt/e/FREECLOUD/FREECLOUD-IA/PROYECTOS/gesneu_api/node_modules/@prisma/adapter-pg/dist/index.js:652:22)
+    at async PrismaPgAdapter.queryRaw (/mnt/e/FREECLOUD/FREECLOUD-IA/PROYECTOS/gesneu_api/node_modules/@prisma/adapter-pg/dist/index.js:602:30)
+    at async <anonymous> (/mnt/e/FREECLOUD/FREECLOUD-IA/PROYECTOS/gesneu_api/node_modules/@prisma/client-engine-runtime/src/tracing.ts:68:22)
+    at async fr (/mnt/e/FREECLOUD/FREECLOUD-IA/PROYECTOS/gesneu_api/node_modules/@prisma/client-engine-runtime/src/tracing.ts:56:10)
+    at async e.interpretNode (/mnt/e/FREECLOUD/FREECLOUD-IA/PROYECTOS/gesneu_api/node_modules/@prisma/client-engine-runtime/src/interpreter/query-interpreter.ts:190:26)
+    at async e.interpretNode (/mnt/e/FREECLOUD/FREECLOUD-IA/PROYECTOS/gesneu_api/node_modules/@prisma/client-engine-runtime/src/interpreter/query-interpreter.ts:132:29) {
+  clientVersion: '7.2.0'
+}
+❌ Falló envio STRESS-1769620113590-44: timeout exceeded when trying to connect
+[SSE] Broadcast: invalidate to 0 clients
+[SSE] Broadcast: invalidate to 0 clients
+[SSE] Broadcast: invalidate to 0 clients
+[SSE] Broadcast: invalidate to 0 clients
+[SSE] Broadcast: invalidate to 0 clients
+[SSE] Broadcast: invalidate to 0 clients
+[SSE] Broadcast: invalidate to 0 clients
+[SSE] Broadcast: invalidate to 0 clients
+[SSE] Broadcast: invalidate to 0 clients
+[SSE] Broadcast: invalidate to 0 clients
+[SSE] Broadcast: invalidate to 0 clients
+[SSE] Broadcast: invalidate to 0 clients
+[SSE] Broadcast: invalidate to 0 clients
+[SSE] Broadcast: invalidate to 0 clients
+[SSE] Broadcast: invalidate to 0 clients
+[SSE] Broadcast: invalidate to 0 clients
+[SSE] Broadcast: invalidate to 0 clients
+[SSE] Broadcast: invalidate to 0 clients
+[SSE] Broadcast: invalidate to 0 clients
+[SSE] Broadcast: invalidate to 0 clients
+[SSE] Broadcast: invalidate to 0 clients
+[SSE] Broadcast: invalidate to 0 clients
+[SSE] Broadcast: invalidate to 0 clients
+[SSE] Broadcast: invalidate to 0 clients
+[SSE] Broadcast: invalidate to 0 clients
+[SSE] Broadcast: invalidate to 0 clients
+[SSE] Broadcast: invalidate to 0 clients
+[SSE] Broadcast: invalidate to 0 clients
+[SSE] Broadcast: invalidate to 0 clients
+[SSE] Broadcast: invalidate to 0 clients
+[SSE] Broadcast: invalidate to 0 clients
+[SSE] Broadcast: invalidate to 0 clients
+[SSE] Broadcast: invalidate to 0 clients
+[SSE] Broadcast: invalidate to 0 clients
+[SSE] Broadcast: invalidate to 0 clients
+[SSE] Broadcast: invalidate to 0 clients
+[SSE] Broadcast: invalidate to 0 clients
+[SSE] Broadcast: invalidate to 0 clients
+[SSE] Broadcast: invalidate to 0 clients
+[SSE] Broadcast: invalidate to 0 clients
+[SSE] Broadcast: invalidate to 0 clients
+[SSE] Broadcast: invalidate to 0 clients
+   ⏱️  Envío completado en 29.333s
+   🔎 Estado Check: 50/50 en REENCAUCHE.
+4. Ejecutando RETORNOS masivos (Transaction Locking Test)...
+
+📊 RESULTADOS DE ESTRÉS:
+   Total Intentos:    50
+   Éxitos:            14 ✅
+   Fallos:            36 ❌
+   Tiempo Total Ret:  3.125s
+   TPS (Tx/Sec):      16.00
+   ⚠️ Causas de fallo: [
+  'Transaction API error: Unable to start a transaction in the given time.',
+  'Transaction API error: Unable to start a transaction in the given time.',
+  'Transaction API error: Unable to start a transaction in the given time.',
+  'Transaction API error: Unable to start a transaction in the given time.',
+  'Transaction API error: Unable to start a transaction in the given time.'
+]

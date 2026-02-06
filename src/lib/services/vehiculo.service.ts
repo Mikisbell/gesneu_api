@@ -55,9 +55,10 @@ export class VehiculoService {
      * Obtiene todos los vehículos con filtros opcionales.
      * @returns Lista de vehículos formateados para listado
      */
-    async getAll(filters?: VehiculoFilters): Promise<Result<VehiculoListItem[], BusinessError>> {
+    async getAll(empresa_id: string, filters?: VehiculoFilters): Promise<Result<VehiculoListItem[], BusinessError>> {
         try {
-            const entities = await this.repository.findAllWithRelations(filters);
+            const safeFilters = { ...filters, empresa_id };
+            const entities = await this.repository.findAllWithRelations(safeFilters);
             const listItems = mapEntitiesToListItems(entities as any);
             return ok(listItems);
         } catch (error) {
@@ -74,8 +75,13 @@ export class VehiculoService {
      * @param id - ID tipado del vehículo
      * @returns Response del vehículo o error NotFound
      */
-    async getById(id: VehiculoId): Promise<Result<VehiculoResponse, NotFoundError>> {
+    async getById(empresa_id: string, id: VehiculoId): Promise<Result<VehiculoResponse, NotFoundError>> {
         const entity = await this.repository.findByIdWithFullRelations(id);
+
+        // Tenant check
+        if (entity && entity.empresa_id !== empresa_id) {
+            return err(new NotFoundError('Vehículo', id)); // Obfuscate existence
+        }
 
         if (!entity) {
             return err(new NotFoundError('Vehículo', id));
@@ -89,8 +95,12 @@ export class VehiculoService {
      * Obtiene un vehículo por ID con configuración completa.
      * Incluye todas las relaciones anidadas.
      */
-    async getByIdWithFullConfig(id: VehiculoId): Promise<Result<VehiculoResponse, NotFoundError>> {
+    async getByIdWithFullConfig(empresa_id: string, id: VehiculoId): Promise<Result<VehiculoResponse, NotFoundError>> {
         const entity = await this.repository.findByIdWithFullConfig(id);
+
+        if (entity && entity.empresa_id !== empresa_id) {
+            return err(new NotFoundError('Vehículo', id));
+        }
 
         if (!entity) {
             return err(new NotFoundError('Vehículo', id));
@@ -104,8 +114,12 @@ export class VehiculoService {
      * Busca un vehículo por placa.
      * @param placa - Placa del vehículo
      */
-    async getByPlaca(placa: string): Promise<Result<VehiculoResponse, NotFoundError>> {
+    async getByPlaca(empresa_id: string, placa: string): Promise<Result<VehiculoResponse, NotFoundError>> {
         const entity = await this.repository.findByPlaca(placa);
+
+        if (entity && entity.empresa_id !== empresa_id) {
+            return err(new NotFoundError('Vehículo con placa ' + placa));
+        }
 
         if (!entity) {
             return err(new NotFoundError('Vehículo con placa ' + placa));
@@ -173,12 +187,13 @@ export class VehiculoService {
      * @returns Response del vehículo actualizado o error
      */
     async update(
+        empresa_id: string,
         id: VehiculoId,
         dto: UpdateVehiculoDTO
     ): Promise<Result<VehiculoResponse, NotFoundError | ConflictError | BusinessError>> {
         // Verificar que existe
         const existing = await this.repository.findById(id);
-        if (!existing) {
+        if (!existing || existing.empresa_id !== empresa_id) {
             return err(new NotFoundError('Vehículo', id));
         }
 
@@ -215,9 +230,9 @@ export class VehiculoService {
      * @param id - ID tipado del vehículo
      * @returns Response del vehículo eliminado o error
      */
-    async delete(id: VehiculoId): Promise<Result<VehiculoResponse, NotFoundError | BusinessError>> {
+    async delete(empresa_id: string, id: VehiculoId): Promise<Result<VehiculoResponse, NotFoundError | BusinessError>> {
         const existing = await this.repository.findById(id);
-        if (!existing) {
+        if (!existing || existing.empresa_id !== empresa_id) {
             return err(new NotFoundError('Vehículo', id));
         }
 
@@ -253,19 +268,22 @@ export class VehiculoService {
     /**
      * @deprecated Usar getAll() que devuelve Result<VehiculoListItem[], Error>
      */
-    async getAllLegacy(filters?: VehiculoFilters): Promise<IVehiculo[]> {
-        return await this.repository.findAllWithRelations(filters);
+    async getAllLegacy(empresa_id: string, filters?: VehiculoFilters): Promise<IVehiculo[]> {
+        const safeFilters = { ...filters, empresa_id };
+        return await this.repository.findAllWithRelations(safeFilters);
     }
 
     /**
-     * @deprecated Usar getById(VehiculoId) que devuelve Result<VehiculoResponse, Error>
+     * @deprecated Usar getById(id)
      */
-    async getByIdLegacy(id: string): Promise<IVehiculo | null> {
-        return await this.repository.findById(id);
+    async getByIdLegacy(empresa_id: string, id: string): Promise<IVehiculo | null> {
+        const result = await this.getById(empresa_id, id as VehiculoId);
+        if (!result.success) return null;
+        return result.data as any; // Approximate mapping
     }
 
     /**
-     * @deprecated Usar create() que devuelve Result<VehiculoResponse, Error>
+     * @deprecated Usar create()
      */
     async createLegacy(data: CreateVehiculoDTO, empresa_id: string): Promise<IVehiculo> {
         const result = await this.create(data, empresa_id);
@@ -276,10 +294,10 @@ export class VehiculoService {
     }
 
     /**
-     * @deprecated Usar update() que devuelve Result<VehiculoResponse, Error>
+     * @deprecated Usar update()
      */
-    async updateLegacy(id: string, data: UpdateVehiculoDTO): Promise<IVehiculo> {
-        const result = await this.update(id as VehiculoId, data);
+    async updateLegacy(empresa_id: string, id: string, data: UpdateVehiculoDTO): Promise<IVehiculo> {
+        const result = await this.update(empresa_id, id as VehiculoId, data);
         if (!result.success) {
             throw result.error;
         }
@@ -287,10 +305,10 @@ export class VehiculoService {
     }
 
     /**
-     * @deprecated Usar delete() que devuelve Result<VehiculoResponse, Error>
+     * @deprecated Usar delete()
      */
-    async deleteLegacy(id: string): Promise<IVehiculo> {
-        const result = await this.delete(id as VehiculoId);
+    async deleteLegacy(empresa_id: string, id: string): Promise<IVehiculo> {
+        const result = await this.delete(empresa_id, id as VehiculoId);
         if (!result.success) {
             throw result.error;
         }

@@ -1,6 +1,7 @@
 import { prisma } from '@/lib/prisma';
 import { EstadoNeumaticoEnum } from '@prisma/client';
 import { toNumber } from '@/lib/utils/decimal';
+import { ReportesService } from './reportes.service';
 
 // ============ REPORTE INVENTARIO ============
 export interface InventarioFilters {
@@ -47,11 +48,17 @@ export interface ReporteDesechos {
 }
 
 export class DashboardService {
+    private reportesService: ReportesService;
+
+    constructor() {
+        this.reportesService = new ReportesService();
+    }
+
     /**
      * Reporte de inventario agrupado por almacén, estado y modelo
      */
-    async getReporteInventario(filters: InventarioFilters = {}): Promise<ReporteInventario> {
-        const where: any = { activo: true };
+    async getReporteInventario(empresaId: string, filters: InventarioFilters = {}): Promise<ReporteInventario> {
+        const where: any = { activo: true, empresa_id: empresaId };
         if (filters.almacen_id) where.ubicacion_almacen_id = filters.almacen_id;
         if (filters.estado) where.estado_actual = filters.estado;
         if (filters.modelo_id) where.modelo_id = filters.modelo_id;
@@ -62,19 +69,20 @@ export class DashboardService {
         // Por estado
         const porEstado = await prisma.neumatico.groupBy({
             by: ['estado_actual'],
-            where: { activo: true },
+            where: { activo: true, empresa_id: empresaId },
             _count: true
         });
 
         // Por almacén (solo los que están EN_STOCK)
         const porAlmacen = await prisma.neumatico.groupBy({
             by: ['ubicacion_almacen_id'],
-            where: { activo: true, estado_actual: 'EN_STOCK' },
+            where: { activo: true, empresa_id: empresaId, estado_actual: { in: ['EN_STOCK'] } }, // Fixed string logic
             _count: true
         });
 
         // Obtener nombres de almacenes
         const almacenes = await prisma.almacen.findMany({
+            where: { empresa_id: empresaId },
             select: { id: true, nombre: true }
         });
         const almacenMap = new Map(almacenes.map(a => [a.id, a.nombre]));
@@ -125,10 +133,11 @@ export class DashboardService {
     /**
      * Reporte de rendimiento: mejores y peores neumáticos por CPK
      */
-    async getReporteRendimiento(limit: number = 10): Promise<ReporteRendimiento> {
+    async getReporteRendimiento(empresaId: string, limit: number = 10): Promise<ReporteRendimiento> {
         // Obtener neumáticos con km > 0 para calcular CPK
         const neumaticos = await prisma.neumatico.findMany({
             where: {
+                empresa_id: empresaId,
                 kilometraje_acumulado: { gt: 0 },
                 activo: true
             },
@@ -176,15 +185,22 @@ export class DashboardService {
     /**
      * Reporte de desechos: análisis por motivo
      */
-    async getReporteDesechos(): Promise<ReporteDesechos> {
+    async getReporteDesechos(empresaId: string): Promise<ReporteDesechos> {
         // Contar desechados
         const total = await prisma.neumatico.count({
-            where: { estado_actual: 'DESECHADO' }
+            where: { estado_actual: 'DESECHADO', empresa_id: empresaId }
         });
 
-        // Eventos de desecho con motivo
+        // Eventos de desecho con motivo (Filtered by neumatico.empresa_id relation)
+        // Wait, EventoNeumatico does NOT have empresa_id. It belongs to Neumatico.
+        // We need to filter events where neumatico.empresa_id = X
         const eventosDesecho = await prisma.eventoNeumatico.findMany({
-            where: { tipo_evento: 'DESECHO' },
+            where: {
+                tipo_evento: 'DESECHO',
+                neumatico: {
+                    empresa_id: empresaId
+                }
+            },
             include: {
                 motivo_desecho: { select: { descripcion: true } }
             }
@@ -219,14 +235,29 @@ export class DashboardService {
             })).sort((a, b) => a.mes.localeCompare(b.mes))
         };
     }
-    async getGeneralStats() {
-        // Ejecutar counts en paralelo para performance
-        const [totalNeumaticos, vehiculosActivos, alertasPendientes, operacionesHoy] = await Promise.all([
-            prisma.neumatico.count({ where: { activo: true } }),
-            prisma.vehiculo.count({ where: { activo: true } }),
-            prisma.alerta.count({ where: { leida: false } }),
+
+    async getGeneralStats(empresaId: string) {
+        // Centralize logic: Reuse ReportesService for fleet stats
+        const fleetStatus = await this.reportesService.getFlotaStatus(empresaId);
+
+        // Fetch additional Dashboard-specific metrics not in Reportes
+        const [alertasPendientes, operacionesHoy] = await Promise.all([
+            // Alerta has neumatico/vehiculo relations but no direct empresa_id? 
+            // Checking schema... Alerta has neumatico and vehiculo relations.
+            // We need to filter where neumatico.empresa_id = X or vehiculo.empresa_id = X
+            prisma.alerta.count({
+                where: {
+                    leida: false,
+                    OR: [
+                        { neumatico: { empresa_id: empresaId } },
+                        { vehiculo: { empresa_id: empresaId } }
+                    ]
+                }
+            }),
+            // EventoNeumatico: filter by neumatico.empresa_id
             prisma.eventoNeumatico.count({
                 where: {
+                    neumatico: { empresa_id: empresaId },
                     fecha_evento: {
                         gte: new Date(new Date().setHours(0, 0, 0, 0))
                     }
@@ -235,8 +266,8 @@ export class DashboardService {
         ]);
 
         return {
-            totalNeumaticos,
-            vehiculosActivos,
+            totalNeumaticos: fleetStatus.neumaticos.total,
+            vehiculosActivos: fleetStatus.vehiculos.total,
             alertasPendientes,
             operacionesHoy
         };

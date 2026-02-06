@@ -212,6 +212,14 @@ enum TipoEventoNeumaticoEnum {
   AJUSTE_INVENTARIO
 }
 
+enum TipoProveedorEnum {
+  FABRICANTE
+  DISTRIBUIDOR
+  SERVICIO_REPARACION
+  SERVICIO_REENCAUCHE
+  OTRO
+}
+
 enum FuenteLectura {
   MANUAL
   SENSOR_TPMS
@@ -220,9 +228,7 @@ enum FuenteLectura {
 enum TipoEjeEnum {
   DIRECCION
   TRACCION
-  ARRASTRE
-  ELEVADOR
-  OTRO
+  ARRASTRE // Ejes libres de carretas
 }
 ```
 

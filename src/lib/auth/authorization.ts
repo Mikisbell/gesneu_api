@@ -1,20 +1,15 @@
 import { auth } from './auth';
 import { Permission } from './permissions';
+import { Session } from 'next-auth';
+import { headers } from 'next/headers';
+import { DEFAULT_TENANT_ID } from '@/lib/constants';
 
 /**
  * Extended session with roles and permissions
+ * (Using type from next-auth module augmentation)
  */
-export interface ExtendedSession {
-    user: {
-        id: string;
-        name?: string | null;
-        email?: string | null;
-        username: string;
-        roles: string[];
-        permissions: string[];
-        empresa_id?: string;  // Multi-tenancy - empresa del usuario
-    };
-}
+export type ExtendedSession = Session;
+
 
 /**
  * Get the current user session with authentication check
