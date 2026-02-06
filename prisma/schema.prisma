@@ -70,6 +70,7 @@ model Usuario {
   lecturas_realizadas LecturaPresion[]
   webhooks_creados    WebhookConfig[]
   auditoria_logs      AuditoriaLog[]
+  inspecciones        Inspeccion[]  // Fase 6B: Inspecciones realizadas
 
   @@map("usuarios")
 }
@@ -215,6 +216,7 @@ model Neumatico {
   lecturas_presion       LecturaPresion[]
   garantias              GarantiaNeumatico[]
   mediciones_profundidad MedicionProfundidad[]
+  inspecciones           Inspeccion[]  // Fase 6B: Historial de inspecciones
 
   // === ÍNDICES ===
   @@unique([empresa_id, numero_serie], name: "unique_numero_serie_per_empresa")
@@ -514,6 +516,37 @@ enum CategoriaFalla {
   FATIGA    // Desgaste natural del compuesto
   MECANICA  // Falla del vehículo que daña neumático
   OPERACION // Error humano (sobrecarga, impactos)
+}
+
+// ✅ Fase 6B: Módulo de Inspecciones Digitalizadas
+model Inspeccion {
+  id              String         @id @default(uuid()) @db.Uuid
+  neumatico_id    String         @db.Uuid
+  vehiculo_id     String?        @db.Uuid
+  posicion_codigo String?        @db.VarChar(10) // Código de posición al momento de inspección
+  empresa_id      String         @db.Uuid
+  
+  psi_medido      Decimal        @db.Decimal(6, 2) // Presión medida en PSI
+  mm_medido       Decimal        @db.Decimal(4, 2) // Profundidad en mm (promedio)
+  mm_interior     Decimal?       @db.Decimal(4, 2) // Profundidad interior
+  mm_centro       Decimal?       @db.Decimal(4, 2) // Profundidad centro
+  mm_exterior     Decimal?       @db.Decimal(4, 2) // Profundidad exterior
+  
+  foto_url        String?        // URL de foto del neumático
+  observaciones   String?        // Notas del inspector
+  
+  fuente          FuenteLectura  @default(MANUAL)
+  inspector_id    String         @db.Uuid
+  fecha_inspeccion DateTime      @default(now()) @db.Timestamptz(6)
+  creado_en       DateTime       @default(now()) @db.Timestamptz(6)
+
+  // Relaciones
+  neumatico       Neumatico      @relation(fields: [neumatico_id], references: [id])
+  inspector       Usuario        @relation(fields: [inspector_id], references: [id])
+
+  @@index([neumatico_id])
+  @@index([empresa_id, fecha_inspeccion])
+  @@map("inspecciones")
 }
 
 // --- ENUMS ---
