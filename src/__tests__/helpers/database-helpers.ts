@@ -16,7 +16,7 @@ export async function getOrCreateTestEnterprise() {
     const empresa = await prisma.empresa.create({
         data: {
             nombre: `Test Enterprise ${Date.now()}`,
-            ruc: `TEST-${Date.now()}-${Math.random().toString(36).substr(2, 5)}`,
+            ruc: `TEST${Date.now()}`.substring(0, 20),
         }
     });
     return empresa;
@@ -43,6 +43,16 @@ export async function cleanTestData() {
 
         // Delete alertas (FK to neumatico)
         await prisma.alerta.deleteMany({
+            where: { neumatico_id: { in: testNeumaticoIds } }
+        });
+
+        // ✅ FIX: Delete lecturas_presion (FK to neumatico)
+        await prisma.lecturaPresion.deleteMany({
+            where: { neumatico_id: { in: testNeumaticoIds } }
+        });
+
+        // ✅ FIX: Delete inspecciones (FK to neumatico)
+        await prisma.inspeccion.deleteMany({
             where: { neumatico_id: { in: testNeumaticoIds } }
         });
     }
@@ -145,7 +155,20 @@ export async function createTestNeumatico(modeloIdOrOverrides?: string | any, em
         empresa_id = (await getOrCreateTestEnterprise()).id;
     }
 
-
+    return await prisma.neumatico.create({
+        data: {
+            numero_serie: `TEST-${Date.now()}-${Math.random().toString(36).substr(2, 5)}`,
+            modelo_id,
+            fecha_compra: new Date(),
+            profundidad_original_mm: 18,
+            profundidad_remanente_actual_mm: 18,
+            estado_actual: 'EN_STOCK',
+            costo_compra: 0,
+            kilometraje_acumulado: 0,
+            activo: true,
+            ...overrides
+        }
+    });
 }
 
 /**
@@ -162,11 +185,11 @@ export async function createTestVehiculo(overrides: any = {}) {
     const vehiculo = await prisma.vehiculo.create({
         data: {
             placa: `TEST-${Date.now()}`,
+            numero_economico: `ECO-${Date.now()}`,
             tipo_vehiculo_id: tipoVehiculo.id,
             marca: 'Test Brand',
-            modelo: 'Test Model',
-            anio: 2024,
-            activo: true,
+            modelo_vehiculo: 'Test Model',
+            anio_fabricacion: 2024,
             empresa_id: (await getOrCreateTestEnterprise()).id,
             ...overrides
         }

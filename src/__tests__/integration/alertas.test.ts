@@ -28,6 +28,7 @@ async function createTestNeumatico(overrides: any = {}) {
         data: {
             numero_serie: 'TEST-' + Date.now(),
             modelo_id: modelo.id,
+            fecha_compra: new Date(),
             profundidad_original_mm: 18,
             profundidad_remanente_actual_mm: 18,
             estado_actual: 'EN_STOCK',

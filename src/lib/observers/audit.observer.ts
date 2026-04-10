@@ -11,16 +11,18 @@ import type {
     RetreadSentPayload,
     RetreadReturnedPayload
 } from '../events/neumatico.events';
+import { prisma } from '@/lib/prisma';
 
 /**
  * AuditObserver
- * 
+ *
  * Responsibilities:
  * - Log ALL tire operation events to console for debugging
- * - Future: Persist to audit_log table for compliance
+ * - Persist to auditoria_log table for compliance and audit trail
  * - Future: Stream to external analytics platforms (Mixpanel, Amplitude)
- * 
+ *
  * Design Principle: Read-only observer. Never modifies data.
+ * DB write failures are caught and logged to prevent breaking the main operation.
  */
 export class AuditObserver {
     static init() {
@@ -46,6 +48,7 @@ export class AuditObserver {
 
     /**
      * Universal event logger
+     * Persists to database AND logs to console for development
      * Safe: All exceptions are caught to prevent observer failures from breaking system
      */
     private static async logEvent(event: DomainEvent<any>) {
@@ -66,18 +69,20 @@ export class AuditObserver {
                 ...(payload.motivoTexto && { motivoTexto: payload.motivoTexto })
             });
 
-            // TODO: Phase 2 - Persist to database
-            // await prisma.auditLog.create({
-            //     data: {
-            //         evento_tipo: type,
-            //         entidad_tipo: 'NEUMATICO',
-            //         entidad_id: payload.neumaticoId,
-            //         empresa_id: payload.empresaId,
-            //         usuario_id: payload.usuarioId,
-            //         metadata: payload,
-            //         timestamp: timestamp
-            //     }
-            // });
+            // Persist to database (fire-and-forget, errors caught below)
+            await prisma.auditoriaLog.create({
+                data: {
+                    esquema_tabla: 'public',
+                    nombre_tabla: 'neumaticos',
+                    operacion: this.mapEventTypeToOperation(type),
+                    usuario_app_id: payload.usuarioId ?? null,
+                    usuario_app: payload.usuarioId ?? null,
+                    entidad_id: payload.neumaticoId ?? null,
+                    datos_antiguos: payload.datosAntiguos ?? null,
+                    datos_nuevos: payload.datosNuevos ?? null,
+                    cambios: payload.cambios ?? payload.metadata ?? null,
+                }
+            });
 
             // TODO: Phase 3 - Send to external analytics
             // await analytics.track(payload.usuarioId, type, payload);
@@ -86,5 +91,15 @@ export class AuditObserver {
             // Observer failures should NEVER break the main system
             console.error(`❌ [AuditObserver] Failed to log event: ${error.message}`);
         }
+    }
+
+    /**
+     * Map event type names to audit operation types
+     */
+    private static mapEventTypeToOperation(eventType: string): string {
+        const lower = eventType.toLowerCase();
+        if (lower.includes('purchase') || lower.includes('compra')) return 'INSERT';
+        if (lower.includes('scrap') || lower.includes('desecho') || lower.includes('delete')) return 'DELETE';
+        return 'UPDATE';
     }
 }

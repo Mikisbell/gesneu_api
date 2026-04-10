@@ -24,6 +24,16 @@ describe('POST /api/v1/operaciones/montaje - E2E (requires seed data)', () => {
             where: { username: 'admin' }
         });
 
+        // Get or create test enterprise
+        let testEmpresa = await prisma.empresa.findFirst({
+            where: { ruc: { startsWith: 'TEST_E2E' } }
+        });
+        if (!testEmpresa) {
+            testEmpresa = await prisma.empresa.create({
+                data: { nombre: 'Test E2E Enterprise', ruc: `TEST_E2E_${Date.now()}`.substring(0, 20) }
+            });
+        }
+
         // Create test vehicle
         const tipoVehiculo = await prisma.tipoVehiculo.findFirst();
         if (!tipoVehiculo) {
@@ -38,7 +48,7 @@ describe('POST /api/v1/operaciones/montaje - E2E (requires seed data)', () => {
                 marca: 'Test',
                 modelo_vehiculo: 'Test Model',
                 numero_economico: `TE2E-${Date.now()}`,
-                empresa_id: '00000000-0000-0000-0000-000000000000',
+                empresa_id: testEmpresa.id,
                 odometro_actual: 50000,
             }
         });
@@ -63,7 +73,7 @@ describe('POST /api/v1/operaciones/montaje - E2E (requires seed data)', () => {
                 kilometraje_acumulado: 0,
                 ubicacion_almacen_id: almacen.id,
                 fecha_compra: new Date(),
-                empresa_id: '00000000-0000-0000-0000-000000000000'
+                empresa_id: testEmpresa.id
             }
         });
     });

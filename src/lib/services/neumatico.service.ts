@@ -270,6 +270,247 @@ export class NeumaticoService {
         return result.data;
     }
 
+    /**
+     * Ejecuta una rotación multi-neumático como transacción atómica.
+     *
+     * Patrón enterprise: todos los movimientos se validan antes de ejecutar,
+     * y se procesan dentro de una sola transacción para garantizar atomicidad.
+     * Si cualquier movimiento falla, toda la operación se revierte.
+     */
+    async ejecutarRotacion(
+        rotacionInput: {
+            vehiculo_id: string;
+            contador_vehiculo: number;
+            movimientos: Array<{ neumatico_id: string; posicion_destino_id: string }>;
+            observaciones?: string;
+        },
+        userId: string,
+        empresa_id: string
+    ): Promise<{ movimientos_procesados: number; eventos_creados: string[] }> {
+        const { vehiculo_id, contador_vehiculo, movimientos, observaciones } = rotacionInput;
+        const now = new Date();
+
+        // ============================================================
+        // FASE 1: VALIDACIÓN PRE-FLIGHT (todo antes de la transacción)
+        // ============================================================
+
+        // 1.1. Validar que todos los neumáticos existen, están INSTALADOS y pertenecen a la empresa
+        const neumaticosData = await prisma.neumatico.findMany({
+            where: {
+                id: { in: movimientos.map(m => m.neumatico_id) },
+                empresa_id,
+                estado_actual: 'INSTALADO',
+                activo: true
+            },
+            select: {
+                id: true,
+                numero_serie: true,
+                es_reencauchado: true,
+                ubicacion_posicion_id: true,
+                ubicacion_vehiculo_id: true
+            }
+        });
+
+        if (neumaticosData.length !== movimientos.length) {
+            const foundIds = new Set(neumaticosData.map(n => n.id));
+            const missingIds = movimientos.map(m => m.neumatico_id).filter(id => !foundIds.has(id));
+            throw new Error(
+                `Neumáticos no encontrados o no instalados: ${missingIds.map(id => id.slice(0, 8)).join(', ')}`
+            );
+        }
+
+        // 1.2. Validar que todos pertenecen al mismo vehículo
+        const vehicleIds = new Set(neumaticosData.map(n => n.ubicacion_vehiculo_id));
+        if (vehicleIds.size !== 1 || !vehicleIds.has(vehiculo_id)) {
+            throw new Error('Todos los neumáticos deben pertenecer al mismo vehículo especificado');
+        }
+
+        // 1.3. Validar que no haya posiciones destino duplicadas
+        const destinoIds = movimientos.map(m => m.posicion_destino_id);
+        const uniqueDestinos = new Set(destinoIds);
+        if (uniqueDestinos.size !== destinoIds.length) {
+            throw new Error('Hay posiciones destino duplicadas en los movimientos');
+        }
+
+        // 1.4. Cargar todas las posiciones destino y validar política de reencauche
+        const posicionesDestino = await prisma.posicionNeumatico.findMany({
+            where: { id: { in: destinoIds } },
+            include: { configuracion_eje: true }
+        });
+
+        const posMap = new Map<string, typeof posicionesDestino[number]>(posicionesDestino.map(p => [p.id, p]));
+
+        for (const movimiento of movimientos) {
+            const pos = posMap.get(movimiento.posicion_destino_id);
+            if (!pos) {
+                throw new Error(`Posición destino no encontrada: ${movimiento.posicion_destino_id.slice(0, 8)}`);
+            }
+
+            const neumData = neumaticosData.find(n => n.id === movimiento.neumatico_id)!;
+            if (neumData.es_reencauchado && !pos.configuracion_eje.permite_reencauchados) {
+                throw new Error(
+                    `Neumático reencauchado ${neumData.numero_serie?.slice(0, 12)} no puede ir a posición ${pos.codigo_posicion} (eje ${pos.configuracion_eje.nombre_eje} no permite reencauchados)`
+                );
+            }
+        }
+
+        // 1.5. Cargar neumáticos que están en las posiciones destino (para swap)
+        const ocupantesEnDestino = await prisma.neumatico.findMany({
+            where: {
+                ubicacion_posicion_id: { in: destinoIds },
+                activo: true,
+                estado_actual: 'INSTALADO'
+            },
+            select: {
+                id: true,
+                numero_serie: true,
+                es_reencauchado: true,
+                ubicacion_posicion_id: true
+            }
+        });
+
+        const ocupanteMap = new Map<string, typeof ocupantesEnDestino[number]>(ocupantesEnDestino.map(o => [o.ubicacion_posicion_id!, o]));
+
+        // 1.6. Validar swap: si un ocupante va a volver a la posición origen del que llega,
+        //      verificar que la posición origen permita reencauchados (si aplica)
+        const origenPosIds = neumaticosData
+            .map(n => n.ubicacion_posicion_id)
+            .filter((id): id is string => id !== null);
+
+        const origenPosiciones = await prisma.posicionNeumatico.findMany({
+            where: { id: { in: origenPosIds } },
+            include: { configuracion_eje: true }
+        });
+
+        const origenPosMap = new Map<string, typeof origenPosiciones[number]>(origenPosiciones.map(p => [p.id, p]));
+
+        for (const ocupante of ocupantesEnDestino) {
+            // ¿Cuál neumático de la rotación va a la posición del ocupante?
+            const movimientoHaciaOcupante = movimientos.find(
+                m => m.posicion_destino_id === ocupante.ubicacion_posicion_id
+            );
+
+            if (movimientoHaciaOcupante) {
+                const neumOrigen = neumaticosData.find(n => n.id === movimientoHaciaOcupante.neumatico_id)!;
+                const posOrigenDelOcupante = neumOrigen.ubicacion_posicion_id;
+
+                if (posOrigenDelOcupante && ocupante.es_reencauchado) {
+                    const posOrigen = origenPosMap.get(posOrigenDelOcupante);
+                    if (posOrigen && !posOrigen.configuracion_eje.permite_reencauchados) {
+                        throw new Error(
+                            `Swap inválido: reencauchado ${ocupante.numero_serie?.slice(0, 12)} no puede volver a posición ${posOrigen.codigo_posicion}`
+                        );
+                    }
+                }
+            }
+        }
+
+        // ============================================================
+        // FASE 2: EJECUCIÓN ATÓMICA (todo o nada)
+        // ============================================================
+
+        const eventosCreados: string[] = [];
+
+        await prisma.$transaction(async (tx) => {
+            for (const movimiento of movimientos) {
+                const { neumatico_id, posicion_destino_id } = movimiento;
+                const neumData = neumaticosData.find(n => n.id === neumatico_id)!;
+                const origenPosId = neumData.ubicacion_posicion_id;
+
+                // Registrar evento de rotación
+                const evento = await tx.eventoNeumatico.create({
+                    data: {
+                        tipo_evento: 'ROTACION',
+                        neumatico_id,
+                        fecha_evento: now,
+                        contador_vehiculo,
+                        vehiculo_id,
+                        posicion_montaje_id: posicion_destino_id,
+                        notas: observaciones || null,
+                        creado_por: userId
+                    }
+                });
+                eventosCreados.push(evento.id);
+
+                // Actualizar posición del neumático
+                await tx.neumatico.update({
+                    where: { id: neumatico_id },
+                    data: {
+                        ubicacion_posicion_id: posicion_destino_id,
+                        kilometraje_acumulado: contador_vehiculo,
+                        actualizado_en: now
+                    }
+                });
+            }
+
+            // Procesar swaps: los ocupantes de posiciones destino van a las posiciones origen
+            for (const ocupante of ocupantesEnDestino) {
+                const movimientoHaciaOcupante = movimientos.find(
+                    m => m.posicion_destino_id === ocupante.ubicacion_posicion_id
+                );
+
+                if (movimientoHaciaOcupante) {
+                    const neumOrigen = neumaticosData.find(n => n.id === movimientoHaciaOcupante.neumatico_id)!;
+                    const posOrigenDelOcupante = neumOrigen.ubicacion_posicion_id;
+
+                    if (posOrigenDelOcupante) {
+                        // Registrar evento de rotación para el ocupante
+                        const eventoSwap = await tx.eventoNeumatico.create({
+                            data: {
+                                tipo_evento: 'ROTACION',
+                                neumatico_id: ocupante.id,
+                                fecha_evento: now,
+                                contador_vehiculo,
+                                vehiculo_id,
+                                posicion_montaje_id: posOrigenDelOcupante,
+                                notas: `Intercambio automático con ${neumOrigen.numero_serie}`,
+                                creado_por: userId
+                            }
+                        });
+                        eventosCreados.push(eventoSwap.id);
+
+                        // Mover ocupante a posición origen
+                        await tx.neumatico.update({
+                            where: { id: ocupante.id },
+                            data: {
+                                ubicacion_posicion_id: posOrigenDelOcupante,
+                                actualizado_en: now
+                            }
+                        });
+                    }
+                }
+            }
+        });
+
+        // ============================================================
+        // FASE 3: POST-CONDICIÓN (eventos y alertas post-rotación)
+        // ============================================================
+
+        // Disparar evento EventBus para observers (audit, analytics, etc.)
+        try {
+            const { EventBus } = await import('@/lib/events/core');
+            const { NeumaticoUpdateEvent } = await import('@/lib/events/neumatico.events');
+
+            for (const movimiento of movimientos) {
+                const neumData = neumaticosData.find(n => n.id === movimiento.neumatico_id)!;
+                EventBus.getInstance().emit(new NeumaticoUpdateEvent(
+                    empresa_id,
+                    neumData.id,
+                    { ...neumData, ubicacion_posicion_id: movimiento.posicion_destino_id },
+                    'ROTACION'
+                ));
+            }
+        } catch (postError) {
+            // Log but don't fail the rotation if post-conditions fail
+            console.error('[Rotacion] Post-condition event failed:', postError);
+        }
+
+        return {
+            movimientos_procesados: movimientos.length,
+            eventos_creados: eventosCreados
+        };
+    }
+
     async getHistorialPresion(empresa_id: string, id: string) {
         // Implementation kept separate or could be moved to Helper/HistoryService
         const check = await this.repository.findById(asNeumaticoId(id));

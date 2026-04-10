@@ -4,15 +4,15 @@ import { NeumaticoService } from '@/lib/services/neumatico.service';
 import { UsuarioService } from '@/lib/services/usuario.service';
 import { VehiculoId, EmpresaId, UsuarioId } from '@/types/branded.types';
 import { CreateVehiculoDTO } from '@/types/domain/vehiculo.types';
-import { v4 as uuidv4 } from 'uuid';
+import { randomUUID } from 'crypto';
 
 describe('Multi-tenant Isolation', () => {
     const vehiculoService = new VehiculoService();
     const neumaticoService = new NeumaticoService();
     const usuarioService = new UsuarioService();
 
-    const tenantA = uuidv4() as EmpresaId;
-    const tenantB = uuidv4() as EmpresaId;
+    const tenantA = randomUUID() as EmpresaId;
+    const tenantB = randomUUID() as EmpresaId;
 
     let userAId: UsuarioId;
     let userBId: UsuarioId;
@@ -37,8 +37,8 @@ describe('Multi-tenant Isolation', () => {
         });
 
         // Initialize User IDs (Mocked)
-        userAId = uuidv4() as UsuarioId;
-        userBId = uuidv4() as UsuarioId;
+        userAId = randomUUID() as UsuarioId;
+        userBId = randomUUID() as UsuarioId;
     });
 
     afterAll(async () => {
@@ -64,7 +64,7 @@ describe('Multi-tenant Isolation', () => {
 
             // Using valid schema fields for TipoVehiculo
             const tipo = await prisma.tipoVehiculo.create({
-                data: { nombre: 'Truck ' + uuidv4().substring(0, 8) }
+                data: { nombre: 'Truck ' + randomUUID().substring(0, 8) }
             });
             dto.tipo_vehiculo_id = tipo.id;
 

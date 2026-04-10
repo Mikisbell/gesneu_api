@@ -16,7 +16,7 @@ describe("Alertas Dinamicas de Presion", () => {
     beforeAll(async () => {
         // Setup data
         const empresa = await prisma.empresa.create({
-            data: { nombre: "Test Alertas Corp", ruc: "20123456789" }
+            data: { nombre: "Test Alertas Corp", ruc: `20${Date.now()}123456789`.substring(0, 20) }
         });
         empresaId = empresa.id;
 
@@ -52,7 +52,7 @@ describe("Alertas Dinamicas de Presion", () => {
         const alm = await prisma.almacen.create({
             data: {
                 empresa_id: empresa.id,
-                codigo: "ALM-TEST-ALERT",
+                codigo: `ALM-ALERT-${Date.now().toString().slice(-8)}`,
                 nombre: "Almacen Test"
             }
         });
@@ -60,16 +60,21 @@ describe("Alertas Dinamicas de Presion", () => {
     });
 
     afterAll(async () => {
-        // Cleanup
-        // Cleanup robusto
-        await prisma.alerta.deleteMany({ where: { neumatico: { modelo: { fabricante_id: fabricanteId } } } });
-        await prisma.eventoNeumatico.deleteMany({ where: { neumatico: { modelo: { fabricante_id: fabricanteId } } } });
-        await prisma.lecturaPresion.deleteMany({ where: { neumatico: { modelo: { fabricante_id: fabricanteId } } } });
-        await prisma.neumatico.deleteMany({ where: { modelo: { fabricante_id: fabricanteId } } });
-        await prisma.modeloNeumatico.deleteMany({ where: { fabricante_id: fabricanteId } });
-        await prisma.fabricanteNeumatico.delete({ where: { id: fabricanteId } });
-        await prisma.usuario.delete({ where: { id: usuarioId } });
-        await prisma.empresa.delete({ where: { id: empresaId } });
+        // Cleanup robusto - only if IDs were set
+        if (fabricanteId) {
+            await prisma.alerta.deleteMany({ where: { neumatico: { modelo: { fabricante_id: fabricanteId } } } }).catch(() => {});
+            await prisma.eventoNeumatico.deleteMany({ where: { neumatico: { modelo: { fabricante_id: fabricanteId } } } }).catch(() => {});
+            await prisma.lecturaPresion.deleteMany({ where: { neumatico: { modelo: { fabricante_id: fabricanteId } } } }).catch(() => {});
+            await prisma.neumatico.deleteMany({ where: { modelo: { fabricante_id: fabricanteId } } }).catch(() => {});
+            await prisma.modeloNeumatico.deleteMany({ where: { fabricante_id: fabricanteId } }).catch(() => {});
+            await prisma.fabricanteNeumatico.delete({ where: { id: fabricanteId } }).catch(() => {});
+        }
+        if (usuarioId) {
+            await prisma.usuario.delete({ where: { id: usuarioId } }).catch(() => {});
+        }
+        if (empresaId) {
+            await prisma.empresa.delete({ where: { id: empresaId } }).catch(() => {});
+        }
     });
 
     it("Debe generar alerta CRITICAL si presion (70) < 80% de recomendada (100)", async () => {

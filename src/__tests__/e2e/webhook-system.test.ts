@@ -18,15 +18,15 @@ describe('System E2E: Webhooks & Alerts Flow', () => {
     beforeAll(async () => {
         // 1. Crear Empresa y Usuario Admin
         const empresa = await prisma.empresa.create({
-            data: { nombre: 'E2E Corp', ruc: '20999999999' }
+            data: { nombre: 'E2E Corp', ruc: `20${Date.now()}999`.substring(0, 20) }
         });
         empresaId = empresa.id;
 
         const usuario = await prisma.usuario.create({
             data: {
                 empresa_id: empresa.id,
-                username: 'admin_e2e',
-                email: 'admin_e2e@test.com',
+                username: `admin_e2e_${Date.now()}`,
+                email: `admin_e2e_${Date.now()}@test.com`,
                 password_hash: 'hash',
                 nombre_completo: 'Admin E2E'
             }
@@ -41,6 +41,7 @@ describe('System E2E: Webhooks & Alerts Flow', () => {
                 secret: 'e2e_secret_key',
                 eventos: [WebhookEventType.ALERTA_CRITICAL], // Suscrito a alertas críticas
                 activo: true,
+                empresa_id: empresaId,
                 creado_por: usuarioId
             }
         });
@@ -75,20 +76,29 @@ describe('System E2E: Webhooks & Alerts Flow', () => {
     });
 
     afterAll(async () => {
-        // Cleanup en orden inverso
-        await prisma.webhookJob.deleteMany({ where: { webhook_id: webhookId } });
-        await prisma.webhookConfig.delete({ where: { id: webhookId } });
-
-        await prisma.alerta.deleteMany({ where: { neumatico_id: neumaticoId } });
-        await prisma.eventoNeumatico.deleteMany({ where: { neumatico_id: neumaticoId } });
-        await prisma.lecturaPresion.deleteMany({ where: { neumatico_id: neumaticoId } });
-
-        await prisma.neumatico.delete({ where: { id: neumaticoId } });
-        await prisma.modeloNeumatico.delete({ where: { id: modeloId } });
-        await prisma.fabricanteNeumatico.delete({ where: { id: fabricanteId } });
-
-        await prisma.usuario.delete({ where: { id: usuarioId } });
-        await prisma.empresa.delete({ where: { id: empresaId } });
+        // Cleanup en orden inverso - with guards for undefined IDs
+        if (webhookId) {
+            await prisma.webhookJob.deleteMany({ where: { webhook_id: webhookId } }).catch(() => {});
+            await prisma.webhookConfig.delete({ where: { id: webhookId } }).catch(() => {});
+        }
+        if (neumaticoId) {
+            await prisma.alerta.deleteMany({ where: { neumatico_id: neumaticoId } }).catch(() => {});
+            await prisma.eventoNeumatico.deleteMany({ where: { neumatico_id: neumaticoId } }).catch(() => {});
+            await prisma.lecturaPresion.deleteMany({ where: { neumatico_id: neumaticoId } }).catch(() => {});
+            await prisma.neumatico.delete({ where: { id: neumaticoId } }).catch(() => {});
+        }
+        if (modeloId) {
+            await prisma.modeloNeumatico.delete({ where: { id: modeloId } }).catch(() => {});
+        }
+        if (fabricanteId) {
+            await prisma.fabricanteNeumatico.delete({ where: { id: fabricanteId } }).catch(() => {});
+        }
+        if (usuarioId) {
+            await prisma.usuario.delete({ where: { id: usuarioId } }).catch(() => {});
+        }
+        if (empresaId) {
+            await prisma.empresa.delete({ where: { id: empresaId } }).catch(() => {});
+        }
 
         await prisma.$disconnect();
     });

@@ -115,7 +115,10 @@ describe('Neumáticos API Integration Tests', () => {
                 dot: '2024',
                 profundidad_original_mm: 18.0,
                 ubicacion_almacen_id: almacen.id,
-                costo_compra: 450.00
+                profundidad_original_mm: 18.0,
+                ubicacion_almacen_id: almacen.id,
+                costo_compra: 450.00,
+                fecha_compra: new Date().toISOString() // Required by schema
             };
 
             const req = new NextRequest(BASE_URL, {
@@ -124,6 +127,10 @@ describe('Neumáticos API Integration Tests', () => {
             });
             const res = await POST(req, {} as any);
 
+            if (res.status !== 201) {
+                const errorData = await res.json();
+                throw new Error(`POST Failed with ${res.status}: ${JSON.stringify(errorData, null, 2)}`);
+            }
             expect(res.status).toBe(201);
             const data = await res.json();
             expect(data.data.numero_serie).toBe(newNeumatico.numero_serie);
