@@ -41,18 +41,19 @@ export interface EvaluacionVehiculo {
     neumaticos: NeumaticoEvaluado[];
 }
 
-type NeumaticoParaEvaluacion = {
-    id: string;
-    numero_serie: string | null;
-    profundidad_remanente_actual_mm: Prisma.Decimal;
-    presion_actual_psi: Prisma.Decimal | null;
-    modelo: {
-        nombre_modelo: string;
-        presion_recomendada_psi: Prisma.Decimal | null;
-        fabricante: { nombre: string };
+/**
+ * Tipo derivado de la query de Prisma que hace emitirCertificadoOperatividad().
+ * Usar Prisma.NeumaticoGetPayload garantiza que el tipo siempre esté alineado
+ * con el schema real. Si el schema cambia, TypeScript detecta el breakage.
+ */
+type NeumaticoParaEvaluacion = Prisma.NeumaticoGetPayload<{
+    include: {
+        modelo: {
+            include: { fabricante: true };
+        };
+        ubicacion_posicion: true;
     };
-    ubicacion_posicion: { codigo: string } | null;
-};
+}>;
 
 /**
  * Evalúa el estado de operatividad de cada neumático del vehículo y computa
@@ -123,7 +124,7 @@ export function evaluarOperatividadVehiculo(
         return {
             neumatico_id: n.id,
             numero_serie: n.numero_serie,
-            posicion: n.ubicacion_posicion?.codigo ?? 'SIN POSICIÓN',
+            posicion: n.ubicacion_posicion?.codigo_posicion ?? 'SIN POSICIÓN',
             marca: n.modelo.fabricante.nombre,
             modelo: n.modelo.nombre_modelo,
             profundidad_mm: profundidad,
@@ -290,9 +291,9 @@ export async function emitirCertificadoOperatividad(params: {
                     evaluacion,
                     inspeccion: ultimaInspeccion
                         ? {
-                              fecha: ultimaInspeccion.fecha_inspeccion.toISOString(),
-                              inspector: ultimaInspeccion.inspector?.nombre_completo ?? 'N/A',
-                          }
+                            fecha: ultimaInspeccion.fecha_inspeccion.toISOString(),
+                            inspector: ultimaInspeccion.inspector?.nombre_completo ?? 'N/A',
+                        }
                         : null,
                 };
 
