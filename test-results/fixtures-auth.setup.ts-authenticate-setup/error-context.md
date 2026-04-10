@@ -12,11 +12,10 @@
         - text: Email o Usuario
         - textbox "Email o Usuario" [ref=e19]:
           - /placeholder: admin@gesneu.com
-          - text: admin
       - generic [ref=e20]:
         - text: Contraseña
         - generic [ref=e21]:
-          - textbox "••••••••" [ref=e22]: admin123
+          - textbox "••••••••" [ref=e22]
           - button "Mostrar contraseña" [ref=e23] [cursor=pointer]:
             - img
             - generic [ref=e24]: Mostrar contraseña
@@ -26,11 +25,5 @@
       - link "Recuperar acceso" [ref=e28] [cursor=pointer]:
         - /url: "#"
   - button "Open Next.js Dev Tools" [ref=e34] [cursor=pointer]:
-    - generic [ref=e37]:
-      - text: Compiling
-      - generic [ref=e38]:
-        - generic [ref=e39]: .
-        - generic [ref=e40]: .
-        - generic [ref=e41]: .
-  - alert [ref=e42]
+    - img [ref=e35]
 ```

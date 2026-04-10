@@ -31,16 +31,22 @@ async function createTestNeumatico(overrides: any = {}) {
         }
     });
 
+    const empresa = await prisma.empresa.create({
+        data: { nombre: `Test Dash ${Date.now()}`, ruc: `TEST-DSH-${Date.now()}`.substring(0, 20) }
+    });
+
     return await prisma.neumatico.create({
         data: {
             numero_serie: 'TEST-' + Date.now() + Math.random(),
             modelo_id: modelo.id,
+            empresa_id: empresa.id,
             fecha_compra: new Date(),
-            profundidad_original_mm: 18,
+            profundidad_inicial_mm: 18,
             profundidad_remanente_actual_mm: 18,
             estado_actual: 'EN_STOCK',
             costo_compra: 500,
             kilometraje_acumulado: 1000,
+            activo: true,
             ...overrides
         }
     });

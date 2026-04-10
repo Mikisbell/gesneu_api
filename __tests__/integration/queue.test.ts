@@ -1,6 +1,7 @@
 import { QueueService } from '@/lib/services/queue.service';
 import { prisma } from '@/lib/prisma';
 import { WebhookEventType } from '@prisma/client';
+import { getOrCreateTestEnterprise } from '@/__tests__/helpers/database-helpers';
 
 // Mock WebhookService to avoid actual HTTP calls and circular dependency issues in test environment if any
 // But for integration test we want to use the real QueueService flow.
@@ -30,6 +31,8 @@ describe('QueueService Integration', () => {
 
     beforeAll(async () => {
         queueService = new QueueService();
+        // Create or get test enterprise first
+        const empresa = await getOrCreateTestEnterprise();
         // Crear un webhook dummy
         const wh = await prisma.webhookConfig.create({
             data: {
@@ -37,7 +40,8 @@ describe('QueueService Integration', () => {
                 url: 'http://test.local',
                 secret: 'secret',
                 eventos: ['ALL_EVENTS'],
-                activo: true
+                activo: true,
+                empresa_id: empresa.id
             }
         });
         webhookId = wh.id;

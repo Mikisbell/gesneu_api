@@ -91,13 +91,17 @@ describe("Alertas Dinamicas de Presion", () => {
             }
         });
 
-        // 2. Registrar Inspección con 70 PSI (Umbral es 80)
-        await inspeccionService.registrarManual({
-            neumatico_id: neumatico.id,
-            presion_psi: 70,
-            temperatura_c: 25,
-            observaciones: "Presión baja test"
-        }, usuarioId);
+        // 2. Registrar Inspección con 70 PSI (Umbral es 80) via evento
+        await prisma.eventoNeumatico.create({
+            data: {
+                tipo_evento: 'INSPECCION',
+                neumatico_id: neumatico.id,
+                fecha_evento: new Date(),
+                presion_psi: 70,
+                notas: "Presión baja test",
+                creado_por: usuarioId
+            }
+        });
 
         // 3. Verificar Alerta
         const alerta = await prisma.alerta.findFirst({
@@ -138,12 +142,16 @@ describe("Alertas Dinamicas de Presion", () => {
         });
 
         // 90 PSI sería OK para el estándar de 80, pero BAJO para este modelo (Umbral 96)
-        await inspeccionService.registrarManual({
-            neumatico_id: neumaticoHigh.id,
-            presion_psi: 90,
-            temperatura_c: 25,
-            observaciones: "Test Alta Presión"
-        }, usuarioId);
+        await prisma.eventoNeumatico.create({
+            data: {
+                tipo_evento: 'INSPECCION',
+                neumatico_id: neumaticoHigh.id,
+                fecha_evento: new Date(),
+                presion_psi: 90,
+                notas: "Test Alta Presión",
+                creado_por: usuarioId
+            }
+        });
 
         const alerta = await prisma.alerta.findFirst({
             where: {
@@ -171,12 +179,16 @@ describe("Alertas Dinamicas de Presion", () => {
         });
 
         // 2. Registrar Inspección con 90 PSI (Umbral es 80)
-        await inspeccionService.registrarManual({
-            neumatico_id: neumatico.id,
-            presion_psi: 90,
-            temperatura_c: 25,
-            observaciones: "Presión normal test"
-        }, usuarioId);
+        await prisma.eventoNeumatico.create({
+            data: {
+                tipo_evento: 'INSPECCION',
+                neumatico_id: neumatico.id,
+                fecha_evento: new Date(),
+                presion_psi: 90,
+                notas: "Presión normal test",
+                creado_por: usuarioId
+            }
+        });
 
         // 3. Verificar Alerta Inexistente
         const alerta = await prisma.alerta.findFirst({

@@ -14,7 +14,7 @@ test.describe('Authentication Flow', () => {
             await page.goto(LOGIN_URL);
 
             // Fill login form
-            await page.fill('input[name="identifier"]', process.env.STRESS_USER || 'admin');
+            await page.fill('input[name="identifier"]', process.env.STRESS_USER || 'admin@gesneu.com');
             await page.fill('input[name="password"]', process.env.STRESS_PASSWORD || 'admin123');
 
             // Submit
@@ -58,7 +58,7 @@ test.describe('Authentication Flow', () => {
         test('should remember session after page reload', async ({ page }) => {
             // Login
             await page.goto(LOGIN_URL);
-            await page.fill('input[name="identifier"]', process.env.STRESS_USER || 'admin');
+            await page.fill('input[name="identifier"]', process.env.STRESS_USER || 'admin@gesneu.com');
             await page.fill('input[name="password"]', process.env.STRESS_PASSWORD || 'admin123');
             await page.click('button[type="submit"]');
 
@@ -76,7 +76,7 @@ test.describe('Authentication Flow', () => {
         test.beforeEach(async ({ page }) => {
             // Login before each logout test
             await page.goto(LOGIN_URL);
-            await page.fill('input[name="identifier"]', process.env.STRESS_USER || 'admin');
+            await page.fill('input[name="identifier"]', process.env.STRESS_USER || 'admin@gesneu.com');
             await page.fill('input[name="password"]', process.env.STRESS_PASSWORD || 'admin123');
             await page.click('button[type="submit"]');
             await page.waitForURL(new RegExp(DASHBOARD_URL));
@@ -115,7 +115,7 @@ test.describe('Authentication Flow', () => {
         test('should allow access to dashboard after login', async ({ page }) => {
             // Login
             await page.goto(LOGIN_URL);
-            await page.fill('input[name="identifier"]', process.env.STRESS_USER || 'admin');
+            await page.fill('input[name="identifier"]', process.env.STRESS_USER || 'admin@gesneu.com');
             await page.fill('input[name="password"]', process.env.STRESS_PASSWORD || 'admin123');
             await page.click('button[type="submit"]');
             await page.waitForURL(new RegExp(DASHBOARD_URL));

@@ -43,7 +43,8 @@ export const authOptions: NextAuthConfig = {
       return session;
     }
   },
-  secret: process.env.NEXTAUTH_SECRET || process.env.AUTH_SECRET
+  secret: process.env.NEXTAUTH_SECRET || process.env.AUTH_SECRET,
+  trustHost: true
 };
 
 // Removed top-level throw to prevent Edge Runtime crash during static analysis or init

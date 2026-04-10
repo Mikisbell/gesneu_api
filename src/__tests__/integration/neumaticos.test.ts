@@ -113,12 +113,12 @@ describe('Neumáticos API Integration Tests', () => {
                 numero_serie: `TEST-NEW-${timestamp}`,
                 modelo_id: modelo.id,
                 dot: '2024',
-                profundidad_original_mm: 18.0,
-                ubicacion_almacen_id: almacen.id,
-                profundidad_original_mm: 18.0,
+                profundidad_inicial_mm: 18.0,
                 ubicacion_almacen_id: almacen.id,
                 costo_compra: 450.00,
-                fecha_compra: new Date().toISOString() // Required by schema
+                fecha_compra: new Date().toISOString(),
+                es_reencauchado: false,
+                moneda_compra: 'PEN'
             };
 
             const req = new NextRequest(BASE_URL, {

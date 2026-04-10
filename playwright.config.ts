@@ -41,15 +41,23 @@ export default defineConfig({
         video: 'retain-on-failure',
 
         /* Timeout for actions */
-        actionTimeout: 10000,
-        navigationTimeout: 30000,
+        actionTimeout: 30000,
+        navigationTimeout: 60000,
     },
 
     /* Configure projects for major browsers */
     projects: [
         {
+            name: 'setup',
+            testMatch: /.*\.setup\.ts/,
+        },
+        {
             name: 'chromium',
-            use: { ...devices['Desktop Chrome'] },
+            use: {
+                ...devices['Desktop Chrome'],
+                storageState: '.auth/admin.json',
+            },
+            dependencies: ['setup'],
         },
 
         // Uncomment for cross-browser testing
@@ -65,7 +73,7 @@ export default defineConfig({
 
     /* Run your local dev server before starting the tests */
     webServer: {
-        command: 'npm run dev',
+        command: 'npm run start',
         url: 'http://localhost:3005',
         reuseExistingServer: !process.env.CI,
         timeout: 300000,

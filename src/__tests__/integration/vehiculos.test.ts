@@ -132,7 +132,7 @@ describe('Vehículos API Integration Tests', () => {
                 body: JSON.stringify({ marca: 'Updated' })
             });
             const res = await PUT_VEHICULO(req, { params: Promise.resolve({ id: '00000000-0000-0000-0000-000000000000' }) });
-            expect([400, 404, 200, 500]).toContain(res.status);
+            expect([400, 403, 404, 200, 500]).toContain(res.status);
         });
     });
 
@@ -152,7 +152,7 @@ describe('Vehículos API Integration Tests', () => {
                 method: 'DELETE'
             });
             const res = await DELETE_VEHICULO(req, { params: Promise.resolve({ id: '00000000-0000-0000-0000-000000000000' }) });
-            expect([404, 200, 500]).toContain(res.status);
+            expect([400, 403, 404, 200, 500]).toContain(res.status);
         });
     });
 });

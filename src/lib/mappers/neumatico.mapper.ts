@@ -21,7 +21,7 @@ export function mapDtoToPrismaCreate(dto: CreateNeumaticoDTO, userId: string, em
         moneda_compra: dto.moneda_compra,
 
         profundidad_inicial_mm: dto.profundidad_inicial_mm,
-        profundidad_remanente_actual_mm: dto.profundidad_actual_mm,
+        profundidad_remanente_actual_mm: dto.profundidad_actual_mm ?? dto.profundidad_inicial_mm,
         profundidad_int: dto.profundidad_int,
         profundidad_cen: dto.profundidad_cen,
         profundidad_ext: dto.profundidad_ext,

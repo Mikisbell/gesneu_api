@@ -2,6 +2,7 @@ import { prisma } from '@/lib/prisma';
 
 // Helper simple para limpieza y creación de datos de prueba
 async function clearTestData() {
+    await prisma.historialEstadoNeumatico.deleteMany();
     await prisma.eventoNeumatico.deleteMany();
     await prisma.neumatico.deleteMany();
     await prisma.modeloNeumatico.deleteMany();
@@ -23,14 +24,22 @@ async function createTestNeumatico(overrides: any = {}) {
         }
     });
 
+    const empresa = await prisma.empresa.create({
+        data: { nombre: `Test Reportes ${Date.now()}`, ruc: `TEST-RPT-${Date.now()}`.substring(0, 20) }
+    });
+
     return await prisma.neumatico.create({
         data: {
             numero_serie: 'TEST-' + Date.now(),
             modelo_id: modelo.id,
-            profundidad_original_mm: 18,
+            empresa_id: empresa.id,
+            fecha_compra: new Date(),
+            profundidad_inicial_mm: 18,
+            profundidad_remanente_actual_mm: 18,
             estado_actual: 'EN_STOCK',
             costo_compra: 0,
             kilometraje_acumulado: 0,
+            activo: true,
             ...overrides
         }
     });

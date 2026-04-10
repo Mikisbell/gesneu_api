@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeAll } from 'vitest'
+import { describe, it, expect, beforeAll } from '@jest/globals'
 import { NeumaticoFormSchema, CreateNeumaticoSchema } from '@/lib/validators/neumatico.shared'
 
 describe('Neumatico Shared Schema Validation', () => {

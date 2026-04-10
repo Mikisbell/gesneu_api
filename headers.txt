@@ -1,0 +1,19 @@
+HTTP/1.1 302 Found
+x-dns-prefetch-control: on
+strict-transport-security: max-age=31536000; includeSubDomains; preload
+x-content-type-options: nosniff
+x-frame-options: DENY
+referrer-policy: strict-origin-when-cross-origin
+content-security-policy: default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://use.hugeicons.com; font-src 'self' https://fonts.gstatic.com https://use.hugeicons.com; img-src 'self' data: https: blob:; connect-src 'self' https://api.gesneu.com wss://events.gesneu.com; frame-src 'none'; object-src 'none'; upgrade-insecure-requests
+permissions-policy: camera=(), microphone=(), geolocation=(self), payment=()
+x-download-options: noopen
+x-permitted-cross-domain-policies: none
+x-powered-by: GesNeu-API-2026
+x-request-id: a702a211-3f2e-4ee9-8b83-2fc5b4fc302e
+vary: rsc, next-router-state-tree, next-router-prefetch, next-router-segment-prefetch
+location: http://localhost:3005/login?error=MissingCSRF
+Date: Thu, 09 Apr 2026 22:40:09 GMT
+Connection: keep-alive
+Keep-Alive: timeout=5
+Transfer-Encoding: chunked
+

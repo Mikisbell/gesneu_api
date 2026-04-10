@@ -253,16 +253,16 @@ describe('Retread Safety Policy', () => {
     describe('Regla de Negocio Documentada', () => {
         it('should have clear documentation of safety rule in code', async () => {
             // Este test verifica que la regla está documentada
-            // Leemos el archivo de montaje y verificamos que existe el comentario
+            // Leemos el servicio de evento-neumatico donde está la validación de rotación
             const fs = await import('fs');
             const path = await import('path');
-            const routePath = path.join(process.cwd(), 'src/app/api/v1/operaciones/montaje/route.ts');
-            const content = fs.readFileSync(routePath, 'utf-8');
+            const servicePath = path.join(process.cwd(), 'src/lib/services/evento-neumatico.service.ts');
+            const content = fs.readFileSync(servicePath, 'utf-8');
 
-            // Verificar que existe la validación documentada
-            expect(content).toContain('Validar política de reencauchados');
-            expect(content).toContain('es_reencauchado');
+            // Verificar que existe la validación documentada en el servicio
             expect(content).toContain('permite_reencauchados');
+            expect(content).toContain('es_reencauchado');
+            expect(content).toContain('ConflictError');
         });
     });
 });

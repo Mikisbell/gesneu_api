@@ -159,8 +159,9 @@ export async function createTestNeumatico(modeloIdOrOverrides?: string | any, em
         data: {
             numero_serie: `TEST-${Date.now()}-${Math.random().toString(36).substr(2, 5)}`,
             modelo_id,
+            empresa_id,
             fecha_compra: new Date(),
-            profundidad_original_mm: 18,
+            profundidad_inicial_mm: 18,
             profundidad_remanente_actual_mm: 18,
             estado_actual: 'EN_STOCK',
             costo_compra: 0,
@@ -184,8 +185,8 @@ export async function createTestVehiculo(overrides: any = {}) {
 
     const vehiculo = await prisma.vehiculo.create({
         data: {
-            placa: `TEST-${Date.now()}`,
-            numero_economico: `ECO-${Date.now()}`,
+            placa: `T${Date.now().toString().slice(-8)}`,
+            numero_economico: `E${Date.now().toString().slice(-8)}`,
             tipo_vehiculo_id: tipoVehiculo.id,
             marca: 'Test Brand',
             modelo_vehiculo: 'Test Model',

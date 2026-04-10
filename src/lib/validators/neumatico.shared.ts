@@ -105,6 +105,8 @@ export const CreateNeumaticoSchema = BaseNeumaticoSchema.extend({
     profundidad_cen: z.coerce.number().min(0).optional(),
     profundidad_ext: z.coerce.number().min(0).optional(),
     presion_actual_psi: z.coerce.number().min(0).optional(),
+    // ✅ Allow optional actual depth (defaults to initial)
+    profundidad_actual_mm: z.coerce.number().min(0).max(50).optional(),
 })
 
 /**

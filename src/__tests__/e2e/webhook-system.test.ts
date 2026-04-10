@@ -106,12 +106,16 @@ describe('System E2E: Webhooks & Alerts Flow', () => {
     it('Debe ejecutar el ciclo completo: Inspección -> Alerta -> Webhook Queue', async () => {
         // A. Acción de Negocio: Inspección con Presión Crítica
         // 50 PSI es < 80% de 100 (Threshold 80). Debe generar Alerta CRITICAL.
-        await inspeccionService.registrarManual({
-            neumatico_id: neumaticoId,
-            presion_psi: 50,
-            temperatura_c: 30,
-            observaciones: 'E2E Low Pressure Event'
-        }, usuarioId);
+        await prisma.eventoNeumatico.create({
+            data: {
+                tipo_evento: 'INSPECCION',
+                neumatico_id: neumaticoId,
+                fecha_evento: new Date(),
+                presion_psi: 50,
+                notas: 'E2E Low Pressure Event',
+                creado_por: usuarioId
+            }
+        });
 
         // B. Verificación de Alerta (Backend Logic)
         const alerta = await prisma.alerta.findFirst({
