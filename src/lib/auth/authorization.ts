@@ -2,7 +2,6 @@ import { auth } from './auth';
 import { Permission } from './permissions';
 import { Session } from 'next-auth';
 import { headers } from 'next/headers';
-import { DEFAULT_TENANT_ID } from '@/lib/constants';
 
 /**
  * Extended session with roles and permissions

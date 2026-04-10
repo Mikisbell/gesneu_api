@@ -5,7 +5,6 @@ import * as bcrypt from 'bcryptjs';
 import { prisma } from '@/lib/prisma';
 import { SYSTEM_ROLES } from './permissions';
 import { authOptions } from './config';
-import { DEFAULT_TENANT_ID } from '@/lib/constants';
 
 export const { handlers, auth, signIn, signOut } = NextAuth({
     ...authOptions,

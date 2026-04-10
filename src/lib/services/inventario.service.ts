@@ -1,7 +1,6 @@
 import { prisma } from '@/lib/prisma';
 import { Result, ok, err, BusinessError, NotFoundError, ConflictError } from '@/types/result.types';
 import { CreateInventarioParamInput, TransferenciaStockInput, ReorderPointInput } from '@/lib/validators/inventario.validator';
-import { DEFAULT_TENANT_ID } from '@/lib/constants';
 
 export interface StockByAlmacenResult {
     almacen_id: string;
