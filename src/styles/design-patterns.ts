@@ -279,7 +279,7 @@ export const ICON_RULES = {
 // 8. CHECKLIST DE HOMOGENEIDAD
 // ============================================
 
-export const HOMOGENEITY_CHECKLIST = \`
+export const HOMOGENEITY_CHECKLIST = `
 Antes de hacer commit, verifica:
 
 □ Usaste PageHeader para el título
@@ -292,4 +292,4 @@ Antes de hacer commit, verifica:
 □ El spacing usa space-y-6 entre secciones
 □ Los forms tienen auto-fill con useEffect
 □ Los toasts son consistentes (mismos mensajes)
-\`
+`
