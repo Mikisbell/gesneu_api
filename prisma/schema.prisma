@@ -23,74 +23,77 @@ model CentroCosto {
 }
 
 model Empresa {
-  id          String          @id @default(uuid()) @db.Uuid
-  nombre      String          @db.VarChar(100)
-  ruc         String          @unique @db.VarChar(20)
-  direccion   String?
-  activo      Boolean         @default(true)
-  creado_en   DateTime        @default(now()) @db.Timestamptz(6)
-  almacenes   Almacen[]
-  neumaticos  Neumatico[]
-  proveedores Proveedor[]
-  usuarios    Usuario[]
-  vehiculos   Vehiculo[]
-  webhooks    WebhookConfig[]
+  id           String               @id @default(uuid()) @db.Uuid
+  nombre       String               @db.VarChar(100)
+  ruc          String               @unique @db.VarChar(20)
+  direccion    String?
+  activo       Boolean              @default(true)
+  creado_en    DateTime             @default(now()) @db.Timestamptz(6)
+  almacenes    Almacen[]
+  neumaticos   Neumatico[]
+  proveedores  Proveedor[]
+  usuarios     Usuario[]
+  vehiculos    Vehiculo[]
+  webhooks     WebhookConfig[]
   centrosCosto CentroCosto[]
+  certificados CertificadoEmitido[]
 
   @@map("empresas")
 }
 
 model Usuario {
-  id                  String            @id @default(uuid()) @db.Uuid
-  username            String            @unique @db.VarChar(50)
-  nombre_completo     String            @db.VarChar(200)
-  email               String            @unique @db.VarChar(100)
-  password_hash       String
-  rol                 RolEnum           @default(OPERADOR)
-  activo              Boolean           @default(true)
-  creado_en           DateTime          @default(now()) @db.Timestamptz(6)
-  empresa_id          String            @db.Uuid
-  auditoria_logs      AuditoriaLog[]
-  eventos_creados     EventoNeumatico[]
-  inspecciones        Inspeccion[]
-  lecturas_realizadas LecturaPresion[]
-  empresa             Empresa           @relation(fields: [empresa_id], references: [id])
-  webhooks_creados    WebhookConfig[]
+  id                    String               @id @default(uuid()) @db.Uuid
+  username              String               @unique @db.VarChar(50)
+  nombre_completo       String               @db.VarChar(200)
+  email                 String               @unique @db.VarChar(100)
+  password_hash         String
+  rol                   RolEnum              @default(OPERADOR)
+  activo                Boolean              @default(true)
+  creado_en             DateTime             @default(now()) @db.Timestamptz(6)
+  empresa_id            String               @db.Uuid
+  auditoria_logs        AuditoriaLog[]
+  eventos_creados       EventoNeumatico[]
+  inspecciones          Inspeccion[]
+  lecturas_realizadas   LecturaPresion[]
+  empresa               Empresa              @relation(fields: [empresa_id], references: [id])
+  webhooks_creados      WebhookConfig[]
+  certificados_emitidos CertificadoEmitido[] @relation("CertificadoEmisor")
 
   @@map("usuarios")
 }
 
 model Vehiculo {
-  id                           String             @id @default(uuid()) @db.Uuid
-  codigo_interno               String?            @db.VarChar(20)
-  placa                        String?            @unique @db.VarChar(15)
-  tipo_vehiculo_id             String             @db.Uuid
-  centro_costo_id              String?            @db.Uuid
-  marca                        String?            @db.VarChar(50)
-  tipo_medicion                TipoMedicionEnum   @default(KILOMETRAJE)
-  activo                       Boolean            @default(true)
-  ruta_id                      String?            @db.Uuid
+  id                           String               @id @default(uuid()) @db.Uuid
+  codigo_interno               String?              @db.VarChar(20)
+  placa                        String?              @unique @db.VarChar(15)
+  tipo_vehiculo_id             String               @db.Uuid
+  centro_costo_id              String?              @db.Uuid
+  marca                        String?              @db.VarChar(50)
+  tipo_medicion                TipoMedicionEnum     @default(KILOMETRAJE)
+  activo                       Boolean              @default(true)
+  ruta_id                      String?              @db.Uuid
   anio_fabricacion             Int?
-  fecha_alta                   DateTime           @default(now()) @db.Date
-  fecha_baja                   DateTime?          @db.Date
-  fecha_ultimo_odometro        DateTime?          @db.Timestamptz(6)
-  modelo_vehiculo              String?            @db.VarChar(50)
+  fecha_alta                   DateTime             @default(now()) @db.Date
+  fecha_baja                   DateTime?            @db.Date
+  fecha_ultimo_odometro        DateTime?            @db.Timestamptz(6)
+  modelo_vehiculo              String?              @db.VarChar(50)
   notas                        String?
-  numero_economico             String             @unique @db.VarChar(50)
-  odometro_actual              Int?               @default(0)
-  peso_carga_maxima_diseno_ton Decimal?           @db.Decimal(5, 2)
-  ubicacion_actual             String?            @db.VarChar(100)
-  vin                          String?            @unique @db.VarChar(17)
-  version                      Int                @default(0)
-  empresa_id                   String             @db.Uuid
+  numero_economico             String               @unique @db.VarChar(50)
+  odometro_actual              Int?                 @default(0)
+  peso_carga_maxima_diseno_ton Decimal?             @db.Decimal(5, 2)
+  ubicacion_actual             String?              @db.VarChar(100)
+  vin                          String?              @unique @db.VarChar(17)
+  version                      Int                  @default(0)
+  empresa_id                   String               @db.Uuid
   alertas                      Alerta[]
   eventos                      EventoNeumatico[]
   neumaticos_instalados        Neumatico[]
   registros_contador           RegistroContador[]
-  centro_costo                 CentroCosto?       @relation(fields: [centro_costo_id], references: [id])
-  empresa                      Empresa            @relation(fields: [empresa_id], references: [id])
-  ruta_asignada                Ruta?              @relation(fields: [ruta_id], references: [id])
-  tipo_vehiculo                TipoVehiculo       @relation(fields: [tipo_vehiculo_id], references: [id])
+  certificados                 CertificadoEmitido[]
+  centro_costo                 CentroCosto?         @relation(fields: [centro_costo_id], references: [id])
+  empresa                      Empresa              @relation(fields: [empresa_id], references: [id])
+  ruta_asignada                Ruta?                @relation(fields: [ruta_id], references: [id])
+  tipo_vehiculo                TipoVehiculo         @relation(fields: [tipo_vehiculo_id], references: [id])
 
   @@index([tipo_vehiculo_id])
   @@index([placa])
@@ -436,6 +439,27 @@ model Inspeccion {
   @@index([neumatico_id])
   @@index([empresa_id, fecha_inspeccion])
   @@map("inspecciones")
+}
+
+model CertificadoEmitido {
+  id                  String                 @id @default(uuid()) @db.Uuid
+  folio_numero        Int
+  vehiculo_id         String                 @db.Uuid
+  emitido_por         String                 @db.Uuid
+  empresa_id          String                 @db.Uuid
+  estado_operatividad EstadoOperatividadEnum
+  razones             Json?
+  snapshot_data       Json
+  fecha_emision       DateTime               @default(now()) @db.Timestamptz(6)
+
+  vehiculo Vehiculo @relation(fields: [vehiculo_id], references: [id])
+  emisor   Usuario  @relation("CertificadoEmisor", fields: [emitido_por], references: [id])
+  empresa  Empresa  @relation(fields: [empresa_id], references: [id])
+
+  @@unique([empresa_id, folio_numero])
+  @@index([empresa_id, fecha_emision(sort: Desc)])
+  @@index([vehiculo_id])
+  @@map("certificados_emitidos")
 }
 
 model Alerta {
@@ -961,6 +985,12 @@ enum CategoriaFalla {
   FATIGA
   MECANICA
   OPERACION
+}
+
+enum EstadoOperatividadEnum {
+  APTO
+  CONDICIONAL
+  NO_APTO
 }
 
 enum RolEnum {

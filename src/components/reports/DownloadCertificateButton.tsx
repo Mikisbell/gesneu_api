@@ -8,7 +8,7 @@ interface DownloadCertificateButtonProps {
 export const DownloadCertificateButton = ({ vehicleId }: DownloadCertificateButtonProps) => {
     const handleDownload = () => {
         // Abrir en nueva pestaña que disparará la descarga
-        window.open(`/api/v1/reports/certificate/${vehicleId}`, '_blank');
+        window.open(`/api/v1/reportes/certificado/${vehicleId}`, '_blank');
     };
 
     return (
