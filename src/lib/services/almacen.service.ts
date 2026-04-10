@@ -5,7 +5,6 @@ import { Result, ok, err, NotFoundError, ConflictError, BusinessError } from '@/
 import { mapDtoToPrismaCreate, mapDtoToPrismaUpdate, mapEntityToResponse } from '@/lib/mappers/almacen.mapper';
 import { canDeactivateAlmacen } from '@/lib/validators/domain-rules/almacen.rules';
 import { prisma } from '@/lib/prisma';
-import { DEFAULT_TENANT_ID } from '@/lib/constants';
 
 export class AlmacenService {
     private repository: AlmacenRepository;
@@ -14,11 +13,11 @@ export class AlmacenService {
         this.repository = new AlmacenRepository();
     }
 
-    async getAll(): Promise<Result<AlmacenResponse[], BusinessError>> {
+    async getAll(empresaId: string): Promise<Result<AlmacenResponse[], BusinessError>> {
         try {
-            // Filtrar por Tenant por defecto
+            // Filtrar por empresa del usuario autenticado
             const entities = await this.repository.findAll({
-                where: { empresa_id: DEFAULT_TENANT_ID, activo: true } // RNF10: Listar solo activos por defecto
+                where: { empresa_id: empresaId, activo: true } // RNF10: Listar solo activos por defecto
             });
             const responses = entities.map(mapEntityToResponse);
             return ok(responses);
@@ -27,18 +26,18 @@ export class AlmacenService {
         }
     }
 
-    async getById(id: AlmacenId): Promise<Result<AlmacenResponse, NotFoundError>> {
+    async getById(empresaId: string, id: AlmacenId): Promise<Result<AlmacenResponse, NotFoundError>> {
         const entity = await this.repository.findById(id);
         if (!entity) return err(new NotFoundError('Almacén', id));
         // Validar tenant (seguridad)
-        if (entity.empresa_id !== DEFAULT_TENANT_ID) return err(new NotFoundError('Almacén', id));
+        if (entity.empresa_id !== empresaId) return err(new NotFoundError('Almacén', id));
 
         return ok(mapEntityToResponse(entity));
     }
 
-    async create(dto: CreateAlmacenDTO): Promise<Result<AlmacenResponse, ConflictError | BusinessError>> {
+    async create(empresaId: string, dto: CreateAlmacenDTO): Promise<Result<AlmacenResponse, ConflictError | BusinessError>> {
         const existing = await this.repository.findByCodigo(dto.codigo);
-        if (existing && existing.empresa_id === DEFAULT_TENANT_ID) {
+        if (existing && existing.empresa_id === empresaId) {
             return err(new ConflictError(`Código ${dto.codigo} ya existe`));
         }
 
@@ -46,7 +45,7 @@ export class AlmacenService {
             const input = mapDtoToPrismaCreate(dto);
             const createData = {
                 ...input,
-                empresa: { connect: { id: DEFAULT_TENANT_ID } }
+                empresa: { connect: { id: empresaId } }
             };
 
             const entity = await this.repository.create(createData as any);
@@ -57,9 +56,9 @@ export class AlmacenService {
         }
     }
 
-    async update(id: AlmacenId, dto: UpdateAlmacenDTO): Promise<Result<AlmacenResponse, NotFoundError | BusinessError>> {
+    async update(empresaId: string, id: AlmacenId, dto: UpdateAlmacenDTO): Promise<Result<AlmacenResponse, NotFoundError | BusinessError>> {
         const existing = await this.repository.findById(id);
-        if (!existing || existing.empresa_id !== DEFAULT_TENANT_ID) return err(new NotFoundError('Almacén', id));
+        if (!existing || existing.empresa_id !== empresaId) return err(new NotFoundError('Almacén', id));
 
         // Validación de desactivación (RF57)
         if (dto.activo === false && existing.activo) {
@@ -79,9 +78,9 @@ export class AlmacenService {
         }
     }
 
-    async delete(id: AlmacenId): Promise<Result<void, BusinessError | NotFoundError>> {
+    async delete(empresaId: string, id: AlmacenId): Promise<Result<void, BusinessError | NotFoundError>> {
         // RNF10: Soft Delete via update
-        const result = await this.update(id, { activo: false });
+        const result = await this.update(empresaId, id, { activo: false });
         if (!result.success) return err(result.error);
         return ok(undefined);
     }

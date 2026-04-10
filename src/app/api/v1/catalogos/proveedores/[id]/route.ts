@@ -7,8 +7,11 @@ import { asProveedorId } from '@/types/branded.types';
 
 export const GET = apiHandler(
   async (req, session, { params }) => {
+    if (!session.user.empresa_id) {
+      return ApiResponseHelper.forbidden('Usuario sin empresa asignada');
+    }
     const { id } = await params;
-    const result = await proveedorService.getById(asProveedorId(id));
+    const result = await proveedorService.getById(session.user.empresa_id, asProveedorId(id));
     return ApiResponseHelper.fromResult(result);
   },
   { permission: PERMISSIONS.CATALOGOS_PROVEEDORES_READ }
@@ -16,8 +19,11 @@ export const GET = apiHandler(
 
 export const PUT = apiHandler(
   async (req, session, { params }, body) => {
+    if (!session.user.empresa_id) {
+      return ApiResponseHelper.forbidden('Usuario sin empresa asignada');
+    }
     const { id } = await params;
-    const result = await proveedorService.update(asProveedorId(id), body);
+    const result = await proveedorService.update(session.user.empresa_id, asProveedorId(id), body);
     return ApiResponseHelper.fromResult(result, 200, 'Proveedor actualizado exitosamente');
   },
   {
@@ -28,8 +34,11 @@ export const PUT = apiHandler(
 
 export const DELETE = apiHandler(
   async (req, session, { params }) => {
+    if (!session.user.empresa_id) {
+      return ApiResponseHelper.forbidden('Usuario sin empresa asignada');
+    }
     const { id } = await params;
-    const result = await proveedorService.delete(asProveedorId(id));
+    const result = await proveedorService.delete(session.user.empresa_id, asProveedorId(id));
     return ApiResponseHelper.fromResult(result, 200, 'Proveedor eliminado exitosamente');
   },
   { permission: PERMISSIONS.CATALOGOS_PROVEEDORES_DELETE }

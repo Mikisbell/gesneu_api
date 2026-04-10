@@ -3,14 +3,13 @@ import { CreateProveedorDTO, UpdateProveedorDTO, ProveedorResponse } from '@/typ
 import { ProveedorId } from '@/types/branded.types';
 import { Result, ok, err, NotFoundError, ConflictError, BusinessError } from '@/types/result.types';
 import { mapDtoToPrismaCreate, mapDtoToPrismaUpdate, mapEntityToResponse } from '@/lib/mappers/proveedor.mapper';
-import { DEFAULT_TENANT_ID } from '@/lib/constants';
 
 export class ProveedorService {
 
-    async getAll(): Promise<Result<ProveedorResponse[], BusinessError>> {
+    async getAll(empresaId: string): Promise<Result<ProveedorResponse[], BusinessError>> {
         try {
             const entities = await prisma.proveedor.findMany({
-                where: { empresa_id: DEFAULT_TENANT_ID, activo: true },
+                where: { empresa_id: empresaId, activo: true },
                 orderBy: { nombre: 'asc' }
             });
             return ok(entities.map(mapEntityToResponse));
@@ -19,23 +18,23 @@ export class ProveedorService {
         }
     }
 
-    async getById(id: ProveedorId): Promise<Result<ProveedorResponse, NotFoundError>> {
+    async getById(empresaId: string, id: ProveedorId): Promise<Result<ProveedorResponse, NotFoundError>> {
         const entity = await prisma.proveedor.findUnique({
             where: { id }
         });
 
-        if (!entity || entity.empresa_id !== DEFAULT_TENANT_ID) {
+        if (!entity || entity.empresa_id !== empresaId) {
             return err(new NotFoundError('Proveedor', id));
         }
 
         return ok(mapEntityToResponse(entity));
     }
 
-    async create(dto: CreateProveedorDTO): Promise<Result<ProveedorResponse, ConflictError | BusinessError>> {
+    async create(empresaId: string, dto: CreateProveedorDTO): Promise<Result<ProveedorResponse, ConflictError | BusinessError>> {
         // Validar Duplicidad de RUC si existe
         if (dto.ruc) {
             const exists = await prisma.proveedor.findFirst({
-                where: { ruc: dto.ruc, empresa_id: DEFAULT_TENANT_ID }
+                where: { ruc: dto.ruc, empresa_id: empresaId }
             });
             // Si existe y es la misma empresa (implícito por query), error.
             if (exists) return err(new ConflictError(`El RUC ${dto.ruc} ya está registrado`));
@@ -45,7 +44,7 @@ export class ProveedorService {
             const input = mapDtoToPrismaCreate(dto);
             const createData = {
                 ...input,
-                empresa: { connect: { id: DEFAULT_TENANT_ID } }
+                empresa: { connect: { id: empresaId } }
             };
 
             const entity = await prisma.proveedor.create({
@@ -58,9 +57,9 @@ export class ProveedorService {
         }
     }
 
-    async update(id: ProveedorId, dto: UpdateProveedorDTO): Promise<Result<ProveedorResponse, NotFoundError | BusinessError>> {
+    async update(empresaId: string, id: ProveedorId, dto: UpdateProveedorDTO): Promise<Result<ProveedorResponse, NotFoundError | BusinessError>> {
         const existing = await prisma.proveedor.findUnique({ where: { id } });
-        if (!existing || existing.empresa_id !== DEFAULT_TENANT_ID) {
+        if (!existing || existing.empresa_id !== empresaId) {
             return err(new NotFoundError('Proveedor', id));
         }
 
@@ -76,7 +75,7 @@ export class ProveedorService {
         }
     }
 
-    async delete(id: ProveedorId): Promise<Result<void, BusinessError | NotFoundError>> {
-        return (await this.update(id, { activo: false })).success ? ok(undefined) : err(new BusinessError('Error eliminando', 'DELETE', 500));
+    async delete(empresaId: string, id: ProveedorId): Promise<Result<void, BusinessError | NotFoundError>> {
+        return (await this.update(empresaId, id, { activo: false })).success ? ok(undefined) : err(new BusinessError('Error eliminando', 'DELETE', 500));
     }
 }

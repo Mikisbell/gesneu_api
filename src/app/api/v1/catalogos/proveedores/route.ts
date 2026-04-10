@@ -5,8 +5,11 @@ import { ApiResponseHelper } from '@/lib/utils/api-response';
 import { CreateProveedorSchema } from '@/lib/validators/proveedor.validator';
 
 export const GET = apiHandler(
-  async () => {
-    const result = await proveedorService.getAll();
+  async (req, session) => {
+    if (!session.user.empresa_id) {
+      return ApiResponseHelper.forbidden('Usuario sin empresa asignada');
+    }
+    const result = await proveedorService.getAll(session.user.empresa_id);
     return ApiResponseHelper.fromResult(result);
   },
   { permission: PERMISSIONS.CATALOGOS_PROVEEDORES_READ }
@@ -14,7 +17,10 @@ export const GET = apiHandler(
 
 export const POST = apiHandler(
   async (req, session, _, body) => {
-    const result = await proveedorService.create(body);
+    if (!session.user.empresa_id) {
+      return ApiResponseHelper.forbidden('Usuario sin empresa asignada');
+    }
+    const result = await proveedorService.create(session.user.empresa_id, body);
     return ApiResponseHelper.fromResult(result, 201, 'Proveedor creado exitosamente');
   },
   {
