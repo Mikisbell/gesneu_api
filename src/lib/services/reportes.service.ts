@@ -566,7 +566,7 @@ export class ReportesService {
             where: {
                 empresa_id: empresaId,
                 activo: true,
-                estado_actual: 'EN_USO',
+                estado_actual: 'INSTALADO',
                 ...(medidaFilter ? {
                     modelo: { medida: { contains: medidaFilter } }
                 } : {})

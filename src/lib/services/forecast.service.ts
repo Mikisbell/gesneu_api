@@ -24,8 +24,9 @@ export class ForecastService {
         const activeTires = await prisma.neumatico.findMany({
             where: {
                 empresa_id: empresaId,
-                estado_actual: 'EN_USO',
-                profundidad_remanente_actual_mm: { gt: minDepth }
+                estado_actual: 'INSTALADO',
+                profundidad_remanente_actual_mm: { gt: minDepth },
+                numero_serie: { not: null }
             },
             include: {
                 modelo: true
@@ -71,7 +72,7 @@ export class ForecastService {
                 const entry = reportMap.get(dim)!;
                 entry.cantidad_sugerida++;
                 entry.detalles_neumaticos.push({
-                    serie: tire.numero_serie,
+                    serie: tire.numero_serie!,
                     mm_actual: currentMm,
                     dias_restantes_estimados: daysRemaining,
                     fecha_proyectada_retiro: projectionDate

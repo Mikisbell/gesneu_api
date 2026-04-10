@@ -32,7 +32,7 @@ interface IndiceReencauchabilidad {
 
 // API Functions
 const fetchNeumaticosParaEnviar = async (): Promise<Neumatico[]> => {
-    const data = await apiClient<Neumatico[]>('/neumaticos?estado=EN_ALMACEN');
+    const data = await apiClient<Neumatico[]>('/neumaticos?estado=EN_STOCK');
     // Filter those with low tread depth (candidates for retread)
     return (data || []).filter(n => Number(n.profundidad_remanente_actual_mm) < 5);
 };
