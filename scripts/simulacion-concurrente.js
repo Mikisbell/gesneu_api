@@ -103,16 +103,47 @@ async function main() {
                     latencies.push(latency);
                     allLatencies.push(latency);
                     
+                    // Retry once on transient errors (5xx, 429 rate limit)
+                    if (r.status >= 500 || r.status === 429) {
+                        const retryAfter = r.headers.get('retry-after') || r.headers.get('Retry-After');
+                        const waitMs = retryAfter ? parseInt(retryAfter) * 1000 : 2000;
+                        await new Promise(r => setTimeout(r, Math.min(waitMs, 10000)));
+                        // Retry once
+                        try {
+                            const r2 = await fetch(`${BASE_URL}/api/v1/neumaticos/eventos`, {
+                                method: 'POST',
+                                headers: authH(cookie),
+                                body: JSON.stringify({
+                                    tipo_evento: 'INSPECCION',
+                                    neumatico_id: tire.id,
+                                    fecha_evento: new Date().toISOString(),
+                                    contador_vehiculo: km,
+                                    profundidad_remanente: parseFloat(depth.toFixed(1)),
+                                    presion_psi: parseFloat(pressure.toFixed(1)),
+                                    observaciones: `${operatorId} op ${i + 1}/${OPS_PER_OPERATOR} (retry)`
+                                })
+                            });
+                            if (r2.status === 200 || r2.status === 201) {
+                                successes++;
+                                totalSuccess++;
+                                continue;
+                            }
+                        } catch { /* retry also failed */ }
+                    }
+                    
                     if (r.status === 200 || r.status === 201) {
                         successes++;
                         totalSuccess++;
                     } else {
                         errors++;
                         totalErrors++;
-                        const d = await r.json();
-                        if (d.code === 'CONFLICT' || d.error?.includes('competencia')) {
-                            raceConditions++;
-                        }
+                        try {
+                            const d = await r.json();
+                            console.log(`   [${operatorId}] Error ${r.status}: ${JSON.stringify(d).slice(0, 200)}`);
+                            if (d.code === 'CONFLICT' || d.error?.includes('competencia')) {
+                                raceConditions++;
+                            }
+                        } catch { /* ignore parse error */ }
                     }
                 } catch (e) {
                     errors++;

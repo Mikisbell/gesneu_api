@@ -138,16 +138,31 @@ async function main() {
     }
     ops.push({ paso: 'Inventario', status: '✅' });
 
+    // Get fresh stock for mounting
+    const neumsAll = ((await get(cookie, 'neumaticos?limit=200')).data || []).filter(Boolean);
+    const stockAll = neumsAll.filter(n => (n.estado_actual || n.estadoActual || n.estado) === 'EN_STOCK');
+    
+    // Get currently installed tires
+    const installed = neumsAll.filter(n => (n.estado_actual || n.estadoActual || n.estado) === 'INSTALADO');
+    console.log(`\n   📦 Stock disponible: ${stockAll.length} | 🔧 Instalados: ${installed.length}`);
+    if (stockAll.length === 0 && neumsAll.length > 0) {
+        const states = {};
+        for (const n of neumsAll) {
+            const e = n.estado_actual || n.estadoActual || n.estado || 'unknown';
+            states[e] = (states[e] || 0) + 1;
+        }
+        console.log(`   DEBUG estados: ${JSON.stringify(states)}`);
+    }
+
     // 4. MONTAJE
     console.log('\n🔧 4. MONTAJE EN VEHÍCULO');
     console.log('─'.repeat(50));
-    // Get fresh stock
-    const stockAll = ((await get(cookie, 'neumaticos?limit=100')).data || []).filter(n => n.estado_actual === 'EN_STOCK');
-    
-    let montados = 0;
-    if (stockAll.length > 0 && vehiculo) {
-        // Get positions
-        const montajeR = await get(cookie, `vehiculos/${vehiculo.id}/montaje`);
+    // Find vehicle with free positions
+    let montajeOk = false;
+    let targetVehicle = null;
+    let freePositions = [];
+    for (const v of vehiculos.slice(0, 10)) {
+        const montajeR = await get(cookie, `vehiculos/${v.id}/montaje`);
         const md = montajeR.data || montajeR;
         const pos = [];
         for (const eje of (md.ejes || [])) {
@@ -155,14 +170,22 @@ async function main() {
                 if (!p.ocupada) pos.push(p);
             }
         }
-        
-        const toMount = Math.min(stockAll.length, pos.length, 4);
+        if (pos.length > 0) {
+            targetVehicle = v;
+            freePositions = pos;
+            break;
+        }
+    }
+    
+    let montados = 0;
+    if (stockAll.length > 0 && targetVehicle) {
+        const toMount = Math.min(stockAll.length, freePositions.length, 4);
         const mounts = [];
         for (let i = 0; i < toMount; i++) {
             mounts.push(post(cookie, 'operaciones/montaje', {
                 neumatico_id: stockAll[i].id,
-                vehiculo_id: vehiculo.id,
-                posicion_id: pos[i].id,
+                vehiculo_id: targetVehicle.id,
+                posicion_id: freePositions[i].id,
                 contador_vehiculo: 50000 + Math.floor(Math.random() * 10000),
                 profundidad_mm: 17.5,
                 presion_psi: 105
@@ -170,17 +193,25 @@ async function main() {
         }
         const mountRes = await Promise.all(mounts);
         montados = mountRes.filter(r => ok(r.status)).length;
-        console.log(`   ✅ ${montados} neumáticos montados en ${vehiculo.placa || vehiculo.id.slice(0, 6)}`);
+        console.log(`   ✅ ${montados} neumáticos montados en ${targetVehicle.placa || targetVehicle.id.slice(0, 6)}`);
+        montajeOk = montados > 0;
     }
-    ops.push({ paso: 'Montaje', montados, status: montados > 0 ? '✅' : '⚠️' });
+    if (!montajeOk) {
+        console.log('   ⚠️ Sin posiciones libres o stock. Montaje diferido.');
+    }
+    ops.push({ paso: 'Montaje', montados, status: montajeOk ? '✅' : '⚠️' });
+
+    // Refresh installed tires after mounting
+    const newlyInstalled = montajeOk ? stockAll.slice(0, montados) : [];
+    const allInstalled = [...installed, ...newlyInstalled];
 
     // 5. INSPECCIÓN RUTINARIA
     console.log('\n🔍 5. INSPECCIÓN RUTINARIA');
     console.log('─'.repeat(50));
-    const installed = ((await get(cookie, 'neumaticos?limit=50')).data || []).filter(n => n.estado_actual === 'INSTALADO');
     let inspOk = 0;
-    if (installed.length > 0) {
-        const insps = installed.slice(0, 4).map(t => post(cookie, 'neumaticos/eventos', {
+    if (allInstalled.length > 0) {
+        const toInspect = allInstalled.slice(0, 4);
+        const insps = toInspect.map(t => post(cookie, 'neumaticos/eventos', {
             tipo_evento: 'INSPECCION',
             neumatico_id: t.id,
             fecha_evento: new Date().toISOString(),
@@ -192,47 +223,73 @@ async function main() {
         const inspRes = await Promise.all(insps);
         inspOk = inspRes.filter(r => ok(r.status)).length;
     }
-    console.log(`   ✅ ${inspOk} inspecciones realizadas`);
-    ops.push({ paso: 'Inspección', inspecciones: inspOk, status: '✅' });
+    console.log(`   ✅ ${inspOk} inspecciones realizadas (${allInstalled.length} disponibles)`);
+    ops.push({ paso: 'Inspección', inspecciones: inspOk, status: inspOk > 0 ? '✅' : '⚠️' });
 
-    // 6. ROTACIÓN
+    // 6. ROTACIÓN - check the vehicle we just mounted to
     console.log('\n🔄 6. ROTACIÓN PROGRAMADA');
     console.log('─'.repeat(50));
-    if (installed.length >= 2 && vehiculo) {
-        const montajeR = await get(cookie, `vehiculos/${vehiculo.id}/montaje`);
+    let rotVehicle = targetVehicle;
+    let occupiedPos = [];
+    
+    // Check the vehicle we mounted to first
+    if (rotVehicle && montados > 0) {
+        const montajeR = await get(cookie, `vehiculos/${rotVehicle.id}/montaje`);
         const md = montajeR.data || montajeR;
-        const positions = [];
+        let totalPos = 0;
         for (const eje of (md.ejes || [])) {
             for (const p of (eje.posiciones || [])) {
-                if (p.ocupada) positions.push(p);
+                totalPos++;
+                if (p.ocupada) occupiedPos.push(p);
             }
         }
-        
-        if (positions.length >= 2) {
-            const movimientos = installed.slice(0, Math.min(positions.length, 4)).map((t, i) => ({
-                neumatico_id: t.id,
-                posicion_destino_id: positions[(i + 1) % positions.length].id
-            }));
-            
-            const rotRes = await post(cookie, 'operaciones/rotacion', {
-                vehiculo_id: vehiculo.id,
-                contador_vehiculo: 60000,
-                movimientos,
-                observaciones: 'Rotación por desgaste irregular'
-            });
-            
-            if (ok(rotRes.status)) {
-                const proc = rotRes.data.data?.movimientos_procesados || movimientos.length;
-                console.log(`   ✅ Rotación: ${proc} neumáticos reubicados`);
-                ops.push({ paso: 'Rotación', rotados: proc, status: '✅' });
-            } else {
-                console.log(`   ⚠️ Rotación: ${rotRes.data?.error || rotRes.status}`);
-                ops.push({ paso: 'Rotación', status: '⚠️' });
+        console.log(`   DEBUG ${rotVehicle.placa || rotVehicle.id.slice(0,6)}: ${totalPos} posiciones, ${occupiedPos.length} ocupadas`);
+    }
+    
+    // If not enough, search other vehicles
+    if (occupiedPos.length < 2) {
+        for (const v of vehiculos.slice(0, 10)) {
+            if (v.id === rotVehicle?.id) continue;
+            const montajeR = await get(cookie, `vehiculos/${v.id}/montaje`);
+            const md = montajeR.data || montajeR;
+            const pos = [];
+            for (const eje of (md.ejes || [])) {
+                for (const p of (eje.posiciones || [])) {
+                    if (p.ocupada) pos.push(p);
+                }
             }
+            if (pos.length >= 2) {
+                rotVehicle = v;
+                occupiedPos = pos;
+                break;
+            }
+        }
+    }
+    
+    if (occupiedPos.length >= 2 && allInstalled.length >= 2) {
+        const movimientos = allInstalled.slice(0, Math.min(occupiedPos.length, 4)).map((t, i) => ({
+            neumatico_id: t.id,
+            posicion_destino_id: occupiedPos[(i + 1) % occupiedPos.length].id
+        }));
+
+        const rotRes = await post(cookie, 'operaciones/rotacion', {
+            vehiculo_id: rotVehicle.id,
+            contador_vehiculo: 60000,
+            movimientos,
+            observaciones: 'Rotación por desgaste irregular'
+        });
+
+        if (ok(rotRes.status)) {
+            const proc = rotRes.data.data?.movimientos_procesados || movimientos.length;
+            console.log(`   ✅ Rotación: ${proc} neumáticos reubicados`);
+            ops.push({ paso: 'Rotación', rotados: proc, status: '✅' });
         } else {
-            console.log('   ⚠️ Sin posiciones ocupadas suficientes');
+            console.log(`   ⚠️ Rotación: ${rotRes.data?.error || rotRes.status}`);
             ops.push({ paso: 'Rotación', status: '⚠️' });
         }
+    } else {
+        console.log('   ⚠️ Sin posiciones ocupadas suficientes');
+        ops.push({ paso: 'Rotación', status: '⚠️' });
     }
 
     // 7. BITÁCORA DE MANTENIMIENTO
@@ -254,12 +311,17 @@ async function main() {
         }
     }
 
-    // 8. REENCAUCHE
+    // 8. REENCAUCHE - need a tire in INSTALADO state
     console.log('\n🏭 8. ENVÍO A REENCAUCHE');
     console.log('─'.repeat(50));
-    if (installed.length > 0 && proveedor) {
+    // Re-fetch installed tires to get fresh state
+    const reencTires = ((await get(cookie, 'neumaticos?limit=100')).data || []).filter(n => {
+        const estado = n.estado_actual || n.estadoActual || n.estado;
+        return estado === 'INSTALADO';
+    });
+    if (reencTires.length > 0 && proveedor) {
         const reencRes = await post(cookie, 'reencauche', {
-            neumatico_id: installed[0].id,
+            neumatico_id: reencTires[0].id,
             proveedor_reencauchador_id: proveedor.id,
             observaciones: 'Envío programado: desgaste uniforme'
         });
@@ -270,6 +332,9 @@ async function main() {
             console.log(`   ⚠️ Reencauche: ${reencRes.data?.error || reencRes.status}`);
             ops.push({ paso: 'Reencauche', status: '⚠️' });
         }
+    } else {
+        console.log('   ⚠️ Sin neumáticos instalados para reencauche');
+        ops.push({ paso: 'Reencauche', status: '⚠️' });
     }
 
     // 9. TCO DEL DÍA
@@ -293,10 +358,10 @@ async function main() {
     // 11. DESECHO
     console.log('\n🗑️ 11. DESECHO DE NEUMÁTICO');
     console.log('─'.repeat(50));
-    if (motivoDesecho && installed.length > 1) {
+    if (motivoDesecho && allInstalled.length > 1) {
         const desechoRes = await post(cookie, 'neumaticos/eventos', {
             tipo_evento: 'DESECHO',
-            neumatico_id: installed[installed.length - 1].id,
+            neumatico_id: allInstalled[allInstalled.length - 1].id,
             motivo_desecho_id: motivoDesecho.id,
             observaciones: 'Fin de vida útil - desgaste total'
         });
