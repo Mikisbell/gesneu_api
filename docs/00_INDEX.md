@@ -1,9 +1,13 @@
 # 📚 Documentación GesNeu API
 
-Bienvenido a la documentación técnica de **GesNeu API**, el sistema integral para gestión de activos de neumáticos y flotas.
+Bienvenido a la documentación de **GesNeu API**, el sistema integral para gestión de activos de neumáticos y flotas.
+
+> 💡 **Si es tu primera vez en este proyecto**, empezá por el **[PRD](./00_PRD.md)** — te da la visión de producto antes de entrar a los detalles técnicos.
 
 ## 🗂 Estructura de Documentación
 
+0.  [**📘 PRD — Product Requirements Document**](./00_PRD.md) ⭐
+    *   Visión, personas, objetivos, alcance funcional. Documento vivo de producto.
 1.  [**Arquitectura del Sistema**](./01_ARQUITECTURA.md)
     *   Diseño de alto nivel, stack tecnológico y patrones.
 2.  [**Modelo de Negocio**](./02_MODELO_NEGOCIO.md)
@@ -27,6 +31,19 @@ Bienvenido a la documentación técnica de **GesNeu API**, el sistema integral p
 11. [**Changelog**](./99_CHANGELOG.md)
 
     *   Historial de cambios y versiones.
+
+---
+
+### 🧭 ¿Cuál documento leer según mi rol?
+
+| Quiero entender... | Leer |
+|--------------------|------|
+| Qué hace el sistema y por qué | **[PRD](./00_PRD.md)** |
+| Cuándo se entrega qué | [ROADMAP.md](../ROADMAP.md) |
+| Cómo está construido el sistema | [01_ARQUITECTURA.md](./01_ARQUITECTURA.md) |
+| Reglas de negocio detalladas | [02_MODELO_NEGOCIO.md](./02_MODELO_NEGOCIO.md) |
+| Cómo usar los endpoints | [03_API_REFERENCE.md](./03_API_REFERENCE.md) |
+| Cómo desplegar en producción | [07_DEPLOY.md](./07_DEPLOY.md) |
 
 ---
 
