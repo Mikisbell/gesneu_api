@@ -9,7 +9,7 @@ export const AdminPaginationSchema = z.object({
 export const AdminUserSearchSchema = AdminPaginationSchema.extend({
     search: z.string().optional(),
     empresa_id: z.string().uuid().optional(),
-    rol: z.enum(['SUPERADMIN', 'ADMIN', 'ADMINISTRADOR', 'GESTOR', 'OPERADOR', 'CONSULTOR']).optional(),
+    rol: z.enum(['SUPERADMIN', 'ADMIN', 'GESTOR', 'OPERADOR']).optional(),
     activo: z.enum(['true', 'false']).transform(val => val === 'true').optional(),
 });
 

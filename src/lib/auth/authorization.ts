@@ -122,7 +122,7 @@ export function hasRole(session: ExtendedSession, role: string): boolean {
  * @returns true if user is admin
  */
 export function isAdmin(session: ExtendedSession): boolean {
-    return hasRole(session, 'ADMINISTRADOR') || hasRole(session, 'SUPERADMIN');
+    return hasRole(session, 'ADMIN') || hasRole(session, 'SUPERADMIN');
 }
 
 /**

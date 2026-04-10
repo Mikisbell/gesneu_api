@@ -7,7 +7,7 @@ export const GET = apiHandler(
     async (req, session) => {
         return webhookService.getAll(session.user.empresa_id!);
     },
-    { roles: ['ADMIN', 'ADMINISTRADOR'] }
+    { roles: ['ADMIN'] }
 );
 
 export const POST = apiHandler(
@@ -22,7 +22,7 @@ export const POST = apiHandler(
         return ApiResponseHelper.created(webhook);
     },
     {
-        roles: ['ADMIN', 'ADMINISTRADOR'],
+        roles: ['ADMIN'],
         schema: CreateWebhookSchema
     }
 );

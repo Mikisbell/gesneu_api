@@ -45,7 +45,7 @@ export const mockSessions = {
         userId: '00000000-0000-0000-0000-000000000001',
         username: 'admin',
         email: 'admin@example.com',
-        roles: ['ADMINISTRADOR'],
+        roles: ['ADMIN'],
         permissions: ['*'] // All permissions
     }),
 
@@ -95,6 +95,9 @@ export const mockSessions = {
         ]
     }),
 
+    // @deprecated — El rol CONSULTOR fue eliminado del sistema productivo (enum Prisma, SYSTEM_ROLES, validators).
+    // Este mock se preserva únicamente para tests legacy que validan el comportamiento "usuario sin permisos → 403".
+    // En tests nuevos, usar mockSessions.operador o crear un mock específico read-only.
     consultor: createMockSession({
         userId: '00000000-0000-0000-0000-000000000004',
         username: 'consultor',

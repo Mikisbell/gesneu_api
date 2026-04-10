@@ -8,7 +8,7 @@ export async function POST(req: Request) {
     try {
         // 1. Auth & Role Check
         const session = await requireAuth();
-        requireRole(session, ['SUPERADMIN', 'ADMINISTRADOR']);
+        requireRole(session, ['SUPERADMIN', 'ADMIN']);
 
         const body = await req.json();
 
@@ -38,7 +38,7 @@ export async function POST(req: Request) {
 export async function GET(req: Request) {
     try {
         const session = await requireAuth();
-        requireRole(session, ['SUPERADMIN', 'ADMINISTRADOR']);
+        requireRole(session, ['SUPERADMIN', 'ADMIN']);
 
         const tenants = await TenantService.getAllTenants();
         return ApiResponseHelper.success(tenants);

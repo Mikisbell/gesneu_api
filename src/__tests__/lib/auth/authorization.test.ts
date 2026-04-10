@@ -203,13 +203,13 @@ describe('Authorization Helper Functions', () => {
     });
 
     describe('isAdmin', () => {
-        it('should return true when user has ADMINISTRADOR role', () => {
-            const session = createMockSession([], ['ADMINISTRADOR']);
+        it('should return true when user has ADMIN role', () => {
+            const session = createMockSession([], ['ADMIN']);
 
             expect(isAdmin(session)).toBe(true);
         });
 
-        it('should return false when user does not have ADMINISTRADOR role', () => {
+        it('should return false when user does not have ADMIN role', () => {
             const session = createMockSession([], ['OPERADOR', 'GESTOR']);
 
             expect(isAdmin(session)).toBe(false);

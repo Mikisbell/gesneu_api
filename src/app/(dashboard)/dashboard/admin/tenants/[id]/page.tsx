@@ -66,7 +66,6 @@ interface TenantDetailData {
 const roleColors: Record<string, string> = {
     SUPERADMIN: "bg-purple-100 text-purple-800",
     ADMIN: "bg-blue-100 text-blue-800",
-    ADMINISTRADOR: "bg-blue-100 text-blue-800",
     GESTOR: "bg-emerald-100 text-emerald-800",
     OPERADOR: "bg-gray-100 text-gray-800",
 }

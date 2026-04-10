@@ -15,7 +15,7 @@ export const PUT = apiHandler(
         }
     },
     {
-        roles: ['ADMIN', 'ADMINISTRADOR'],
+        roles: ['ADMIN'],
         schema: CreateWebhookSchema.partial()
     }
 );
@@ -31,5 +31,5 @@ export const DELETE = apiHandler(
             throw e;
         }
     },
-    { roles: ['ADMIN', 'ADMINISTRADOR'] }
+    { roles: ['ADMIN'] }
 );

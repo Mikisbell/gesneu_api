@@ -56,7 +56,6 @@ interface UsersResponse {
 const roleColors: Record<string, string> = {
     SUPERADMIN: "bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-400",
     ADMIN: "bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400",
-    ADMINISTRADOR: "bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400",
     GESTOR: "bg-emerald-100 text-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-400",
     OPERADOR: "bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-300",
 }
@@ -97,7 +96,7 @@ export default function AdminUsersPage() {
     // Stats
     const totalUsers = pagination?.total || 0
     const activeUsers = users.filter(u => u.activo).length
-    const adminCount = users.filter(u => ['ADMIN', 'ADMINISTRADOR', 'SUPERADMIN'].includes(u.rol)).length
+    const adminCount = users.filter(u => ['ADMIN', 'SUPERADMIN'].includes(u.rol)).length
 
     if (isLoading) {
         return (

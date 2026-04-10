@@ -11,7 +11,7 @@ const webhookService = new WebhookService();
 export async function POST(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
     try {
         const session = await requireAuth();
-        requireRole(session, ['ADMIN', 'ADMINISTRADOR']);
+        requireRole(session, ['ADMIN']);
 
         const { id } = await params;
         const webhook = await prisma.webhookConfig.findFirst({

@@ -74,8 +74,8 @@ export type Permission = typeof PERMISSIONS[keyof typeof PERMISSIONS]
 // Roles predefinidos del sistema
 export const SYSTEM_ROLES = {
   ADMIN: {
-    nombre: 'ADMINISTRADOR',
-    descripcion: 'Acceso completo al sistema',
+    nombre: 'ADMIN',
+    descripcion: 'Acceso completo al sistema dentro de la empresa',
     permisos: Object.values(PERMISSIONS) // Todos los permisos
   },
 
@@ -155,22 +155,6 @@ export const SYSTEM_ROLES = {
 
       // Reportes - Solo dashboard
       PERMISSIONS.REPORTES_DASHBOARD
-    ]
-  },
-
-  CONSULTOR: {
-    nombre: 'CONSULTOR',
-    descripcion: 'Solo lectura y reportes',
-    permisos: [
-      // Solo permisos de lectura
-      PERMISSIONS.CATALOGOS_PROVEEDORES_READ,
-      PERMISSIONS.CATALOGOS_ALMACENES_READ,
-      PERMISSIONS.CATALOGOS_FABRICANTES_READ,
-      PERMISSIONS.VEHICULOS_READ,
-      PERMISSIONS.NEUMATICOS_READ,
-      PERMISSIONS.INVENTARIO_READ,
-      PERMISSIONS.REPORTES_DASHBOARD,
-      PERMISSIONS.REPORTES_RENDIMIENTO
     ]
   }
 } as const
