@@ -4,6 +4,7 @@ import { rbacService } from '@/lib/services/rbac.service';
 import { PERMISSIONS } from '@/lib/auth/permissions';
 import { CreateRolSchema } from '@/lib/validators/rbac.validator';
 import { ApiResponseHelper } from '@/lib/utils/api-response';
+import { DYNAMIC_RBAC_ENABLED, featureDisabledResponse } from '@/lib/features';
 
 /**
  * @swagger
@@ -27,7 +28,7 @@ import { ApiResponseHelper } from '@/lib/utils/api-response';
  *       200:
  *         description: Lista de roles obtenida exitosamente
  */
-export const GET = apiHandler(
+const _GET = apiHandler(
     async (req, session) => {
         const { searchParams } = new URL(req.url);
 
@@ -75,7 +76,7 @@ export const GET = apiHandler(
  *       409:
  *         description: Ya existe un rol con este nombre
  */
-export const POST = apiHandler(
+const _POST = apiHandler(
     async (req, session, _, body) => {
         const result = await rbacService.createRol(
             session.user.empresa_id,
@@ -91,3 +92,18 @@ export const POST = apiHandler(
         schema: CreateRolSchema,
     }
 );
+
+function rbacGuard(handler: typeof _GET) {
+    return async (...args: Parameters<typeof _GET>) => {
+        if (!DYNAMIC_RBAC_ENABLED) {
+            return featureDisabledResponse(
+                'RBAC dinámico',
+                'Las tablas dinámicas Rol/Permiso no afectan la autenticación real en single-tenant. Feature disponible cuando se active multi-tenant.'
+            );
+        }
+        return handler(...args);
+    };
+}
+
+export const GET = rbacGuard(_GET);
+export const POST = rbacGuard(_POST);

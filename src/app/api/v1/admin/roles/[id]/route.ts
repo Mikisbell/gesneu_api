@@ -4,6 +4,7 @@ import { rbacService } from '@/lib/services/rbac.service';
 import { PERMISSIONS } from '@/lib/auth/permissions';
 import { UpdateRolSchema } from '@/lib/validators/rbac.validator';
 import { ApiResponseHelper } from '@/lib/utils/api-response';
+import { DYNAMIC_RBAC_ENABLED, featureDisabledResponse } from '@/lib/features';
 
 /**
  * @swagger
@@ -26,7 +27,7 @@ import { ApiResponseHelper } from '@/lib/utils/api-response';
  *       404:
  *         description: Rol no encontrado
  */
-export const GET = apiHandler(
+const _GET = apiHandler(
     async (req, session, context) => {
         const params = await context.params;
         const id = params.id;
@@ -79,7 +80,7 @@ export const GET = apiHandler(
  *       409:
  *         description: Ya existe un rol con este nombre
  */
-export const PUT = apiHandler(
+const _PUT = apiHandler(
     async (req, session, context, body) => {
         const params = await context.params;
         const id = params.id;
@@ -123,7 +124,7 @@ export const PUT = apiHandler(
  *       404:
  *         description: Rol no encontrado
  */
-export const DELETE = apiHandler(
+const _DELETE = apiHandler(
     async (req, session, context) => {
         const params = await context.params;
         const id = params.id;
@@ -135,3 +136,19 @@ export const DELETE = apiHandler(
     },
     { permission: PERMISSIONS.SISTEMA_ROLES_MANAGE }
 );
+
+function rbacGuard(handler: typeof _GET) {
+    return async (...args: Parameters<typeof _GET>) => {
+        if (!DYNAMIC_RBAC_ENABLED) {
+            return featureDisabledResponse(
+                'RBAC dinámico',
+                'Las tablas dinámicas Rol/Permiso no afectan la autenticación real en single-tenant. Feature disponible cuando se active multi-tenant.'
+            );
+        }
+        return handler(...args);
+    };
+}
+
+export const GET = rbacGuard(_GET);
+export const PUT = rbacGuard(_PUT);
+export const DELETE = rbacGuard(_DELETE);

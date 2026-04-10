@@ -3,6 +3,7 @@ import { NextRequest } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { requireAuth, isAdmin } from '@/lib/auth/authorization';
 import { ApiResponseHelper } from '@/lib/utils/api-response';
+import { MULTI_TENANT_ENABLED, featureDisabledResponse } from '@/lib/features';
 
 export const runtime = 'nodejs';
 
@@ -11,6 +12,13 @@ interface RouteParams {
 }
 
 export async function GET(request: NextRequest, { params }: RouteParams) {
+    if (!MULTI_TENANT_ENABLED) {
+        return featureDisabledResponse(
+            'Gestión multi-tenant',
+            'El sistema opera en modo single-tenant. Gestión de empresas no disponible hasta activar multi-tenant.'
+        );
+    }
+
     try {
         const session = await requireAuth();
 

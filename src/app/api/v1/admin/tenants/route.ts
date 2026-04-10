@@ -3,8 +3,16 @@ import { TenantService } from '@/lib/services/tenant.service';
 import { requireRole, requireAuth } from '@/lib/auth/authorization';
 import bcrypt from 'bcryptjs';
 import { ApiResponseHelper } from '@/lib/utils/api-response';
+import { MULTI_TENANT_ENABLED, featureDisabledResponse } from '@/lib/features';
 
 export async function POST(req: Request) {
+    if (!MULTI_TENANT_ENABLED) {
+        return featureDisabledResponse(
+            'Gestión multi-tenant',
+            'El sistema opera en modo single-tenant. Gestión de empresas no disponible hasta activar multi-tenant.'
+        );
+    }
+
     try {
         // 1. Auth & Role Check
         const session = await requireAuth();
@@ -36,6 +44,13 @@ export async function POST(req: Request) {
 }
 
 export async function GET(req: Request) {
+    if (!MULTI_TENANT_ENABLED) {
+        return featureDisabledResponse(
+            'Gestión multi-tenant',
+            'El sistema opera en modo single-tenant. Gestión de empresas no disponible hasta activar multi-tenant.'
+        );
+    }
+
     try {
         const session = await requireAuth();
         requireRole(session, ['SUPERADMIN', 'ADMIN']);
