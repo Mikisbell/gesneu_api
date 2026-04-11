@@ -37,7 +37,7 @@ describe('Vehículos API Integration Tests', () => {
         it('should return 401 when not authenticated', async () => {
             (auth as jest.Mock).mockResolvedValue(null);
             const req = new NextRequest(`${BASE_URL}`);
-            const res = await GET_VEHICULOS(req);
+            const res = await GET_VEHICULOS(req, { params: Promise.resolve({}) });
             expect(res.status).toBe(401);
         });
 
@@ -47,7 +47,7 @@ describe('Vehículos API Integration Tests', () => {
             for (const role of rolesWithRead) {
                 (auth as jest.Mock).mockResolvedValue(mockSessions[role]);
                 const req = new NextRequest(`${BASE_URL}`);
-                const res = await GET_VEHICULOS(req);
+                const res = await GET_VEHICULOS(req, { params: Promise.resolve({}) });
                 expect(res.status).toBe(200);
                 const data = await res.json();
                 expect(data).toHaveProperty('data');
@@ -62,7 +62,7 @@ describe('Vehículos API Integration Tests', () => {
                 method: 'POST',
                 body: JSON.stringify({ placa: 'TEST-123' })
             });
-            const res = await POST_VEHICULOS(req);
+            const res = await POST_VEHICULOS(req, { params: Promise.resolve({}) });
             expect(res.status).toBe(403);
         });
 
@@ -72,7 +72,7 @@ describe('Vehículos API Integration Tests', () => {
                 method: 'POST',
                 body: JSON.stringify({ placa: 'TEST-123' })
             });
-            const res = await POST_VEHICULOS(req);
+            const res = await POST_VEHICULOS(req, { params: Promise.resolve({}) });
             expect(res.status).toBe(403);
         });
 
@@ -85,7 +85,7 @@ describe('Vehículos API Integration Tests', () => {
                     tipo_vehiculo_id: '00000000-0000-0000-0000-000000000000'
                 })
             });
-            const res = await POST_VEHICULOS(req);
+            const res = await POST_VEHICULOS(req, { params: Promise.resolve({}) });
             // Auth/authz passed, will fail on validation/business logic
             expect([400, 404, 201, 500]).toContain(res.status);
         });
@@ -99,7 +99,7 @@ describe('Vehículos API Integration Tests', () => {
                     tipo_vehiculo_id: '00000000-0000-0000-0000-000000000000'
                 })
             });
-            const res = await POST_VEHICULOS(req);
+            const res = await POST_VEHICULOS(req, { params: Promise.resolve({}) });
             expect([400, 404, 201, 500]).toContain(res.status);
         });
     });

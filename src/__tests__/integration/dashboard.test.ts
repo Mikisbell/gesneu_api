@@ -72,7 +72,7 @@ describe('DashboardService', () => {
 
     describe('getReporteInventario', () => {
         it('debería retornar totales por estado', async () => {
-            const reporte = await service.getReporteInventario();
+            const reporte = await service.getReporteInventario('00000000-0000-0000-0000-000000000000');
 
             expect(reporte.total_neumaticos).toBeGreaterThanOrEqual(1);
             expect(reporte.por_estado).toBeDefined();
@@ -82,7 +82,16 @@ describe('DashboardService', () => {
 
     describe('getReporteRendimiento', () => {
         it('debería retornar top mejores y peores por CPK', async () => {
-            const reporte = await service.getReporteRendimiento(5);
+            const empresa = await prisma.empresa.create({
+                data: { nombre: `Test Rend ${Date.now()}`, ruc: `TEST-REND-${Date.now()}`.substring(0, 20) }
+            });
+            await createTestNeumatico({
+                empresa_id: empresa.id,
+                costo_compra: 500,
+                kilometraje_acumulado: 10000
+            });
+
+            const reporte = await service.getReporteRendimiento(empresa.id, 5);
 
             expect(reporte.top_mejores).toBeDefined();
             expect(reporte.top_peores).toBeDefined();
@@ -92,7 +101,7 @@ describe('DashboardService', () => {
 
     describe('getReporteDesechos', () => {
         it('debería retornar análisis de desechos', async () => {
-            const reporte = await service.getReporteDesechos();
+            const reporte = await service.getReporteDesechos('00000000-0000-0000-0000-000000000000');
 
             expect(typeof reporte.total_desechados).toBe('number');
             expect(Array.isArray(reporte.por_motivo)).toBe(true);

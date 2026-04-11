@@ -40,7 +40,7 @@ describe('Catálogos API Integration Tests', () => {
             it('should return 401 when not authenticated', async () => {
                 (auth as jest.Mock).mockResolvedValue(null);
                 const req = new NextRequest(`${BASE_URL}/almacenes`);
-                const res = await GET_ALMACENES(req);
+                const res = await GET_ALMACENES(req, { params: Promise.resolve({}) });
                 expect(res.status).toBe(401);
             });
 
@@ -50,7 +50,7 @@ describe('Catálogos API Integration Tests', () => {
                 for (const role of allRoles) {
                     (auth as jest.Mock).mockResolvedValue(mockSessions[role]);
                     const req = new NextRequest(`${BASE_URL}/almacenes`);
-                    const res = await GET_ALMACENES(req);
+                    const res = await GET_ALMACENES(req, { params: Promise.resolve({}) });
                     expect(res.status).toBe(200);
                     const data = await res.json();
                     expect(data).toHaveProperty('data');
@@ -65,7 +65,7 @@ describe('Catálogos API Integration Tests', () => {
                     method: 'POST',
                     body: JSON.stringify({ nombre: '[TEST] Almacen Consultor' })
                 });
-                const res = await POST_ALMACENES(req);
+                const res = await POST_ALMACENES(req, { params: Promise.resolve({}) });
                 expect(res.status).toBe(403);
             });
 
@@ -75,7 +75,7 @@ describe('Catálogos API Integration Tests', () => {
                     method: 'POST',
                     body: JSON.stringify({ nombre: '[TEST] Almacen Operador' })
                 });
-                const res = await POST_ALMACENES(req);
+                const res = await POST_ALMACENES(req, { params: Promise.resolve({}) });
                 expect(res.status).toBe(403);
             });
 
@@ -85,7 +85,7 @@ describe('Catálogos API Integration Tests', () => {
                     method: 'POST',
                     body: JSON.stringify({ nombre: `[TEST] Almacen Gestor ${Date.now()}` })
                 });
-                const res = await POST_ALMACENES(req);
+                const res = await POST_ALMACENES(req, { params: Promise.resolve({}) });
                 expect([400, 201, 409]).toContain(res.status);
             });
         });
@@ -116,7 +116,7 @@ describe('Catálogos API Integration Tests', () => {
             it('should return 401 when not authenticated', async () => {
                 (auth as jest.Mock).mockResolvedValue(null);
                 const req = new NextRequest(`${BASE_URL}/proveedores`);
-                const res = await GET_PROVEEDORES(req);
+                const res = await GET_PROVEEDORES(req, { params: Promise.resolve({}) });
                 expect(res.status).toBe(401);
             });
 
@@ -126,7 +126,7 @@ describe('Catálogos API Integration Tests', () => {
                 for (const role of allRoles) {
                     (auth as jest.Mock).mockResolvedValue(mockSessions[role]);
                     const req = new NextRequest(`${BASE_URL}/proveedores`);
-                    const res = await GET_PROVEEDORES(req);
+                    const res = await GET_PROVEEDORES(req, { params: Promise.resolve({}) });
                     expect(res.status).toBe(200);
                     const data = await res.json();
                     expect(data).toHaveProperty('data');
@@ -141,7 +141,7 @@ describe('Catálogos API Integration Tests', () => {
                     method: 'POST',
                     body: JSON.stringify({ nombre: '[TEST] Proveedor', tipo: 'FABRICANTE' })
                 });
-                const res = await POST_PROVEEDORES(req);
+                const res = await POST_PROVEEDORES(req, { params: Promise.resolve({}) });
                 expect(res.status).toBe(403);
             });
 
@@ -155,7 +155,7 @@ describe('Catálogos API Integration Tests', () => {
                         ruc: `TEST${Date.now()}`.substring(0, 20)
                     })
                 });
-                const res = await POST_PROVEEDORES(req);
+                const res = await POST_PROVEEDORES(req, { params: Promise.resolve({}) });
                 expect([400, 201, 409, 500]).toContain(res.status);
             });
 
@@ -165,7 +165,7 @@ describe('Catálogos API Integration Tests', () => {
                     method: 'POST',
                     body: JSON.stringify({})
                 });
-                const res = await POST_PROVEEDORES(req);
+                const res = await POST_PROVEEDORES(req, { params: Promise.resolve({}) });
                 expect(res.status).toBe(400);
             });
         });
