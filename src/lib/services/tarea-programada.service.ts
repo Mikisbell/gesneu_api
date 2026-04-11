@@ -22,7 +22,7 @@ export class TareaProgramadaService {
                     cron_expresion: data.cron_expresion || null,
                     intervalo_minutos: data.intervalo_minutos || null,
                     proxima_ejecucion: data.proxima_ejecucion || null,
-                    parametros: data.parametros ? (data.parametros as Prisma.InputJsonValue) : null,
+                    parametros: data.parametros ? (data.parametros as Prisma.InputJsonValue) : Prisma.JsonNull,
                     max_reintentos: data.max_reintentos,
                     activo: data.activo
                 }
@@ -31,7 +31,8 @@ export class TareaProgramadaService {
             return ok(tarea);
         } catch (error) {
             console.error('[TareaProgramadaService.create] Error:', error);
-            return err(new BusinessError(`Error al crear tarea programada: ${error?.message || 'unknown'}`, 'CREATE_ERROR', 500));
+            const message = error instanceof Error ? error.message : 'unknown';
+            return err(new BusinessError(`Error al crear tarea programada: ${message}`, 'CREATE_ERROR', 500));
         }
     }
 
