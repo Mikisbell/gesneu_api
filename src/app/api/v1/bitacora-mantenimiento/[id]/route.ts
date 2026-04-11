@@ -30,10 +30,14 @@ import { ApiResponseHelper } from '@/lib/utils/api-response';
  */
 export const GET = apiHandler(
     async (req, session, context) => {
+        if (!session.user.empresa_id) {
+            return ApiResponseHelper.forbidden('Usuario sin empresa asignada');
+        }
+
         const params = await context.params;
         const id = params.id;
 
-        const result = await bitacoraMantenimientoService.getById(id);
+        const result = await bitacoraMantenimientoService.getById(id, session.user.empresa_id);
         if (!result.success) throw result.error;
 
         return ApiResponseHelper.success(result.data);
@@ -100,10 +104,14 @@ export const GET = apiHandler(
  */
 export const PUT = apiHandler(
     async (req, session, context, body) => {
+        if (!session.user.empresa_id) {
+            return ApiResponseHelper.forbidden('Usuario sin empresa asignada');
+        }
+
         const params = await context.params;
         const id = params.id;
 
-        const result = await bitacoraMantenimientoService.update(id, body);
+        const result = await bitacoraMantenimientoService.update(id, body, session.user.empresa_id);
         if (!result.success) throw result.error;
 
         return ApiResponseHelper.success(result.data, 'Registro de mantenimiento actualizado exitosamente');
@@ -139,10 +147,14 @@ export const PUT = apiHandler(
  */
 export const DELETE = apiHandler(
     async (req, session, context) => {
+        if (!session.user.empresa_id) {
+            return ApiResponseHelper.forbidden('Usuario sin empresa asignada');
+        }
+
         const params = await context.params;
         const id = params.id;
 
-        const result = await bitacoraMantenimientoService.delete(id);
+        const result = await bitacoraMantenimientoService.delete(id, session.user.empresa_id);
         if (!result.success) throw result.error;
 
         return ApiResponseHelper.success(null, 'Registro de mantenimiento eliminado exitosamente');
