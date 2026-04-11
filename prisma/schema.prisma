@@ -64,37 +64,38 @@ model Usuario {
 }
 
 model Vehiculo {
-  id                           String               @id @default(uuid()) @db.Uuid
-  codigo_interno               String?              @db.VarChar(20)
-  placa                        String?              @unique @db.VarChar(15)
-  tipo_vehiculo_id             String               @db.Uuid
-  centro_costo_id              String?              @db.Uuid
-  marca                        String?              @db.VarChar(50)
-  tipo_medicion                TipoMedicionEnum     @default(KILOMETRAJE)
-  activo                       Boolean              @default(true)
-  ruta_id                      String?              @db.Uuid
+  id                           String                  @id @default(uuid()) @db.Uuid
+  codigo_interno               String?                 @db.VarChar(20)
+  placa                        String?                 @unique @db.VarChar(15)
+  tipo_vehiculo_id             String                  @db.Uuid
+  centro_costo_id              String?                 @db.Uuid
+  marca                        String?                 @db.VarChar(50)
+  tipo_medicion                TipoMedicionEnum        @default(KILOMETRAJE)
+  activo                       Boolean                 @default(true)
+  ruta_id                      String?                 @db.Uuid
   anio_fabricacion             Int?
-  fecha_alta                   DateTime             @default(now()) @db.Date
-  fecha_baja                   DateTime?            @db.Date
-  fecha_ultimo_odometro        DateTime?            @db.Timestamptz(6)
-  modelo_vehiculo              String?              @db.VarChar(50)
+  fecha_alta                   DateTime                @default(now()) @db.Date
+  fecha_baja                   DateTime?               @db.Date
+  fecha_ultimo_odometro        DateTime?               @db.Timestamptz(6)
+  modelo_vehiculo              String?                 @db.VarChar(50)
   notas                        String?
-  numero_economico             String               @unique @db.VarChar(50)
-  odometro_actual              Int?                 @default(0)
-  peso_carga_maxima_diseno_ton Decimal?             @db.Decimal(5, 2)
-  ubicacion_actual             String?              @db.VarChar(100)
-  vin                          String?              @unique @db.VarChar(17)
-  version                      Int                  @default(0)
-  empresa_id                   String               @db.Uuid
+  numero_economico             String                  @unique @db.VarChar(50)
+  odometro_actual              Int?                    @default(0)
+  peso_carga_maxima_diseno_ton Decimal?                @db.Decimal(5, 2)
+  ubicacion_actual             String?                 @db.VarChar(100)
+  vin                          String?                 @unique @db.VarChar(17)
+  version                      Int                     @default(0)
+  empresa_id                   String                  @db.Uuid
   alertas                      Alerta[]
   eventos                      EventoNeumatico[]
   neumaticos_instalados        Neumatico[]
   registros_contador           RegistroContador[]
   certificados                 CertificadoEmitido[]
-  centro_costo                 CentroCosto?         @relation(fields: [centro_costo_id], references: [id])
-  empresa                      Empresa              @relation(fields: [empresa_id], references: [id])
-  ruta_asignada                Ruta?                @relation(fields: [ruta_id], references: [id])
-  tipo_vehiculo                TipoVehiculo         @relation(fields: [tipo_vehiculo_id], references: [id])
+  bitacoras_mantenimiento      BitacoraMantenimiento[]
+  centro_costo                 CentroCosto?            @relation(fields: [centro_costo_id], references: [id])
+  empresa                      Empresa                 @relation(fields: [empresa_id], references: [id])
+  ruta_asignada                Ruta?                   @relation(fields: [ruta_id], references: [id])
+  tipo_vehiculo                TipoVehiculo            @relation(fields: [tipo_vehiculo_id], references: [id])
 
   @@index([tipo_vehiculo_id])
   @@index([placa])
@@ -736,6 +737,7 @@ model BitacoraMantenimiento {
   evidencia_url    String?
   creado_por       String?               @db.Uuid
   creado_en        DateTime              @default(now()) @db.Timestamptz(6)
+  vehiculo         Vehiculo              @relation(fields: [vehiculo_id], references: [id])
   proveedor        Proveedor?            @relation(fields: [proveedor_id], references: [id])
 
   @@index([vehiculo_id, fecha_realizada(sort: Desc)])
