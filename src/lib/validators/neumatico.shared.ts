@@ -46,7 +46,7 @@ export const BaseNeumaticoSchema = z.object({
 
     // ✅ z.coerce.number convierte string → number automáticamente
     profundidad_inicial_mm: z.coerce
-        .number({ invalid_type_error: 'Debe ser un número' })
+        .number({ error: 'Debe ser un número' })
         .min(0, 'Profundidad no puede ser negativa')
         .max(50, 'Profundidad máxima: 50mm'),
 

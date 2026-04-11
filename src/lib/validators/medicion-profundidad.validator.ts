@@ -12,13 +12,3 @@ export const CreateMedicionProfundidadSchema = z.object({
 
 export type CreateMedicionProfundidadDTO = z.infer<typeof CreateMedicionProfundidadSchema>;
 
-export const formatZodErrors = (error: z.ZodError): string[] => {
-    return error.errors.map((err) => {
-        const path = err.path.join('.');
-        return `${path}: ${err.message}`;
-    });
-};
-
-export const getFirstZodError = (error: z.ZodError): string => {
-    return error.errors[0]?.message ?? 'Error de validación';
-};
