@@ -678,85 +678,48 @@ export class ReportesService {
     }
 
     /**
-     * Historial de últimas N instalaciones en una posición específica.
-     * Fase 6A.4: Muestra neumáticos anteriores con KM y días de uso.
+     * @deprecated Método no operativo — bloqueado por deuda técnica de schema.
+     *
+     * Este método pretende mostrar el historial de últimas N instalaciones en
+     * una posición específica de un vehículo (diseñado para Fase 6A.4). Sin
+     * embargo, el código original fue escrito asumiendo un modelo de
+     * EventoNeumatico más rico del que realmente existe:
+     *
+     * CAMPOS ASUMIDOS QUE NO EXISTEN EN EL SCHEMA:
+     *   - EventoNeumatico.empresa_id        (no existe — filtrar via neumatico.empresa_id)
+     *   - EventoNeumatico.posicion_origen   (no existe — solo hay posicion_montaje_id)
+     *   - EventoNeumatico.posicion_destino  (no existe — idem)
+     *   - EventoNeumatico.km_vehiculo       (no existe — el campo real es contador_vehiculo)
+     *
+     * ENUM VALUE INCORRECTO:
+     *   - 'MONTAJE' no es valor de TipoEventoNeumaticoEnum (canónico: 'INSTALACION')
+     *
+     * ESTADO ACTUAL:
+     * - Endpoint expuesto: GET /api/v1/reportes/historial-posicion
+     * - Consumidores reales: NINGUNO (verificado con grep — solo el route handler lo llama)
+     * - Por lo tanto: dead code productivo seguro de bloquear sin impacto operativo
+     *
+     * ACCIÓN REQUERIDA CUANDO SE NECESITE REACTIVAR:
+     * 1. Reescribir queries usando:
+     *    - posicion_montaje_id con filtro de tipo_evento (INSTALACION vs DESMONTAJE)
+     *    - JOIN via include: { posicion_montaje: { select: { codigo_posicion: true } } }
+     *    - Filtro de tenant via neumatico.empresa_id en lugar de EventoNeumatico.empresa_id
+     *    - contador_vehiculo en lugar de km_vehiculo
+     * 2. Validar semántica de "historial por posición" con stakeholder:
+     *    ¿Una rotación (ROTACION) cuenta como nueva instalación en la posición destino?
+     *    El modelo actual no distingue origen/destino en rotaciones.
+     * 3. Evaluar si conviene agregar posicion_origen_id al schema (decisión de diseño).
+     *
+     * Quedó como deuda técnica en el backlog. Ver commit [este] para contexto completo.
      */
     async getHistorialPosicion(
-        empresaId: string,
-        vehiculoId: string,
-        posicionCodigo: string,
-        limit: number = 4
-    ) {
-        // Buscar eventos de montaje en esta posición
-        const eventos = await prisma.eventoNeumatico.findMany({
-            where: {
-                empresa_id: empresaId,
-                vehiculo_id: vehiculoId,
-                tipo_evento: 'MONTAJE',
-                posicion_destino: posicionCodigo
-            },
-            include: {
-                neumatico: {
-                    select: {
-                        numero_serie: true,
-                        modelo: {
-                            select: {
-                                medida: true,
-                                fabricante: { select: { nombre: true } }
-                            }
-                        }
-                    }
-                }
-            },
-            orderBy: { fecha_evento: 'desc' },
-            take: limit
-        });
-
-        // Buscar eventos de desmontaje correspondientes para calcular duración
-        const historial = await Promise.all(eventos.map(async (montaje) => {
-            // Buscar el desmontaje posterior (si existe)
-            const desmontaje = await prisma.eventoNeumatico.findFirst({
-                where: {
-                    neumatico_id: montaje.neumatico_id,
-                    tipo_evento: 'DESMONTAJE',
-                    posicion_origen: posicionCodigo,
-                    fecha_evento: { gt: montaje.fecha_evento }
-                },
-                orderBy: { fecha_evento: 'asc' }
-            });
-
-            const fechaInicio = new Date(montaje.fecha_evento);
-            const fechaFin = desmontaje ? new Date(desmontaje.fecha_evento) : new Date();
-            const diasInstalado = Math.floor((fechaFin.getTime() - fechaInicio.getTime()) / (1000 * 60 * 60 * 24));
-
-            // Calcular KM rodados en esta instalación
-            const kmInicio = toNumber(montaje.km_vehiculo);
-            const kmFin = desmontaje ? toNumber(desmontaje.km_vehiculo) : null;
-            const kmRodados = kmFin !== null && kmInicio > 0 ? kmFin - kmInicio : null;
-
-            return {
-                instalacion_num: 0, // Se asignará después
-                neumatico_serie: montaje.neumatico?.numero_serie || 'N/A',
-                marca: montaje.neumatico?.modelo?.fabricante?.nombre || 'N/A',
-                medida: montaje.neumatico?.modelo?.medida || 'N/A',
-                fecha_montaje: fechaInicio.toISOString().split('T')[0],
-                fecha_desmontaje: desmontaje ? new Date(desmontaje.fecha_evento).toISOString().split('T')[0] : null,
-                dias_instalado: diasInstalado,
-                km_rodados: kmRodados,
-                activo: !desmontaje
-            };
-        }));
-
-        // Asignar número de instalación (1 = más reciente)
-        historial.forEach((h, i) => {
-            h.instalacion_num = i + 1;
-        });
-
-        return {
-            vehiculo_id: vehiculoId,
-            posicion: posicionCodigo,
-            total_instalaciones: historial.length,
-            historial
-        };
+        _empresaId: string,
+        _vehiculoId: string,
+        _posicionCodigo: string,
+        _limit: number = 4
+    ): Promise<never> {
+        throw new Error(
+            'FEATURE_NOT_IMPLEMENTED: getHistorialPosicion requiere reescritura por deuda técnica de schema. Ver docstring del método para detalles.'
+        );
     }
 }
