@@ -37,6 +37,7 @@ model Empresa {
   webhooks     WebhookConfig[]
   centrosCosto CentroCosto[]
   certificados CertificadoEmitido[]
+  rutas        Ruta[]
 
   @@map("empresas")
 }
@@ -613,11 +614,14 @@ model Ruta {
   destino      String?    @db.VarChar(100)
   distancia_km Decimal    @default(0) @db.Decimal(10, 2)
   tipo_ruta_id String     @db.Uuid
+  empresa_id   String     @default(dbgenerated("'00000000-0000-0000-0000-000000000000'::uuid")) @db.Uuid
   activo       Boolean    @default(true)
   creado_en    DateTime   @default(now())
   tipo_ruta    TipoRuta   @relation(fields: [tipo_ruta_id], references: [id])
+  empresa      Empresa    @relation(fields: [empresa_id], references: [id])
   vehiculos    Vehiculo[]
 
+  @@index([empresa_id])
   @@map("rutas")
 }
 
