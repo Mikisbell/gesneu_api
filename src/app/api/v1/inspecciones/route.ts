@@ -71,7 +71,7 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
     try {
         const session = await requireAuth();
-        requirePermission(session, PERMISSIONS.NEUMATICOS_WRITE);
+        requirePermission(session, PERMISSIONS.NEUMATICOS_EVENTO_INSPECCION);
 
         const body = await request.json();
         const data = createInspeccionSchema.parse(body);
@@ -125,7 +125,12 @@ export async function POST(request: NextRequest) {
         });
 
         // ✅ Fase 6B.2: Alertas Post-Inspección
-        const alertas: Array<{ tipo: string; mensaje: string; severidad: 'BAJA' | 'MEDIA' | 'ALTA' | 'CRITICA' }> = [];
+        // Valores canónicos del schema: TipoAlertaEnum y SeveridadAlertaEnum
+        const alertas: Array<{
+            tipo: 'PROFUNDIDAD_MINIMA' | 'REENCAUCHE_MAXIMO' | 'DESGASTE_IRREGULAR' | 'VENCIMIENTO_DOT' | 'PRESION_BAJA';
+            mensaje: string;
+            severidad: 'INFO' | 'WARNING' | 'CRITICAL';
+        }> = [];
 
         // Obtener inspección anterior para comparar
         const inspeccionAnterior = await prisma.inspeccion.findFirst({
@@ -150,7 +155,7 @@ export async function POST(request: NextRequest) {
                     alertas.push({
                         tipo: 'PRESION_BAJA',
                         mensaje: `Presión bajó ${cambioPresion.toFixed(1)}% (de ${psiAnterior} a ${psiActual} PSI)`,
-                        severidad: cambioPresion >= 10 ? 'ALTA' : 'MEDIA'
+                        severidad: cambioPresion >= 10 ? 'CRITICAL' : 'WARNING'
                     });
                 }
             }
@@ -170,9 +175,9 @@ export async function POST(request: NextRequest) {
 
                 if (desgastePorDia > umbralNormal) {
                     alertas.push({
-                        tipo: 'DESGASTE_ACELERADO',
+                        tipo: 'DESGASTE_IRREGULAR',
                         mensaje: `Desgaste acelerado detectado: ${desgasteMm.toFixed(1)}mm en ${diasTranscurridos} días`,
-                        severidad: desgastePorDia > umbralNormal * 2 ? 'ALTA' : 'MEDIA'
+                        severidad: desgastePorDia > umbralNormal * 2 ? 'CRITICAL' : 'WARNING'
                     });
                 }
             }
@@ -184,11 +189,11 @@ export async function POST(request: NextRequest) {
                 data: {
                     neumatico_id: data.neumatico_id,
                     vehiculo_id: data.vehiculo_id || neumatico.ubicacion_vehiculo_id,
-                    tipo_alerta: alerta.tipo,
+                    tipo: alerta.tipo,
                     mensaje: alerta.mensaje,
-                    severidad: alerta.severidad,
-                    empresa_id: session.user.empresa_id!,
-                    estado: 'PENDIENTE'
+                    severidad: alerta.severidad
+                    // leida y resuelta defaultean a false en el schema
+                    // (Alerta es tenant-neutral, el aislamiento se deriva via neumatico/vehiculo)
                 }
             });
         }
