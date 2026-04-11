@@ -52,9 +52,9 @@ export class ErrorAplicacionService {
                     usuario_id: data.usuario_id || null,
                     ip_direccion: data.ip_direccion || null,
                     user_agent: data.user_agent || null,
-                    request_body: data.request_body ? (data.request_body as Prisma.InputJsonValue) : null,
-                    response_body: data.response_body ? (data.response_body as Prisma.InputJsonValue) : null,
-                    contexto: data.contexto ? (data.contexto as Prisma.InputJsonValue) : null
+                    request_body: data.request_body ? (data.request_body as Prisma.InputJsonValue) : Prisma.JsonNull,
+                    response_body: data.response_body ? (data.response_body as Prisma.InputJsonValue) : Prisma.JsonNull,
+                    contexto: data.contexto ? (data.contexto as Prisma.InputJsonValue) : Prisma.JsonNull
                 }
             });
 
