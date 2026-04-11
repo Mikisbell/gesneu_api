@@ -459,7 +459,7 @@ export class ReportesService {
             select: {
                 es_reencauchado: true,
                 reencauches_realizados: true,
-                vehiculo: { select: { tipo_vehiculo: { select: { nombre: true } } } }
+                ubicacion_vehiculo: { select: { tipo_vehiculo: { select: { nombre: true } } } }
             }
         });
 
@@ -483,7 +483,7 @@ export class ReportesService {
         // KPIs por tipo de vehículo
         const kpisPorTipo: Record<string, { total: number; reencauchados: number; vidas: number }> = {};
         neumaticos.forEach(n => {
-            const tipo = n.vehiculo?.tipo_vehiculo?.nombre || 'Sin Asignar';
+            const tipo = n.ubicacion_vehiculo?.tipo_vehiculo?.nombre || 'Sin Asignar';
             if (!kpisPorTipo[tipo]) kpisPorTipo[tipo] = { total: 0, reencauchados: 0, vidas: 0 };
             kpisPorTipo[tipo].total++;
             if (n.es_reencauchado) kpisPorTipo[tipo].reencauchados++;
@@ -573,14 +573,13 @@ export class ReportesService {
             },
             include: {
                 modelo: { select: { medida: true, fabricante: { select: { nombre: true } } } },
-                posicion_actual: {
+                ubicacion_posicion: {
                     select: {
-                        codigo: true,
-                        tipo_eje: true,
-                        es_repuesto: true
+                        codigo_posicion: true,
+                        configuracion_eje: { select: { tipo_eje: true } }
                     }
                 },
-                vehiculo: { select: { placa: true, tipo_vehiculo: { select: { nombre: true } } } }
+                ubicacion_vehiculo: { select: { placa: true, tipo_vehiculo: { select: { nombre: true } } } }
             }
         });
 
@@ -610,9 +609,12 @@ export class ReportesService {
             const medida = n.modelo?.medida || 'Sin Medida';
             medidasSet.add(medida);
 
-            const remanente = toNumber(n.profundidad_remanente);
-            const posicionCodigo = n.posicion_actual?.codigo || '';
-            const esRepuesto = n.posicion_actual?.es_repuesto || false;
+            const remanente = toNumber(n.profundidad_remanente_actual_mm);
+            const posicionCodigo = n.ubicacion_posicion?.codigo_posicion || '';
+            // TODO: el schema no modela "repuesto" — TipoEjeEnum solo tiene DIRECCION/TRACCION/ARRASTRE.
+            // Mantengo comportamiento previo (siempre false). Si el cliente necesita trackear repuestos,
+            // agregar campo es_repuesto al modelo PosicionNeumatico o valor REPUESTO al enum TipoEjeEnum.
+            const esRepuesto = false;
 
             // Determinar tipo de eje
             let eje = 'TRACCION';
@@ -639,10 +641,10 @@ export class ReportesService {
             }
 
             detalle.push({
-                serie: n.numero_serie,
+                serie: n.numero_serie ?? 'Sin Serie',
                 medida,
                 marca: n.modelo?.fabricante?.nombre || 'N/A',
-                placa: n.vehiculo?.placa || 'Sin Vehículo',
+                placa: n.ubicacion_vehiculo?.placa || 'Sin Vehículo',
                 posicion: posicionCodigo,
                 eje,
                 remanente_mm: remanente,
