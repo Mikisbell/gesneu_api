@@ -24,7 +24,7 @@ export async function GET(request: NextRequest) {
             where: {
                 empresa_id: session.user.empresa_id!,
                 activo: true,
-                estado_actual: { in: ['EN_SERVICIO', 'EN_STOCK'] }
+                estado_actual: { in: ['INSTALADO', 'EN_STOCK'] }
             },
             include: {
                 modelo: { select: { medida: true, fabricante: { select: { nombre: true } } } },
@@ -34,7 +34,7 @@ export async function GET(request: NextRequest) {
                     take: 1
                 },
                 alertas: {
-                    where: { estado: 'PENDIENTE' },
+                    where: { resuelta: false },
                     take: 5
                 }
             }
