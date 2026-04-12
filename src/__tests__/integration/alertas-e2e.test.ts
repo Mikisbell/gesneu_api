@@ -98,11 +98,13 @@ describe('Alertas E2E Flow', () => {
     });
 
     it('should NOT generate alert if pressure is normal', async () => {
-        await inspeccionService.registrarManual({
-            neumatico_id: neumaticoId,
-            presion_psi: 100, // Normal
-            temperatura_c: 25
-        }, userId);
+        await inspeccionService.registrarPresion({
+            neumaticoId: neumaticoId,
+            presionPsi: 100, // Normal
+            empresaId: '00000000-0000-0000-0000-000000000000',
+            usuarioId: userId,
+            temperatura: 25
+        });
 
         const alertas = await prisma.alerta.findMany({
             where: { neumatico_id: neumaticoId }

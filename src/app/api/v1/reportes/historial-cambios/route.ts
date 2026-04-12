@@ -1,30 +1,16 @@
-
-import { NextRequest } from 'next/server';
-import { ApiResponseHelper } from '@/lib/utils/api-response';
-import { requireAuth, requirePermission } from '@/lib/auth/authorization';
-import { PERMISSIONS } from '@/lib/auth/permissions';
-import { ReportesService } from '@/lib/services/reportes.service';
-
-const service = new ReportesService();
+import { NextRequest, NextResponse } from 'next/server';
 
 /**
- * @swagger
- * /api/v1/reportes/historial-cambios:
- *   get:
- *     summary: Historial de cambios de neumáticos (Side-by-Side)
- *     tags: [Reportes]
+ * @deprecated Endpoint bloqueado — método getChangeHistory no implementado en ReportesService.
  */
-export async function GET(request: NextRequest) {
-    try {
-        const session = await requireAuth();
-        requirePermission(session, PERMISSIONS.NEUMATICOS_READ);
-
-        const { searchParams } = new URL(request.url);
-        const vehiculoId = searchParams.get('vehiculo_id') || undefined;
-
-        const history = await service.getChangeHistory(session.user.empresa_id!, vehiculoId);
-        return ApiResponseHelper.success(history);
-    } catch (error) {
-        return ApiResponseHelper.handleError(error);
-    }
+export async function GET(_request: NextRequest) {
+    return NextResponse.json(
+        {
+            success: false,
+            error: "Feature 'historial de cambios' no disponible",
+            reason: 'Método getChangeHistory no implementado en ReportesService.',
+            code: 'FEATURE_DISABLED',
+        },
+        { status: 501 }
+    );
 }

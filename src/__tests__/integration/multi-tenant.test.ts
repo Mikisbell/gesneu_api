@@ -58,8 +58,7 @@ describe('Multi-tenant Isolation', () => {
                 marca: 'TestBrand',
                 modelo: 'TestModel',
                 tipo_vehiculo_id: 'uuid-dummy-tipo', // Will be replaced
-                anio: 2020,
-                configuracion_ejes: '2S'
+                anio: 2020
             };
 
             // Using valid schema fields for TipoVehiculo
@@ -100,7 +99,7 @@ describe('Multi-tenant Isolation', () => {
         });
 
         it('Tenant B should NOT be able to update the vehicle', async () => {
-            const result = await vehiculoService.update(tenantB, vehiculoAId, { kilometers: 2000 });
+            const result = await vehiculoService.update(tenantB, vehiculoAId, { odometro_actual: 2000 });
             expect(result.success).toBe(false); // Should be NotFound or Forbidden
         });
 

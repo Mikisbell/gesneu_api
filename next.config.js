@@ -12,9 +12,9 @@ const nextConfig = {
     // ppr and reactCompiler removed as they are invalid/moved
   },
 
-  // ✅ Force build for testing
+  // ✅ TypeScript strict — errores bloquean el build (0 errores al 2026-04-12)
   typescript: {
-    ignoreBuildErrors: true,
+    ignoreBuildErrors: false,
   },
 
   // ✅ Next.js 16: Turbopack is default, add empty config to silence warning

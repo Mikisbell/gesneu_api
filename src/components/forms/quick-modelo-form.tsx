@@ -99,8 +99,8 @@ export function QuickModeloForm({ onSuccess }: QuickModeloFormProps) {
     function onSubmit(values: FormValues) {
         mutation.mutate({
             ...values,
-            profundidad_original_mm: parseFloat(values.profundidad_original_mm),
-            presion_recomendada_psi: values.presion_recomendada_psi ? parseFloat(values.presion_recomendada_psi) : undefined,
+            profundidad_original_mm: parseFloat(values.profundidad_original_mm) as any,
+            presion_recomendada_psi: values.presion_recomendada_psi ? parseFloat(values.presion_recomendada_psi) as any : undefined,
             // Valores por defecto seguros para campos requeridos
             reencauches_maximos: 3,
             permite_reencauche: true

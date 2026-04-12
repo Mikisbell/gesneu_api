@@ -35,7 +35,7 @@ import { asVehiculoId, asTipoVehiculoId, asNeumaticoId, VehiculoId } from '@/typ
  * Transforma un DTO de creación al formato esperado por Prisma.
  * Maneja el mapeo de nombres de campos y la conexión de relaciones.
  */
-export function mapDtoToPrismaCreate(dto: CreateVehiculoDTO): Prisma.VehiculoCreateInput {
+export function mapDtoToPrismaCreate(dto: CreateVehiculoDTO): Omit<Prisma.VehiculoUncheckedCreateInput, 'empresa_id'> {
     return {
         placa: dto.placa,
         marca: dto.marca,
@@ -46,9 +46,7 @@ export function mapDtoToPrismaCreate(dto: CreateVehiculoDTO): Prisma.VehiculoCre
         vin: dto.chasis_serie ?? null,
         numero_economico: dto.numero_economico ?? generateNumeroEconomico(dto.placa),
         activo: dto.activo ?? true,
-        tipo_vehiculo: {
-            connect: { id: dto.tipo_vehiculo_id },
-        },
+        tipo_vehiculo_id: dto.tipo_vehiculo_id,
     };
 }
 

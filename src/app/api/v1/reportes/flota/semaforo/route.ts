@@ -1,27 +1,17 @@
-
-import { NextRequest } from 'next/server';
-import { ApiResponseHelper } from '@/lib/utils/api-response';
-import { requireAuth, requirePermission } from '@/lib/auth/authorization';
-import { PERMISSIONS } from '@/lib/auth/permissions';
-import { ReportesService } from '@/lib/services/reportes.service';
-
-const service = new ReportesService();
+import { NextRequest, NextResponse } from 'next/server';
 
 /**
- * @swagger
- * /api/v1/reportes/flota/semaforo:
- *   get:
- *     summary: Matriz de semáforo de flota
- *     tags: [Reportes]
+ * @deprecated Endpoint bloqueado — método getSemaphoreMatrix no implementado en ReportesService.
+ * Usar /api/v1/reportes/semaforo-medida que SÍ tiene implementación funcional (getSemaforoByMedida).
  */
-export async function GET(request: NextRequest) {
-    try {
-        const session = await requireAuth();
-        requirePermission(session, PERMISSIONS.NEUMATICOS_READ);
-
-        const matrix = await service.getSemaphoreMatrix(session.user.empresa_id!);
-        return ApiResponseHelper.success(matrix);
-    } catch (error) {
-        return ApiResponseHelper.handleError(error);
-    }
+export async function GET(_request: NextRequest) {
+    return NextResponse.json(
+        {
+            success: false,
+            error: "Feature 'semáforo de flota' no disponible",
+            reason: 'Método getSemaphoreMatrix no implementado en ReportesService. Usar /api/v1/reportes/semaforo-medida como alternativa.',
+            code: 'FEATURE_DISABLED',
+        },
+        { status: 501 }
+    );
 }

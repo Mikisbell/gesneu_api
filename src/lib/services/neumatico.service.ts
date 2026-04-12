@@ -489,16 +489,22 @@ export class NeumaticoService {
         // Disparar evento EventBus para observers (audit, analytics, etc.)
         try {
             const { EventBus } = await import('@/lib/events/core');
-            const { NeumaticoUpdateEvent } = await import('@/lib/events/neumatico.events');
+            const { NeumaticoEvents } = await import('@/lib/events/neumatico.events');
 
             for (const movimiento of movimientos) {
                 const neumData = neumaticosData.find(n => n.id === movimiento.neumatico_id)!;
-                EventBus.getInstance().emit(new NeumaticoUpdateEvent(
-                    empresa_id,
-                    neumData.id,
-                    { ...neumData, ubicacion_posicion_id: movimiento.posicion_destino_id },
-                    'ROTACION'
-                ));
+                await EventBus.publish(NeumaticoEvents.ROTATED, {
+                    neumaticoId: neumData.id,
+                    empresaId: empresa_id,
+                    usuarioId: userId,
+                    vehiculoId: vehiculo_id,
+                    posicionOrigenId: neumData.ubicacion_posicion_id ?? '',
+                    posicionDestinoId: movimiento.posicion_destino_id,
+                    kilometrajeVehiculo: 0,
+                    metadata: {
+                        numeroSerie: neumData.numero_serie,
+                    }
+                });
             }
         } catch (postError) {
             // Log but don't fail the rotation if post-conditions fail
@@ -547,17 +553,19 @@ export class NeumaticoService {
      * Calcula métricas financieras y de proyección de vida (Excel Gap Closure)
      */
     async getFinancials(empresa_id: string, id: string) {
-        const neumatico = await this.repository.findByIdWithRelations(asNeumaticoId(id));
+        const neumatico = await this.repository.findByIdWithFullRelations(asNeumaticoId(id));
         if (!neumatico || neumatico.empresa_id !== empresa_id) {
             throw new NotFoundError('Neumático no encontrado');
         }
 
         const kmActual = toNumber(neumatico.kilometraje_acumulado);
         const costoCompra = toNumber(neumatico.costo_compra ?? 0);
-        const profOriginal = toNumber(neumatico.modelo.profundidad_original_mm);
+        const modelo = neumatico.modelo;
+        if (!modelo) throw new NotFoundError('Modelo del neumático no encontrado');
+        const profOriginal = toNumber(modelo.profundidad_original_mm);
         // Usar profundidad remanente actual o calculada del promedio
         const profActual = toNumber(neumatico.profundidad_remanente_actual_mm);
-        const profMinima = toNumber(neumatico.modelo.profundidad_minima_retiro_mm);
+        const profMinima = toNumber(modelo.profundidad_minima_retiro_mm);
 
         // 1. CPK Actual (Cost Per Kilometer)
         // Evitar división por cero
@@ -577,7 +585,7 @@ export class NeumaticoService {
         // Si no hay rendimiento calculado (nuevo), usar teórico del modelo o estimación base
         const vidaRestanteKm = rendimientoMm > 0
             ? mmDisponibles * rendimientoMm
-            : (toNumber(neumatico.modelo.vida_util_teorica_km ?? 100000) - kmActual);
+            : (toNumber(modelo.vida_util_teorica_km ?? 100000) - kmActual);
 
         const vidaTotalEstimada = kmActual + vidaRestanteKm;
 

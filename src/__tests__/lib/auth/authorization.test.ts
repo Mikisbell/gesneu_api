@@ -27,10 +27,13 @@ const createMockSession = (permissions: string[], roles: string[] = ['OPERADOR']
         name: 'Test User',
         email: 'test@example.com',
         username: 'testuser',
+        empresa_id: '00000000-0000-0000-0000-000000000000',
+        rol: roles[0] || 'OPERADOR',
         roles,
         permissions
-    }
-});
+    },
+    expires: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString()
+} as ExtendedSession);
 
 describe('Authorization Helper Functions', () => {
     describe('hasPermission', () => {

@@ -30,16 +30,18 @@ export async function seedInfrastructure(prisma: PrismaClient, empresaId: string
     });
 
     // --- CENTROS DE COSTO ---
+    // CentroCosto tiene @@unique([empresa_id, codigo]) — el where del upsert
+    // debe usar el compound unique, no solo codigo.
     const cecoTransporte = await prisma.centroCosto.upsert({
-        where: { codigo: '650101' },
+        where: { empresa_id_codigo: { empresa_id: empresaId, codigo: '650101' } },
         update: {},
-        create: { codigo: '650101', nombre: 'TRANSPORTE', area_negocio: 'TRANSPORTE' }
+        create: { codigo: '650101', nombre: 'TRANSPORTE', area_negocio: 'TRANSPORTE', empresa_id: empresaId }
     });
 
     const cecoMinas = await prisma.centroCosto.upsert({
-        where: { codigo: '650202' },
+        where: { empresa_id_codigo: { empresa_id: empresaId, codigo: '650202' } },
         update: {},
-        create: { codigo: '650202', nombre: 'OPERACIONES MINA', area_negocio: 'MINA' }
+        create: { codigo: '650202', nombre: 'OPERACIONES MINA', area_negocio: 'MINA', empresa_id: empresaId }
     });
 
     return { almacenPrincipal, almacenScrap, cecoTransporte, cecoMinas };

@@ -164,6 +164,7 @@ export async function createTestUser(overrides = {}) {
             password_hash: 'hashed_password',
             nombre_completo: 'Test User',
             rol: 'ADMIN',
+            empresa_id: TEST_EMPRESA_ID,
             ...overrides
         }
     });
