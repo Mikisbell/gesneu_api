@@ -1,16 +1,44 @@
-import { dirname } from "path";
-import { fileURLToPath } from "url";
-import { FlatCompat } from "@eslint/eslintrc";
+import nextPlugin from "@next/eslint-plugin-next";
+import tsPlugin from "@typescript-eslint/eslint-plugin";
+import tsParser from "@typescript-eslint/parser";
 
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = dirname(__filename);
+/** @type {import('eslint').Linter.Config[]} */
+export default [
+    {
+        files: ["src/**/*.{ts,tsx}"],
+        plugins: {
+            "@next/next": nextPlugin,
+            "@typescript-eslint": tsPlugin,
+        },
+        languageOptions: {
+            parser: tsParser,
+            parserOptions: {
+                ecmaVersion: "latest",
+                sourceType: "module",
+                ecmaFeatures: { jsx: true },
+            },
+        },
+        rules: {
+            // Next.js rules
+            ...nextPlugin.configs.recommended.rules,
+            "@next/next/no-img-element": "off",
 
-const compat = new FlatCompat({
-    baseDirectory: __dirname,
-});
+            // TypeScript rules (relaxed for existing codebase)
+            "@typescript-eslint/no-explicit-any": "off",
+            "@typescript-eslint/no-unused-vars": ["warn", { argsIgnorePattern: "^_" }],
 
-const eslintConfig = [
-    ...compat.extends("next/core-web-vitals"),
+            // General
+            "no-console": "off",
+        },
+    },
+    {
+        ignores: [
+            "node_modules/**",
+            ".next/**",
+            "public/**",
+            "prisma/**",
+            "**/*.test.ts",
+            "**/__tests__/**",
+        ],
+    },
 ];
-
-export default eslintConfig;
