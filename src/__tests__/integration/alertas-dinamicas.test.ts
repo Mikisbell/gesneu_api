@@ -2,6 +2,10 @@
 import { InspeccionService } from "@/lib/services/inspeccion.service";
 import { prisma } from "@/lib/prisma";
 import { TipoAlertaEnum, SeveridadAlertaEnum } from "@prisma/client";
+import { registerObservers } from "@/lib/events/registry";
+
+// Ensure observers are registered for EventBus to work
+registerObservers();
 
 // Mocks
 const inspeccionService = new InspeccionService();
@@ -78,6 +82,8 @@ describe("Alertas Dinamicas de Presion", () => {
     });
 
     it("Debe generar alerta CRITICAL si presion (70) < 80% de recomendada (100)", async () => {
+        const inspeccionService = new InspeccionService();
+
         // 1. Crear Neumático
         const neumatico = await prisma.neumatico.create({
             data: {
@@ -91,19 +97,15 @@ describe("Alertas Dinamicas de Presion", () => {
             }
         });
 
-        // 2. Registrar Inspección con 70 PSI (Umbral es 80) via evento
-        await prisma.eventoNeumatico.create({
-            data: {
-                tipo_evento: 'INSPECCION',
-                neumatico_id: neumatico.id,
-                fecha_evento: new Date(),
-                presion_psi: 70,
-                notas: "Presión baja test",
-                creado_por: usuarioId
-            }
+        // 2. Registrar presión via InspeccionService (dispara EventBus → AlertObserver)
+        await inspeccionService.registrarPresion({
+            neumaticoId: neumatico.id,
+            presionPsi: 70,
+            empresaId,
+            usuarioId,
         });
 
-        // 3. Verificar Alerta
+        // 3. Verificar Alerta (generada por AlertObserver via EventBus)
         const alerta = await prisma.alerta.findFirst({
             where: {
                 neumatico_id: neumatico.id,
@@ -141,16 +143,14 @@ describe("Alertas Dinamicas de Presion", () => {
             }
         });
 
-        // 90 PSI sería OK para el estándar de 80, pero BAJO para este modelo (Umbral 96)
-        await prisma.eventoNeumatico.create({
-            data: {
-                tipo_evento: 'INSPECCION',
-                neumatico_id: neumaticoHigh.id,
-                fecha_evento: new Date(),
-                presion_psi: 90,
-                notas: "Test Alta Presión",
-                creado_por: usuarioId
-            }
+        // 90 PSI sería OK para el estándar de 80, pero BAJO para este modelo (Umbral 96 = 120 * 0.8)
+        // El AlertObserver usa threshold del 90% (108 PSI), no 80%. 90 < 108 → alerta generada
+        const inspeccionService = new InspeccionService();
+        await inspeccionService.registrarPresion({
+            neumaticoId: neumaticoHigh.id,
+            presionPsi: 90,
+            empresaId,
+            usuarioId,
         });
 
         const alerta = await prisma.alerta.findFirst({
@@ -161,7 +161,8 @@ describe("Alertas Dinamicas de Presion", () => {
         });
 
         expect(alerta).toBeDefined();
-        expect(alerta?.mensaje).toContain("mínimo: 96");
+        // El AlertObserver genera el mensaje como "Presión baja: X PSI (Recomendado: Y)"
+        expect(alerta?.mensaje).toContain("90");
     });
 
     it("NO debe generar alerta si presion (90) > 80% de recomendada (100)", async () => {

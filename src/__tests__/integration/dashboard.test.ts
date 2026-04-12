@@ -16,7 +16,15 @@ async function clearTestData() {
     await prisma.fabricanteNeumatico.deleteMany();
 }
 
+const TEST_EMPRESA_ID = '00000000-0000-0000-0000-000000000000';
+
 async function createTestNeumatico(overrides: any = {}) {
+    await prisma.empresa.upsert({
+        where: { id: TEST_EMPRESA_ID },
+        update: {},
+        create: { id: TEST_EMPRESA_ID, nombre: 'Test Enterprise', ruc: 'TEST00000000', activo: true },
+    });
+
     const fabricante = await prisma.fabricanteNeumatico.create({
         data: { nombre: 'TestFab_' + Date.now() + Math.random() }
     });
@@ -31,15 +39,11 @@ async function createTestNeumatico(overrides: any = {}) {
         }
     });
 
-    const empresa = await prisma.empresa.create({
-        data: { nombre: `Test Dash ${Date.now()}`, ruc: `TEST-DSH-${Date.now()}`.substring(0, 20) }
-    });
-
     return await prisma.neumatico.create({
         data: {
             numero_serie: 'TEST-' + Date.now() + Math.random(),
             modelo_id: modelo.id,
-            empresa_id: empresa.id,
+            empresa_id: TEST_EMPRESA_ID,
             fecha_compra: new Date(),
             profundidad_inicial_mm: 18,
             profundidad_remanente_actual_mm: 18,
