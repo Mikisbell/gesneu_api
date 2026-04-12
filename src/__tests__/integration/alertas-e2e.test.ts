@@ -26,8 +26,8 @@ describe('Alertas E2E Flow', () => {
         vehiculoId = vehiculo.id;
 
         const neumatico = await createTestNeumatico({
-            profundidad_actual: 15,
-            profundidad_inicial: 18,
+            profundidad_remanente_actual_mm: 15,
+            profundidad_inicial_mm: 18,
             ubicacion_vehiculo_id: vehiculoId, // Montado
             estado_actual: 'INSTALADO'
         });

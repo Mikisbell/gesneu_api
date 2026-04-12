@@ -10,7 +10,15 @@ export interface MockSessionOptions {
     email?: string;
     roles?: string[];
     permissions?: string[];
+    empresa_id?: string;
 }
+
+/**
+ * UUID cero = tenant default para tests. Coincide con el default del schema
+ * (ver Empresa default y DEFAULT_TENANT_ID en constants.ts).
+ * Los helpers createTest* usan esta misma empresa para consistencia.
+ */
+export const TEST_EMPRESA_ID = '00000000-0000-0000-0000-000000000000';
 
 /**
  * Create a mock session for testing
@@ -21,7 +29,8 @@ export function createMockSession(options: MockSessionOptions = {}): Session {
         username = 'testuser',
         email = 'test@example.com',
         roles = ['OPERADOR'],
-        permissions = []
+        permissions = [],
+        empresa_id = TEST_EMPRESA_ID
     } = options;
 
     return {
@@ -30,6 +39,7 @@ export function createMockSession(options: MockSessionOptions = {}): Session {
             name: username,
             email,
             username,
+            empresa_id,
             roles,
             permissions
         },

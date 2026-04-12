@@ -1,15 +1,34 @@
 import { prisma } from '@/lib/prisma';
 
 // Helper simple para limpieza y creación de datos de prueba
+// Orden de DELETEs respeta FKs: hijos antes que padres
 async function clearTestData() {
+    await prisma.alerta.deleteMany();
     await prisma.historialEstadoNeumatico.deleteMany();
     await prisma.eventoNeumatico.deleteMany();
+    await prisma.lecturaPresion.deleteMany();
+    await prisma.inspeccion.deleteMany();
+    await prisma.medicionProfundidad.deleteMany();
     await prisma.neumatico.deleteMany();
     await prisma.modeloNeumatico.deleteMany();
     await prisma.fabricanteNeumatico.deleteMany();
 }
 
+const TEST_EMPRESA_ID = '00000000-0000-0000-0000-000000000000';
+
 async function createTestNeumatico(overrides: any = {}) {
+    // Asegurar empresa canónica de pruebas (upsert idempotente)
+    await prisma.empresa.upsert({
+        where: { id: TEST_EMPRESA_ID },
+        update: {},
+        create: {
+            id: TEST_EMPRESA_ID,
+            nombre: 'Test Enterprise',
+            ruc: 'TEST00000000',
+            activo: true,
+        },
+    });
+
     const fabricante = await prisma.fabricanteNeumatico.create({
         data: { nombre: 'TestFab_' + Date.now() }
     });
@@ -24,15 +43,11 @@ async function createTestNeumatico(overrides: any = {}) {
         }
     });
 
-    const empresa = await prisma.empresa.create({
-        data: { nombre: `Test Reportes ${Date.now()}`, ruc: `TEST-RPT-${Date.now()}`.substring(0, 20) }
-    });
-
     return await prisma.neumatico.create({
         data: {
             numero_serie: 'TEST-' + Date.now(),
             modelo_id: modelo.id,
-            empresa_id: empresa.id,
+            empresa_id: TEST_EMPRESA_ID,
             fecha_compra: new Date(),
             profundidad_inicial_mm: 18,
             profundidad_remanente_actual_mm: 18,
@@ -78,7 +93,7 @@ describe('ReportesService: CPK', () => {
         });
 
         // 3. Llamar al servicio (usando empresaId de prueba)
-        const testEmpresaId = '00000000-0000-0000-0000-000000000001';
+        const testEmpresaId = TEST_EMPRESA_ID;
         const metrics = await service.getCPK(testEmpresaId, neumatico.id);
 
         // 4. Verificar
@@ -94,7 +109,7 @@ describe('ReportesService: CPK', () => {
             kilometraje_acumulado: 0
         });
 
-        const testEmpresaId = '00000000-0000-0000-0000-000000000001';
+        const testEmpresaId = TEST_EMPRESA_ID;
         const metrics = await service.getCPK(testEmpresaId, neumatico.id);
 
         expect(metrics.cpk).toBe(0);
@@ -102,7 +117,7 @@ describe('ReportesService: CPK', () => {
     });
 
     it('debería lanzar error si neumático no existe', async () => {
-        const testEmpresaId = '00000000-0000-0000-0000-000000000001';
+        const testEmpresaId = TEST_EMPRESA_ID;
         await expect(service.getCPK(testEmpresaId, '00000000-0000-0000-0000-000000000000')).rejects.toThrow('Neumático no encontrado');
     });
 });
@@ -123,13 +138,12 @@ describe('ReportesService: Desgaste Promedio', () => {
         // Neumático con 18mm inicial, 14mm actual, 10000 km
         // Desgaste = (18 - 14) / 10000 * 1000 = 0.4 mm/1000km
         const neumatico = await createTestNeumatico({
-            profundidad_original_mm: 18,
+            profundidad_inicial_mm: 18,
             profundidad_remanente_actual_mm: 14,
             kilometraje_acumulado: 10000
         });
 
-        const testEmpresaId = '00000000-0000-0000-0000-000000000001';
-        const metrics = await service.getDesgastePromedio(testEmpresaId, neumatico.id);
+        const metrics = await service.getDesgastePromedio(TEST_EMPRESA_ID, neumatico.id);
 
         expect(metrics.desgaste_mm_por_1000km).toBe(0.4);
         expect(metrics.desgaste_total_mm).toBe(4);
@@ -138,13 +152,12 @@ describe('ReportesService: Desgaste Promedio', () => {
 
     it('debería detectar estado CRITICO cuando profundidad <= 4mm', async () => {
         const neumatico = await createTestNeumatico({
-            profundidad_original_mm: 18,
+            profundidad_inicial_mm: 18,
             profundidad_remanente_actual_mm: 3.5,
             kilometraje_acumulado: 50000
         });
 
-        const testEmpresaId = '00000000-0000-0000-0000-000000000001';
-        const metrics = await service.getDesgastePromedio(testEmpresaId, neumatico.id);
+        const metrics = await service.getDesgastePromedio(TEST_EMPRESA_ID, neumatico.id);
 
         expect(metrics.estado).toBe('CRITICO');
     });
@@ -154,13 +167,12 @@ describe('ReportesService: Desgaste Promedio', () => {
         // Restante: 14 - 4 = 10mm
         // Vida restante: 10 / 0.4 * 1000 = 25000 km
         const neumatico = await createTestNeumatico({
-            profundidad_original_mm: 18,
+            profundidad_inicial_mm: 18,
             profundidad_remanente_actual_mm: 14,
             kilometraje_acumulado: 10000
         });
 
-        const testEmpresaId = '00000000-0000-0000-0000-000000000001';
-        const metrics = await service.getDesgastePromedio(testEmpresaId, neumatico.id);
+        const metrics = await service.getDesgastePromedio(TEST_EMPRESA_ID, neumatico.id);
 
         expect(metrics.vida_restante_estimada_km).toBe(25000);
     });
@@ -189,7 +201,7 @@ describe('ReportesService: Comparativo Marcas', () => {
             kilometraje_acumulado: 1200
         });
 
-        const testEmpresaId = '00000000-0000-0000-0000-000000000001';
+        const testEmpresaId = TEST_EMPRESA_ID;
         const result = await service.getComparativoMarcas(testEmpresaId);
 
         expect(result.marcas.length).toBeGreaterThanOrEqual(1);
@@ -199,7 +211,7 @@ describe('ReportesService: Comparativo Marcas', () => {
     it('debería retornar lista vacía si no hay neumáticos con km > 0', async () => {
         await clearTestData();
 
-        const testEmpresaId = '00000000-0000-0000-0000-000000000001';
+        const testEmpresaId = TEST_EMPRESA_ID;
         const result = await service.getComparativoMarcas(testEmpresaId);
 
         expect(result.marcas).toEqual([]);

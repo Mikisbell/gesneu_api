@@ -6,20 +6,34 @@
 import { prisma } from '@/lib/prisma';
 
 /**
- * Clean all test data from database
- * Note: In test environment, we can safely delete test data
- * In real environment, be more selective
+ * UUID cero = tenant default consistente entre tests y código productivo.
+ * Coincide con el default del schema (Empresa.@default(dbgenerated)) y con
+ * mockSessions.*.empresa_id (ver auth-helpers.ts TEST_EMPRESA_ID).
+ */
+export const TEST_EMPRESA_ID = '00000000-0000-0000-0000-000000000000';
+
+/**
+ * Obtener o crear la empresa de pruebas canónica (UUID cero).
+ *
+ * Histórico: antes creaba una empresa nueva cada vez con Date.now() para
+ * "aislamiento". PROBLEMA: los services productivos filtran por empresa_id
+ * del session (que es UUID cero) → buscar en empresa X ≠ crear en empresa Y
+ * → tests fallaban con "no encontrado" o arrays vacíos.
+ *
+ * Fix: upsert idempotente sobre UUID cero. Ahora tests y services usan el
+ * mismo tenant por convención — no hay mismatch.
  */
 export async function getOrCreateTestEnterprise() {
-    // RLS might block reading, so we create a new one every time
-    // This is safer for tests anyway to ensure isolation
-    const empresa = await prisma.empresa.create({
-        data: {
-            nombre: `Test Enterprise ${Date.now()}`,
-            ruc: `TEST${Date.now()}`.substring(0, 20),
-        }
+    return await prisma.empresa.upsert({
+        where: { id: TEST_EMPRESA_ID },
+        update: {},
+        create: {
+            id: TEST_EMPRESA_ID,
+            nombre: 'Test Enterprise',
+            ruc: 'TEST00000000',
+            activo: true,
+        },
     });
-    return empresa;
 }
 
 export async function cleanTestData() {
