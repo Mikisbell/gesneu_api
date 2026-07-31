@@ -114,7 +114,7 @@ describe("Alertas Dinamicas de Presion", () => {
         });
 
         expect(alerta).toBeDefined();
-        expect(alerta?.severidad).toBe(SeveridadAlertaEnum.WARNING);
+        expect(alerta?.severidad).toBe(SeveridadAlertaEnum.CRITICAL);
         expect(alerta?.resuelta).toBeFalsy();
     });
 

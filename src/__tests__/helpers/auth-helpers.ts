@@ -105,21 +105,12 @@ export const mockSessions = {
         ]
     }),
 
-    // @deprecated — El rol CONSULTOR fue eliminado del sistema productivo (enum Prisma, SYSTEM_ROLES, validators).
-    // Este mock se preserva únicamente para tests legacy que validan el comportamiento "usuario sin permisos → 403".
-    // En tests nuevos, usar mockSessions.operador o crear un mock específico read-only.
-    consultor: createMockSession({
+    readonly: createMockSession({
         userId: '00000000-0000-0000-0000-000000000004',
-        username: 'consultor',
-        email: 'consultor@example.com',
-        roles: ['CONSULTOR'],
-        permissions: [
-            'neumaticos:read',
-            'vehiculos:read',
-            'catalogos:almacenes:read',
-            'catalogos:proveedores:read',
-            'catalogos:fabricantes:read'
-        ]
+        username: 'readonly',
+        email: 'readonly@example.com',
+        roles: ['OPERADOR'],
+        permissions: []
     })
 };
 

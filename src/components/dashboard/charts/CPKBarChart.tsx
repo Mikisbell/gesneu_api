@@ -2,6 +2,7 @@
 
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { ChartContainer } from '@/components/ui/chart-container';
 
 interface CPKBarChartProps {
     data: {
@@ -33,8 +34,8 @@ export function CPKBarChart({ data }: CPKBarChartProps) {
                 <CardDescription>Costo promedio por kilómetro (Menor es mejor)</CardDescription>
             </CardHeader>
             <CardContent>
-                <div className="h-[300px]">
-                    <ResponsiveContainer width="100%" height="100%">
+                <ChartContainer className="h-[300px] w-full">
+                    <ResponsiveContainer width="100%" height="100%" initialDimension={{ width: 400, height: 300 }}>
                         <BarChart
                             data={data}
                             layout="vertical"
@@ -57,7 +58,7 @@ export function CPKBarChart({ data }: CPKBarChartProps) {
                             />
                         </BarChart>
                     </ResponsiveContainer>
-                </div>
+                </ChartContainer>
             </CardContent>
         </Card>
     );

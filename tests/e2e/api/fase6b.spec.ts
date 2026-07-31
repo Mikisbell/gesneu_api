@@ -97,6 +97,7 @@ test.describe('Fase 6B: API Verification', () => {
                 psi_medido: 100,
                 mm_medido: 15,
                 fuente: 'MANUAL',
+                observaciones: 'Base test'
             }
         });
         expect(inspBase.ok()).toBeTruthy();
@@ -107,8 +108,8 @@ test.describe('Fase 6B: API Verification', () => {
         const inspAnomalia = await apiContext.post(INSPECCIONES_ENDPOINT, {
             data: {
                 neumatico_id: neumaticoId,
-                psi_medido: 90, // 10% bajada
-                mm_medido: 14.8, // Ligero desgaste
+                psi_medido: 90,
+                mm_medido: 14.8,
                 fuente: 'SENSOR_TPMS',
                 observaciones: 'Test alerta presion'
             }

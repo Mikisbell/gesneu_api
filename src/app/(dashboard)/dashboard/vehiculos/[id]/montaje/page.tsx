@@ -46,12 +46,14 @@ export default async function MontajePage({ params }: PageProps) {
     });
     const neumaticosInstalados = neumaticosInstaladosResult.success ? neumaticosInstaladosResult.data : [];
 
-    // 3. Obtener Stock Disponible (Optimizado)
-    // 3. Obtener Stock Disponible (Optimizado)
-    const stockResult = await neumaticoService.getAll(session.user.empresa_id!, {
-        estado_actual: EstadoNeumaticoEnum.EN_STOCK
+    // 3. Obtener Stock Disponible (Robusto contra variaciones de enum)
+    const stockResult = await neumaticoService.getAll(session.user.empresa_id!);
+    const allNeumaticos = stockResult.success ? stockResult.data : [];
+    const stock = allNeumaticos.filter((n: any) => {
+        const estado = n.estado || n.estado_actual;
+        const esAlmacen = n.ubicacion?.tipo === 'ALMACEN' || Boolean(n.ubicacion_almacen_id);
+        return esAlmacen || estado === 'EN_STOCK' || estado === 'DISPONIBLE';
     });
-    const stock = stockResult.success ? stockResult.data : [];
 
     // Helper to serialize Prisma objects (handle Decimals)
     const serializeNeumatico = (n: any) => ({

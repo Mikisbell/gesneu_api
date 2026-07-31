@@ -26,8 +26,8 @@ describe('Usuarios API Integration Tests', () => {
             expect(response.status).toBe(401);
         });
 
-        it('should return 403 when consultor tries to access (no permission)', async () => {
-            (auth as jest.Mock).mockResolvedValue(mockSessions.consultor);
+        it('should return 403 when user without permissions tries to access', async () => {
+            (auth as jest.Mock).mockResolvedValue(mockSessions.readonly);
 
             const req = new NextRequest(BASE_URL);
             const response = await getUsersGET(req, {} as any);

@@ -63,39 +63,34 @@ export class DashboardService {
         if (filters.estado) where.estado_actual = filters.estado;
         if (filters.modelo_id) where.modelo_id = filters.modelo_id;
 
-        // Total
-        const total = await prisma.neumatico.count({ where });
+        // Ejecutar todas las consultas de inventario en paralelo
+        const [total, porEstado, porAlmacen, almacenes, neumaticos] = await Promise.all([
+            prisma.neumatico.count({ where }),
+            prisma.neumatico.groupBy({
+                by: ['estado_actual'],
+                where: { activo: true, empresa_id: empresaId },
+                _count: true
+            }),
+            prisma.neumatico.groupBy({
+                by: ['ubicacion_almacen_id'],
+                where: { activo: true, empresa_id: empresaId, estado_actual: { in: ['EN_STOCK'] } },
+                _count: true
+            }),
+            prisma.almacen.findMany({
+                where: { empresa_id: empresaId },
+                select: { id: true, nombre: true }
+            }),
+            prisma.neumatico.findMany({
+                where,
+                include: {
+                    modelo: { select: { id: true, nombre_modelo: true, medida: true } },
+                    ubicacion_almacen: { select: { id: true, nombre: true } }
+                },
+                take: 100
+            })
+        ]);
 
-        // Por estado
-        const porEstado = await prisma.neumatico.groupBy({
-            by: ['estado_actual'],
-            where: { activo: true, empresa_id: empresaId },
-            _count: true
-        });
-
-        // Por almacén (solo los que están EN_STOCK)
-        const porAlmacen = await prisma.neumatico.groupBy({
-            by: ['ubicacion_almacen_id'],
-            where: { activo: true, empresa_id: empresaId, estado_actual: { in: ['EN_STOCK'] } }, // Fixed string logic
-            _count: true
-        });
-
-        // Obtener nombres de almacenes
-        const almacenes = await prisma.almacen.findMany({
-            where: { empresa_id: empresaId },
-            select: { id: true, nombre: true }
-        });
         const almacenMap = new Map(almacenes.map(a => [a.id, a.nombre]));
-
-        // Detalle con modelo
-        const neumaticos = await prisma.neumatico.findMany({
-            where,
-            include: {
-                modelo: { select: { id: true, nombre_modelo: true, medida: true } },
-                ubicacion_almacen: { select: { id: true, nombre: true } }
-            },
-            take: 100
-        });
 
         // Agrupar para detalle
         const detalleMap = new Map<string, InventarioAgrupado>();
@@ -186,25 +181,23 @@ export class DashboardService {
      * Reporte de desechos: análisis por motivo
      */
     async getReporteDesechos(empresaId: string): Promise<ReporteDesechos> {
-        // Contar desechados
-        const total = await prisma.neumatico.count({
-            where: { estado_actual: 'DESECHADO', empresa_id: empresaId }
-        });
-
-        // Eventos de desecho con motivo (Filtered by neumatico.empresa_id relation)
-        // Wait, EventoNeumatico does NOT have empresa_id. It belongs to Neumatico.
-        // We need to filter events where neumatico.empresa_id = X
-        const eventosDesecho = await prisma.eventoNeumatico.findMany({
-            where: {
-                tipo_evento: 'DESECHO',
-                neumatico: {
-                    empresa_id: empresaId
+        // Contar desechados y consultar eventos de desecho en paralelo
+        const [total, eventosDesecho] = await Promise.all([
+            prisma.neumatico.count({
+                where: { estado_actual: 'DESECHADO', empresa_id: empresaId }
+            }),
+            prisma.eventoNeumatico.findMany({
+                where: {
+                    tipo_evento: 'DESECHO',
+                    neumatico: {
+                        empresa_id: empresaId
+                    }
+                },
+                include: {
+                    motivo_desecho: { select: { descripcion: true } }
                 }
-            },
-            include: {
-                motivo_desecho: { select: { descripcion: true } }
-            }
-        });
+            })
+        ]);
 
         // Agrupar por motivo
         const motivoCount = new Map<string, number>();

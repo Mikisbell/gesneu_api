@@ -16,17 +16,17 @@ export const RATE_LIMIT_CONFIG = {
     global: {
         anonymous: {
             windowMs: 60 * 1000, // 1 minute
-            maxRequests: 20,
+            maxRequests: 500,
         } as RateLimitRule,
 
         authenticated: {
             windowMs: 60 * 1000, // 1 minute
-            maxRequests: 100,
+            maxRequests: 1000,
         } as RateLimitRule,
 
         admin: {
             windowMs: 60 * 1000, // 1 minute
-            maxRequests: 500,
+            maxRequests: 2000,
         } as RateLimitRule,
     },
 

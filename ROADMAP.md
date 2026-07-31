@@ -30,26 +30,26 @@
 
 | Tarea | Estado | Detalle | Impacto |
 |-------|--------|---------|---------|
-| **Bloquear `/admin/roles/*` endpoints** | 📋 Planificada | Los endpoints permiten CRUD de roles dinámicos pero no afectan autenticación real (falsa sensación de control de acceso). Bloquear con feature flag o banner "en desarrollo" | 🛡️ Seguridad |
-| **Esconder `/admin/tenants` con feature flag** | 📋 Planificada | Solo aplica en multi-tenant. Bloquear con `MULTI_TENANT_ENABLED=false` | 🛡️ Seguridad multi-tenant |
+| **Bloquear `/admin/roles/*` endpoints** | ✅ Completada | Protegido con `DYNAMIC_RBAC_ENABLED=false` y verificado con 12 tests en `admin-guardrails.test.ts` | 🛡️ Seguridad |
+| **Esconder `/admin/tenants` con feature flag** | ✅ Completada | Protegido con `MULTI_TENANT_ENABLED=false` y verificado en `admin-guardrails.test.ts` | 🛡️ Seguridad multi-tenant |
 | **Consolidar baseline de migraciones** | 📋 Planificada | Hay drift entre `schema.prisma` y `prisma/migrations/`. Crear baseline consolidado para poder volver a usar `migrate dev` sin riesgo de reset | 🛠️ Mantenibilidad |
-| **Pulir Certificado PDF (beta → GA)** | 🔄 Parcialmente | Folio secuencial y evaluación real ya implementados. Pendiente: mover umbrales a `ParametroSistema`, endpoint GET por folio para re-descarga, tests de integración | 📄 Certificación |
+| **Pulir Certificado PDF (beta → GA)** | ✅ 100% | Folio secuencial, evaluación real, re-descarga desde snapshot (`GET /api/v1/reportes/certificado/folio/[folio]`) y suite `certificado.test.ts` | 📄 Certificación |
 
 ### 🟡 Media Prioridad — Saneamiento y Consolidación
 
 | Tarea | Estado | Detalle |
 |-------|--------|---------|
-| **Consolidar enums de Postgres** | 📋 Planificada | Eliminar 9 valores deprecados de `EstadoNeumaticoEnum` (NUEVO, EN_USO, EN_ALMACEN, PARA_REPARACION, REPARADO, PARA_REENCAUCHE, REENCAUCHADO, PARA_DESECHO, VENDIDO) y 6 de `TipoEventoNeumaticoEnum` (ASIGNACION_A_ALMACEN, TRANSFERENCIA_UBICACION, DESMONTE_POR_FIN_VIDA_UTIL, DESMONTE_TEMPORAL, BAJA_POR_ROBO_EXTRAVIO, VENTA). Requiere validar 0 uso en producción durante 1 mes previo |
+| **Consolidar enums de Postgres** | 📋 Planificada | Eliminar 9 valores deprecados de `EstadoNeumaticoEnum` y 6 de `TipoEventoNeumaticoEnum`. Requiere validar 0 uso en producción durante 1 mes previo |
 | **Arreglar errores pre-existentes en `design-patterns.ts`** | 📋 Planificada | 3 errores de template literal mal cerrado detectados por `tsc` |
 | **Refactorizar mock legacy `mockSessions.consultor`** | 📋 Planificada | Migrar 5 archivos de tests a un mock read-only explícito |
-| **Tests de integración nuevos servicios** | 📋 Planificada | Cobertura ≥ 80% en `certificado.service.ts`, `forecast.service.ts` |
+| **Tests de integración nuevos servicios** | 🔄 Parcialmente | Cobertura ≥ 80% en `certificado.service.ts` (completada) y `forecast.service.ts` |
 
 ### 🟢 Baja Prioridad — Mejoras
 
 | Tarea | Estado | Detalle |
 |-------|--------|---------|
-| **UI de listado `/dashboard/certificados`** | 💡 Idea | Vista con filtros por fecha, vehículo, estado. Re-descarga desde snapshot |
-| **Endpoint GET `/certificado/{folio}`** | 💡 Idea | Re-descargar un certificado histórico desde el snapshot sin re-emisión |
+| **UI de listado `/dashboard/certificados`** | 📋 Planificada | Vista con filtros por fecha, vehículo, estado. Re-descarga desde snapshot |
+| **Endpoint GET `/certificado/{folio}`** | ✅ Completada | Endpoint `GET /api/v1/reportes/certificado/folio/[folio]` implementado y testeado |
 | **Configurabilidad de `OPERATIVIDAD_THRESHOLDS`** | 💡 Idea | Mover a `ParametroSistema` por empresa |
 
 ---

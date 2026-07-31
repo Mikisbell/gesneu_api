@@ -17,8 +17,13 @@ export class AlmacenService {
         try {
             // Filtrar por empresa del usuario autenticado
             const entities = await this.repository.findAll({
-                where: { empresa_id: empresaId, activo: true } // RNF10: Listar solo activos por defecto
-            });
+                where: { empresa_id: empresaId, activo: true },
+                include: {
+                    _count: {
+                        select: { neumaticos: true }
+                    }
+                }
+            } as any);
             const responses = entities.map(mapEntityToResponse);
             return ok(responses);
         } catch (error) {

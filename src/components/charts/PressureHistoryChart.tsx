@@ -12,6 +12,7 @@ import {
     ReferenceLine
 } from 'recharts';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { ChartContainer } from '@/components/ui/chart-container';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Minus, ArrowDownRight, ArrowUpRight, CheckCircle2, AlertTriangle } from 'lucide-react';
 import { format } from 'date-fns';
@@ -151,8 +152,8 @@ export const PressureHistoryChart = ({ neumaticoId }: PressureHistoryChartProps)
                 </div>
             </CardHeader>
             <CardContent className="p-1">
-                <div className="h-[350px] w-full mt-4">
-                    <ResponsiveContainer width="100%" height="100%">
+                <ChartContainer className="h-[350px] w-full mt-4">
+                    <ResponsiveContainer width="100%" height="100%" minHeight={350}>
                         <AreaChart
                             data={data}
                             margin={{ top: 10, right: 30, left: 0, bottom: 0 }}
@@ -202,7 +203,7 @@ export const PressureHistoryChart = ({ neumaticoId }: PressureHistoryChartProps)
                             />
                         </AreaChart>
                     </ResponsiveContainer>
-                </div>
+                </ChartContainer>
             </CardContent>
         </Card>
     );

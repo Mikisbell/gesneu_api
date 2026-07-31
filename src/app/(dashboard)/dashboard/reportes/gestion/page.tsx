@@ -7,6 +7,7 @@ import { Loader2, ArrowLeft, RefreshCcw, Trash2, Activity, TrendingUp } from 'lu
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { ResponsiveContainer, PieChart, Pie, Cell, Tooltip, Legend, BarChart, Bar, XAxis, YAxis, CartesianGrid } from 'recharts';
+import { ChartContainer } from '@/components/ui/chart-container';
 
 // Definición de tipos actualizada para Fase 6A
 interface ManagementKPIs {
@@ -131,7 +132,8 @@ export default function GestionPage() {
                         <CardDescription>Categorización: Fatiga | Mecánica | Operación</CardDescription>
                     </CardHeader>
                     <CardContent className="h-[300px]">
-                        <ResponsiveContainer width="100%" height="100%">
+                        <ChartContainer className="h-full">
+                        <ResponsiveContainer width="100%" height="100%" minHeight={300}>
                             <BarChart data={charts.scrap_pareto_categoria} layout="vertical">
                                 <CartesianGrid strokeDasharray="3 3" />
                                 <XAxis type="number" />
@@ -144,6 +146,7 @@ export default function GestionPage() {
                                 </Bar>
                             </BarChart>
                         </ResponsiveContainer>
+                        </ChartContainer>
                     </CardContent>
                 </Card>
 
@@ -154,7 +157,8 @@ export default function GestionPage() {
                         <CardDescription>Original vs Reencauchados (0, 1, 2, 3+)</CardDescription>
                     </CardHeader>
                     <CardContent className="h-[300px]">
-                        <ResponsiveContainer width="100%" height="100%">
+                        <ChartContainer className="h-full">
+                        <ResponsiveContainer width="100%" height="100%" minHeight={300}>
                             <BarChart data={vidasData}>
                                 <CartesianGrid strokeDasharray="3 3" />
                                 <XAxis dataKey="name" />
@@ -167,6 +171,7 @@ export default function GestionPage() {
                                 </Bar>
                             </BarChart>
                         </ResponsiveContainer>
+                        </ChartContainer>
                     </CardContent>
                 </Card>
             </div>
@@ -180,7 +185,8 @@ export default function GestionPage() {
                         <CardDescription>Distribución de motivos de baja (Top Impacto)</CardDescription>
                     </CardHeader>
                     <CardContent className="h-[300px]">
-                        <ResponsiveContainer width="100%" height="100%">
+                        <ChartContainer className="h-full">
+                        <ResponsiveContainer width="100%" height="100%" minHeight={300}>
                             <PieChart>
                                 <Pie
                                     data={charts.scrap_pareto}
@@ -200,6 +206,7 @@ export default function GestionPage() {
                                 <Legend />
                             </PieChart>
                         </ResponsiveContainer>
+                        </ChartContainer>
                     </CardContent>
                 </Card>
 

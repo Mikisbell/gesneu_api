@@ -1,7 +1,10 @@
-
 import { FabricanteNeumatico } from '@prisma/client';
 
-export type FabricanteEntity = FabricanteNeumatico;
+export type FabricanteEntity = FabricanteNeumatico & {
+    _count?: {
+        modelos: number;
+    };
+};
 
 export interface CreateFabricanteDTO {
     nombre: string;
@@ -20,6 +23,7 @@ export interface FabricanteResponse {
     codigoAbreviado: string | null;
     paisOrigen: string | null;
     sitioWeb: string | null;
+    totalModelos?: number;
     activo: boolean;
     createdAt: string;
     updatedAt: string | null;

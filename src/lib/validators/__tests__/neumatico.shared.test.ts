@@ -10,6 +10,7 @@ describe('Neumatico Shared Schema Validation', () => {
                 dot: '2423', // Semana 24, año 2023
                 profundidad_inicial_mm: '12.5', // String que será convertido
                 costo_compra: '250.00', // String que será convertido
+                fecha_compra: '2025-01-15',
                 sensor_id: 'SENSOR-123',
                 ubicacion_almacen_id: '123e4567-e89b-12d3-a456-426614174001'
             }
@@ -27,7 +28,9 @@ describe('Neumatico Shared Schema Validation', () => {
             const invalidData = {
                 modelo_id: '123e4567-e89b-12d3-a456-426614174000',
                 dot: '5499', // Semana 54 es inválida (max 53)
-                profundidad_inicial_mm: 12
+                profundidad_inicial_mm: 12,
+                costo_compra: 250,
+                fecha_compra: '2025-01-15'
             }
 
             const result = NeumaticoFormSchema.safeParse(invalidData)
@@ -40,13 +43,15 @@ describe('Neumatico Shared Schema Validation', () => {
         it('should reject negative profundidad', () => {
             const invalidData = {
                 modelo_id: '123e4567-e89b-12d3-a456-426614174000',
-                profundidad_inicial_mm: -5
+                profundidad_inicial_mm: -5,
+                costo_compra: 250,
+                fecha_compra: '2025-01-15'
             }
 
             const result = NeumaticoFormSchema.safeParse(invalidData)
             expect(result.success).toBe(false)
             if (!result.success) {
-                expect(result.error.issues[0].message).toContain('no puede ser negativa')
+                expect(result.error.issues[0].message).toContain('mayor a 0mm')
             }
         })
 
@@ -54,7 +59,9 @@ describe('Neumatico Shared Schema Validation', () => {
             const validData = {
                 numero_serie: 'ABC-123-XYZ',
                 modelo_id: '123e4567-e89b-12d3-a456-426614174000',
-                profundidad_inicial_mm: 10
+                profundidad_inicial_mm: 10,
+                costo_compra: 250,
+                fecha_compra: '2025-01-15'
             }
 
             const result = NeumaticoFormSchema.safeParse(validData)
@@ -97,6 +104,7 @@ describe('Neumatico Shared Schema Validation', () => {
             const invalidData = {
                 modelo_id: '123e4567-e89b-12d3-a456-426614174000',
                 profundidad_inicial_mm: 12,
+                costo_compra: 250,
                 fecha_compra: futureDate.toISOString()
             }
 
@@ -111,6 +119,7 @@ describe('Neumatico Shared Schema Validation', () => {
             const invalidData = {
                 modelo_id: '123e4567-e89b-12d3-a456-426614174000',
                 profundidad_inicial_mm: 12,
+                costo_compra: 250,
                 fecha_compra: '1999-01-01T00:00:00Z'
             }
 

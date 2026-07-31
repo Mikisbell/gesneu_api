@@ -23,15 +23,18 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
                 const identifier = credentials.identifier as string;
                 const password = credentials.password as string;
 
-                // Buscar usuario (sin include porque rol está en la tabla misma)
-                const usuario = await prisma.usuario.findFirst({
-                    where: {
-                        OR: [
-                            { email: identifier },
-                            { username: identifier }
-                        ]
-                    }
-                });
+                // Buscar usuario optimizado usando índices únicos (@unique)
+                const isEmail = identifier.includes('@');
+                let usuario = isEmail
+                    ? await prisma.usuario.findUnique({ where: { email: identifier } })
+                    : await prisma.usuario.findUnique({ where: { username: identifier } });
+
+                // Fallback por si ingresaron username con '@' o email sin '@'
+                if (!usuario) {
+                    usuario = isEmail
+                        ? await prisma.usuario.findUnique({ where: { username: identifier } })
+                        : await prisma.usuario.findUnique({ where: { email: identifier } });
+                }
 
                 if (!usuario || !usuario.activo) {
                     return null;

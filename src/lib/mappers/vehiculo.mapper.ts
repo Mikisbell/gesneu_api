@@ -112,23 +112,32 @@ export function mapDtoToPrismaUpdate(dto: UpdateVehiculoDTO): Prisma.VehiculoUpd
 export function mapEntityToResponse(entity: VehiculoEntity): VehiculoResponse {
     // Cast to any to handle dynamic schema, with safe fallbacks
     const e = entity as any;
-    return {
+    const response: any = {
         id: asVehiculoId(e.id),
         placa: e.placa ?? '',
+        codigo_interno: e.numero_economico ?? e.placa ?? '',
         marca: e.marca ?? '',
         modelo: e.modelo_vehiculo ?? '',
         anio: e.anio_fabricacion ?? 0,
         vin: e.vin ?? null,
         numeroEconomico: e.numero_economico ?? '',
         kilometraje: e.odometro_actual ?? 0,
+        odometro_actual: e.odometro_actual ?? 0,
+        tipo_medicion: e.tipo_medicion ?? 'KILOMETRAJE',
         tipoMedicion: (e.tipo_medicion ?? 'KILOMETRAJE') as 'KILOMETRAJE' | 'HOROMETRO',
         activo: e.activo ?? true,
-        tipoVehiculo: mapTipoVehiculoToResponse(e.tipo_vehiculo),
+        tipo_vehiculo: e.tipo_vehiculo,
+        tipoVehiculo: {
+            ...mapTipoVehiculoToResponse(e.tipo_vehiculo),
+            configuraciones: e.tipo_vehiculo?.configuraciones ?? [],
+        },
         neumaticosInstalados: e.neumaticos_instalados?.map(mapNeumaticoInstalado) ?? [],
+        neumaticos_instalados: e.neumaticos_instalados ?? [],
         // Vehiculo model uses fecha_alta instead of creado_en
         createdAt: e.fecha_alta?.toISOString?.() ?? new Date().toISOString(),
         updatedAt: e.fecha_alta?.toISOString?.() ?? new Date().toISOString(),
-    } satisfies VehiculoResponse;
+    };
+    return response as VehiculoResponse;
 }
 
 /**

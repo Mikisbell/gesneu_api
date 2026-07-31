@@ -76,6 +76,7 @@ export class VehiculoService {
      * @returns Response del vehículo o error NotFound
      */
     async getById(empresa_id: string, id: VehiculoId): Promise<Result<VehiculoResponse, NotFoundError>> {
+        if (!id) return err(new NotFoundError('Vehículo', id));
         const entity = await this.repository.findByIdWithFullRelations(id);
 
         // Tenant check
@@ -96,6 +97,7 @@ export class VehiculoService {
      * Incluye todas las relaciones anidadas.
      */
     async getByIdWithFullConfig(empresa_id: string, id: VehiculoId): Promise<Result<VehiculoResponse, NotFoundError>> {
+        if (!id) return err(new NotFoundError('Vehículo', id));
         const entity = await this.repository.findByIdWithFullConfig(id);
 
         if (entity && entity.empresa_id !== empresa_id) {
@@ -154,9 +156,12 @@ export class VehiculoService {
             const prismaInput = mapDtoToPrismaCreate(dto);
 
             // Agregar empresa_id al input (requerido para multi-tenancy)
+            // Usamos relaciones connect para consistencia con el modo Checked de Prisma
+            const { tipo_vehiculo_id, ...restInput } = prismaInput;
             const createData = {
-                ...prismaInput,
+                ...restInput,
                 empresa: { connect: { id: empresa_id } },
+                tipo_vehiculo: { connect: { id: tipo_vehiculo_id } },
             };
 
             // Crear en base de datos
@@ -191,6 +196,7 @@ export class VehiculoService {
         id: VehiculoId,
         dto: UpdateVehiculoDTO
     ): Promise<Result<VehiculoResponse, NotFoundError | ConflictError | BusinessError>> {
+        if (!id) return err(new NotFoundError('Vehículo', id));
         // Verificar que existe
         const existing = await this.repository.findById(id);
         if (!existing || existing.empresa_id !== empresa_id) {

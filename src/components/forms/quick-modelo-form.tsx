@@ -41,6 +41,9 @@ const formSchema = z.object({
     nombre_modelo: z.string().min(2, "El nombre debe tener al menos 2 caracteres"),
     medida: z.string().min(3, "La medida es requerida (ej: 295/80R22.5)"),
     profundidad_original_mm: z.string().min(1, "Ingrese la profundidad original"),
+    profundidad_minima_retiro_mm: z.string().optional().default("3.0"),
+    patron_dibujo: z.string().optional().default("TODA POSICION"),
+    tipo_servicio: z.string().optional().default("REGIONAL"),
     presion_recomendada_psi: z.string().optional(),
     indice_carga: z.string().optional(),
     indice_velocidad: z.string().optional(),
@@ -49,10 +52,12 @@ const formSchema = z.object({
 type FormValues = z.infer<typeof formSchema>
 
 interface QuickModeloFormProps {
+    defaultFabricanteId?: string
     onSuccess: (nuevoModelo: any) => void
+    trigger?: React.ReactNode
 }
 
-export function QuickModeloForm({ onSuccess }: QuickModeloFormProps) {
+export function QuickModeloForm({ defaultFabricanteId, onSuccess, trigger }: QuickModeloFormProps) {
     const [open, setOpen] = useState(false)
     const { toast } = useToast()
     const queryClient = useQueryClient()
@@ -62,18 +67,30 @@ export function QuickModeloForm({ onSuccess }: QuickModeloFormProps) {
         queryFn: fabricantesApi.getAll,
     })
 
-    const form = useForm<FormValues>({
+    const initialFabId = defaultFabricanteId && defaultFabricanteId !== "TODOS" ? defaultFabricanteId : ""
+
+    const form = useForm<any>({
         resolver: zodResolver(formSchema),
         defaultValues: {
-            fabricante_id: "",
+            fabricante_id: initialFabId,
             nombre_modelo: "",
             medida: "",
-            profundidad_original_mm: "20",
-            presion_recomendada_psi: "",
-            indice_carga: "",
-            indice_velocidad: "",
+            profundidad_original_mm: "18.5",
+            profundidad_minima_retiro_mm: "3.0",
+            patron_dibujo: "TODA POSICION",
+            tipo_servicio: "REGIONAL",
+            presion_recomendada_psi: "110",
+            indice_carga: "152/148",
+            indice_velocidad: "M",
         },
     })
+
+    const handleOpenChange = (isOpen: boolean) => {
+        setOpen(isOpen)
+        if (isOpen && initialFabId) {
+            form.setValue("fabricante_id", initialFabId)
+        }
+    }
 
     const mutation = useMutation({
         mutationFn: modelosNeumaticoApi.create,
@@ -99,31 +116,36 @@ export function QuickModeloForm({ onSuccess }: QuickModeloFormProps) {
     function onSubmit(values: FormValues) {
         mutation.mutate({
             ...values,
+            nombre_modelo: values.nombre_modelo,
             profundidad_original_mm: parseFloat(values.profundidad_original_mm) as any,
+            profundidad_minima_retiro_mm: parseFloat(values.profundidad_minima_retiro_mm || "3.0") as any,
             presion_recomendada_psi: values.presion_recomendada_psi ? parseFloat(values.presion_recomendada_psi) as any : undefined,
-            // Valores por defecto seguros para campos requeridos
             reencauches_maximos: 3,
             permite_reencauche: true
-        })
+        } as any)
     }
 
     return (
-        <Dialog open={open} onOpenChange={setOpen}>
+        <Dialog open={open} onOpenChange={handleOpenChange}>
             <DialogTrigger asChild>
-                <Button variant="outline" size="icon" type="button" title="Crear nuevo modelo">
-                    <Plus className="h-4 w-4" />
-                </Button>
+                {trigger ? (
+                    trigger
+                ) : (
+                    <Button variant="outline" size="icon" type="button" title="Crear nuevo modelo">
+                        <Plus className="h-4 w-4" />
+                    </Button>
+                )}
             </DialogTrigger>
-            <DialogContent className="sm:max-w-[425px]">
+            <DialogContent className="sm:max-w-[500px]">
                 <DialogHeader>
                     <DialogTitle>Crear Nuevo Modelo</DialogTitle>
                     <DialogDescription>
-                        Registre un modelo rápidamente para usarlo ahora.
+                        Registre las especificaciones técnicas del modelo rápido.
                     </DialogDescription>
                 </DialogHeader>
 
                 <Form {...form}>
-                    <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+                    <form onSubmit={form.handleSubmit(onSubmit as any)} className="space-y-4">
                         <FormField
                             control={form.control}
                             name="fabricante_id"
@@ -187,10 +209,60 @@ export function QuickModeloForm({ onSuccess }: QuickModeloFormProps) {
                                 name="profundidad_original_mm"
                                 render={({ field }) => (
                                     <FormItem>
-                                        <FormLabel>Prof. (mm)</FormLabel>
+                                        <FormLabel>Prof. Orig. (mm)</FormLabel>
                                         <FormControl>
                                             <Input type="number" step="0.1" {...field} />
                                         </FormControl>
+                                        <FormMessage />
+                                    </FormItem>
+                                )}
+                            />
+                        </div>
+
+                        <div className="grid grid-cols-2 gap-4">
+                            <FormField
+                                control={form.control}
+                                name="patron_dibujo"
+                                render={({ field }) => (
+                                    <FormItem>
+                                        <FormLabel>Patrón / Eje</FormLabel>
+                                        <Select onValueChange={field.onChange} value={field.value}>
+                                            <FormControl>
+                                                <SelectTrigger>
+                                                    <SelectValue placeholder="Seleccione patrón" />
+                                                </SelectTrigger>
+                                            </FormControl>
+                                            <SelectContent>
+                                                <SelectItem value="DIRECCIONAL">🧭 DIRECCIONAL</SelectItem>
+                                                <SelectItem value="TRACCION">🚜 TRACCIÓN</SelectItem>
+                                                <SelectItem value="REMOLQUE">🚛 REMOLQUE</SelectItem>
+                                                <SelectItem value="TODA POSICION">🔄 TODA POSICIÓN</SelectItem>
+                                            </SelectContent>
+                                        </Select>
+                                        <FormMessage />
+                                    </FormItem>
+                                )}
+                            />
+
+                            <FormField
+                                control={form.control}
+                                name="tipo_servicio"
+                                render={({ field }) => (
+                                    <FormItem>
+                                        <FormLabel>Tipo Servicio</FormLabel>
+                                        <Select onValueChange={field.onChange} value={field.value}>
+                                            <FormControl>
+                                                <SelectTrigger>
+                                                    <SelectValue placeholder="Seleccione servicio" />
+                                                </SelectTrigger>
+                                            </FormControl>
+                                            <SelectContent>
+                                                <SelectItem value="REGIONAL">REGIONAL</SelectItem>
+                                                <SelectItem value="LARGA DISTANCIA">LARGA DISTANCIA</SelectItem>
+                                                <SelectItem value="MIXTO/OFF-ROAD">MIXTO/OFF-ROAD</SelectItem>
+                                                <SelectItem value="URBANO">URBANO</SelectItem>
+                                            </SelectContent>
+                                        </Select>
                                         <FormMessage />
                                     </FormItem>
                                 )}

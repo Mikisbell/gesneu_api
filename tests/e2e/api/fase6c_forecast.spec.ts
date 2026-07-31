@@ -57,7 +57,7 @@ test.describe('Fase 6C.4: Purchase Forecast Verification', () => {
                 empresa_id: empresa.id,
                 modelo_id: modelo.id,
                 numero_serie: `CRIT-${TEST_ID}`,
-                estado_actual: 'EN_USO',
+                estado_actual: 'INSTALADO',
                 fecha_compra: twoYearsAgo,
                 profundidad_remanente_actual_mm: 4,
                 costo_compra: 300
@@ -73,7 +73,7 @@ test.describe('Fase 6C.4: Purchase Forecast Verification', () => {
                 empresa_id: empresa.id,
                 modelo_id: modelo.id,
                 numero_serie: `GOOD-${TEST_ID}`,
-                estado_actual: 'EN_USO',
+                estado_actual: 'INSTALADO',
                 fecha_compra: twoYearsAgo,
                 profundidad_remanente_actual_mm: 15,
                 costo_compra: 300

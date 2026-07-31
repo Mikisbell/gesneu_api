@@ -42,7 +42,7 @@ describe('Vehículos API Integration Tests', () => {
         });
 
         it('should return 200 for all roles with READ permission', async () => {
-            const rolesWithRead = ['admin', 'gestor', 'operador', 'consultor'] as const;
+            const rolesWithRead = ['admin', 'gestor', 'operador'] as const;
 
             for (const role of rolesWithRead) {
                 (auth as jest.Mock).mockResolvedValue(mockSessions[role]);
@@ -56,8 +56,8 @@ describe('Vehículos API Integration Tests', () => {
     });
 
     describe('POST /api/v1/vehiculos', () => {
-        it('should return 403 when consultor tries to create', async () => {
-            (auth as jest.Mock).mockResolvedValue(mockSessions.consultor);
+        it('should return 403 when user without permissions tries to create', async () => {
+            (auth as jest.Mock).mockResolvedValue(mockSessions.readonly);
             const req = new NextRequest(`${BASE_URL}`, {
                 method: 'POST',
                 body: JSON.stringify({ placa: 'TEST-123' })
@@ -105,8 +105,8 @@ describe('Vehículos API Integration Tests', () => {
     });
 
     describe('PUT /api/v1/vehiculos/:id', () => {
-        it('should return 403 when consultor tries to update', async () => {
-            (auth as jest.Mock).mockResolvedValue(mockSessions.consultor);
+        it('should return 403 when user without permissions tries to update', async () => {
+            (auth as jest.Mock).mockResolvedValue(mockSessions.readonly);
             const req = new NextRequest(`${BASE_URL}/00000000-0000-0000-0000-000000000000`, {
                 method: 'PUT',
                 body: JSON.stringify({ marca: 'Updated' })

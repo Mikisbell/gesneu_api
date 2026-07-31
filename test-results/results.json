@@ -11,7 +11,7 @@
     "grepInvert": null,
     "maxFailures": 0,
     "metadata": {
-      "actualWorkers": 6
+      "actualWorkers": 1
     },
     "preserveOutput": "always",
     "projects": [
@@ -20,7 +20,7 @@
         "repeatEach": 1,
         "retries": 0,
         "metadata": {
-          "actualWorkers": 6
+          "actualWorkers": 1
         },
         "id": "setup",
         "name": "setup",
@@ -36,7 +36,7 @@
         "repeatEach": 1,
         "retries": 0,
         "metadata": {
-          "actualWorkers": 6
+          "actualWorkers": 1
         },
         "id": "chromium",
         "name": "chromium",
@@ -77,9 +77,9 @@
     "updateSnapshots": "missing",
     "updateSourceMethod": "patch",
     "version": "1.58.1",
-    "workers": 6,
+    "workers": 1,
     "webServer": {
-      "command": "npm run start",
+      "command": "npm run dev",
       "url": "http://localhost:3005",
       "reuseExistingServer": true,
       "timeout": 300000,
@@ -99,7 +99,7 @@
       "specs": [
         {
           "title": "authenticate",
-          "ok": false,
+          "ok": true,
           "tags": [],
           "tests": [
             {
@@ -112,62 +112,25 @@
                 {
                   "workerIndex": 0,
                   "parallelIndex": 0,
-                  "status": "failed",
-                  "duration": 51493,
-                  "error": {
-                    "message": "TimeoutError: page.waitForURL: Timeout 45000ms exceeded.\n=========================== logs ===========================\nwaiting for navigation until \"load\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n============================================================",
-                    "stack": "TimeoutError: page.waitForURL: Timeout 45000ms exceeded.\n=========================== logs ===========================\nwaiting for navigation until \"load\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n============================================================\n    at E:\\FREECLOUD\\FREECLOUD-IA\\PROYECTOS\\gesneu_api\\tests\\e2e\\fixtures\\auth.setup.ts:25:16",
-                    "location": {
-                      "file": "E:\\FREECLOUD\\FREECLOUD-IA\\PROYECTOS\\gesneu_api\\tests\\e2e\\fixtures\\auth.setup.ts",
-                      "column": 16,
-                      "line": 25
-                    },
-                    "snippet": "\u001b[0m \u001b[90m 23 |\u001b[39m\n \u001b[90m 24 |\u001b[39m     \u001b[90m// Wait for navigation to dashboard - this confirms login credentials worked\u001b[39m\n\u001b[31m\u001b[1m>\u001b[22m\u001b[39m\u001b[90m 25 |\u001b[39m     \u001b[36mawait\u001b[39m page\u001b[33m.\u001b[39mwaitForURL(\u001b[36mnew\u001b[39m \u001b[33mRegExp\u001b[39m(\u001b[33mDASHBOARD_URL\u001b[39m)\u001b[33m,\u001b[39m { timeout\u001b[33m:\u001b[39m \u001b[35m45000\u001b[39m })\u001b[33m;\u001b[39m\n \u001b[90m    |\u001b[39m                \u001b[31m\u001b[1m^\u001b[22m\u001b[39m\n \u001b[90m 26 |\u001b[39m\n \u001b[90m 27 |\u001b[39m     \u001b[90m// In ultra-slow environments (like this dev instance), waiting for UI elements might timeout\u001b[39m\n \u001b[90m 28 |\u001b[39m     \u001b[90m// trusting the URL redirect + network idle is sufficient to capture session cookies\u001b[39m\u001b[0m"
-                  },
-                  "errors": [
-                    {
-                      "location": {
-                        "file": "E:\\FREECLOUD\\FREECLOUD-IA\\PROYECTOS\\gesneu_api\\tests\\e2e\\fixtures\\auth.setup.ts",
-                        "column": 16,
-                        "line": 25
-                      },
-                      "message": "TimeoutError: page.waitForURL: Timeout 45000ms exceeded.\n=========================== logs ===========================\nwaiting for navigation until \"load\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n  navigated to \"http://localhost:3005/login\"\n============================================================\n\n\u001b[0m \u001b[90m 23 |\u001b[39m\n \u001b[90m 24 |\u001b[39m     \u001b[90m// Wait for navigation to dashboard - this confirms login credentials worked\u001b[39m\n\u001b[31m\u001b[1m>\u001b[22m\u001b[39m\u001b[90m 25 |\u001b[39m     \u001b[36mawait\u001b[39m page\u001b[33m.\u001b[39mwaitForURL(\u001b[36mnew\u001b[39m \u001b[33mRegExp\u001b[39m(\u001b[33mDASHBOARD_URL\u001b[39m)\u001b[33m,\u001b[39m { timeout\u001b[33m:\u001b[39m \u001b[35m45000\u001b[39m })\u001b[33m;\u001b[39m\n \u001b[90m    |\u001b[39m                \u001b[31m\u001b[1m^\u001b[22m\u001b[39m\n \u001b[90m 26 |\u001b[39m\n \u001b[90m 27 |\u001b[39m     \u001b[90m// In ultra-slow environments (like this dev instance), waiting for UI elements might timeout\u001b[39m\n \u001b[90m 28 |\u001b[39m     \u001b[90m// trusting the URL redirect + network idle is sufficient to capture session cookies\u001b[39m\u001b[0m\n\u001b[2m    at E:\\FREECLOUD\\FREECLOUD-IA\\PROYECTOS\\gesneu_api\\tests\\e2e\\fixtures\\auth.setup.ts:25:16\u001b[22m"
-                    }
-                  ],
+                  "status": "passed",
+                  "duration": 4727,
+                  "errors": [],
                   "stdout": [
                     {
                       "text": "Authenticating as admin@gesneu.com...\n"
+                    },
+                    {
+                      "text": "Authentication successful. State saved to .auth/admin.json\n"
                     }
                   ],
                   "stderr": [],
                   "retry": 0,
-                  "startTime": "2026-04-09T22:57:31.731Z",
+                  "startTime": "2026-07-31T18:22:24.745Z",
                   "annotations": [],
-                  "attachments": [
-                    {
-                      "name": "screenshot",
-                      "contentType": "image/png",
-                      "path": "E:\\FREECLOUD\\FREECLOUD-IA\\PROYECTOS\\gesneu_api\\test-results\\fixtures-auth.setup.ts-authenticate-setup\\test-failed-1.png"
-                    },
-                    {
-                      "name": "video",
-                      "contentType": "video/webm",
-                      "path": "E:\\FREECLOUD\\FREECLOUD-IA\\PROYECTOS\\gesneu_api\\test-results\\fixtures-auth.setup.ts-authenticate-setup\\video.webm"
-                    },
-                    {
-                      "name": "error-context",
-                      "contentType": "text/markdown",
-                      "path": "E:\\FREECLOUD\\FREECLOUD-IA\\PROYECTOS\\gesneu_api\\test-results\\fixtures-auth.setup.ts-authenticate-setup\\error-context.md"
-                    }
-                  ],
-                  "errorLocation": {
-                    "file": "E:\\FREECLOUD\\FREECLOUD-IA\\PROYECTOS\\gesneu_api\\tests\\e2e\\fixtures\\auth.setup.ts",
-                    "column": 16,
-                    "line": 25
-                  }
+                  "attachments": []
                 }
               ],
-              "status": "unexpected"
+              "status": "expected"
             }
           ],
           "id": "6db7255f214771fc958b-910e03dd13d889edd9c2",
@@ -201,8 +164,32 @@
                   "expectedStatus": "passed",
                   "projectId": "chromium",
                   "projectName": "chromium",
-                  "results": [],
-                  "status": "skipped"
+                  "results": [
+                    {
+                      "workerIndex": 1,
+                      "parallelIndex": 0,
+                      "status": "passed",
+                      "duration": 3914,
+                      "errors": [],
+                      "stdout": [
+                        {
+                          "text": "Base URL for API: http://localhost:3005\n"
+                        },
+                        {
+                          "text": "Using neumatico: 94ce9a1d-d824-417d-8e67-f174c810bb5e for testing\n"
+                        },
+                        {
+                          "text": "Alertas generadas: \u001b[33m1\u001b[39m\n"
+                        }
+                      ],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-07-31T18:22:32.494Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
                 }
               ],
               "id": "e222d3e1dde26566875e-b238608e40198e92ebd9",
@@ -221,13 +208,31 @@
                   "expectedStatus": "passed",
                   "projectId": "chromium",
                   "projectName": "chromium",
-                  "results": [],
-                  "status": "skipped"
+                  "results": [
+                    {
+                      "workerIndex": 1,
+                      "parallelIndex": 0,
+                      "status": "passed",
+                      "duration": 1332,
+                      "errors": [],
+                      "stdout": [
+                        {
+                          "text": "Predicción Data: {\n  neumatico_id: \u001b[32m'94ce9a1d-d824-417d-8e67-f174c810bb5e'\u001b[39m,\n  medida: \u001b[32m'295/80R22.5'\u001b[39m,\n  mm_actual: \u001b[33m14.8\u001b[39m,\n  mm_retiro: \u001b[33m3\u001b[39m,\n  mm_restantes: \u001b[33m11.8\u001b[39m,\n  porcentaje_vida_restante: \u001b[33m79\u001b[39m,\n  estado: \u001b[32m'OPTIMO'\u001b[39m,\n  km_restantes_estimado: \u001b[33m3688\u001b[39m,\n  dias_restantes_estimado: \u001b[33m3688\u001b[39m,\n  fecha_estimada_cambio: \u001b[32m'2036-09-04'\u001b[39m,\n  inspecciones_usadas: \u001b[33m6\u001b[39m,\n  confianza: \u001b[32m'ALTA'\u001b[39m\n}\n"
+                        }
+                      ],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-07-31T18:22:42.862Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
                 }
               ],
               "id": "e222d3e1dde26566875e-ea15eee02134b160729b",
               "file": "api/fase6b.spec.ts",
-              "line": 131,
+              "line": 132,
               "column": 9
             },
             {
@@ -241,221 +246,31 @@
                   "expectedStatus": "passed",
                   "projectId": "chromium",
                   "projectName": "chromium",
-                  "results": [],
-                  "status": "skipped"
+                  "results": [
+                    {
+                      "workerIndex": 1,
+                      "parallelIndex": 0,
+                      "status": "passed",
+                      "duration": 598,
+                      "errors": [],
+                      "stdout": [
+                        {
+                          "text": "Próximas Data: {\n  resumen: { total: \u001b[33m3\u001b[39m, vencidas: \u001b[33m2\u001b[39m, hoy: \u001b[33m0\u001b[39m, proximas: \u001b[33m0\u001b[39m },\n  proximas: [\n    {\n      neumatico_id: \u001b[32m'a792deb0-8976-435a-996c-565e31cda4f1'\u001b[39m,\n      numero_serie: \u001b[32m'CRIT-3270'\u001b[39m,\n      marca: \u001b[32m'ForecastBrand 3270'\u001b[39m,\n      medida: \u001b[32m'295/80R22.5'\u001b[39m,\n      placa: \u001b[32m'Sin asignar'\u001b[39m,\n      mm_actual: \u001b[33m4\u001b[39m,\n      alertas_pendientes: \u001b[33m0\u001b[39m,\n      estado: \u001b[32m'INSTALADO'\u001b[39m,\n      ultima_inspeccion: \u001b[1mnull\u001b[22m,\n      dias_desde_inspeccion: \u001b[1mnull\u001b[22m,\n      frecuencia_recomendada_dias: \u001b[33m14\u001b[39m,\n      proxima_inspeccion: \u001b[32m'2026-07-31'\u001b[39m,\n      dias_vencido: \u001b[33m985\u001b[39m,\n      urgencia: \u001b[32m'VENCIDA'\u001b[39m\n    },\n    {\n      neumatico_id: \u001b[32m'519908b1-1e81-422d-82d4-523eebca8537'\u001b[39m,\n      numero_serie: \u001b[32m'GOOD-3270'\u001b[39m,\n      marca: \u001b[32m'ForecastBrand 3270'\u001b[39m,\n      medida: \u001b[32m'295/80R22.5'\u001b[39m,\n      placa: \u001b[32m'Sin asignar'\u001b[39m,\n      mm_actual: \u001b[33m15\u001b[39m,\n      alertas_pendientes: \u001b[33m0\u001b[39m,\n      estado: \u001b[32m'INSTALADO'\u001b[39m,\n      ultima_inspeccion: \u001b[1mnull\u001b[22m,\n      dias_desde_inspeccion: \u001b[1mnull\u001b[22m,\n      frecuencia_recomendada_dias: \u001b[33m30\u001b[39m,\n      proxima_inspeccion: \u001b[32m'2026-07-31'\u001b[39m,\n      dias_vencido: \u001b[33m969\u001b[39m,\n      urgencia: \u001b[32m'VENCIDA'\u001b[39m\n    },\n    {\n      neumatico_id: \u001b[32m'94ce9a1d-d824-417d-8e67-f174c810bb5e'\u001b[39m,\n      numero_serie: \u001b[32m'TCO-TEST-1785521340147'\u001b[39m,\n      marca: \u001b[32m'Bridgestone 1960'\u001b[39m,\n      medida: \u001b[32m'295/80R22.5'\u001b[39m,\n      placa: \u001b[32m'Sin asignar'\u001b[39m,\n      mm_actual: \u001b[33m14.8\u001b[39m,\n      alertas_pendientes: \u001b[33m3\u001b[39m,\n      estado: \u001b[32m'INSTALADO'\u001b[39m,\n      ultima_inspeccion: \u001b[32m'2026-07-31'\u001b[39m,\n      dias_desde_inspeccion: \u001b[33m0\u001b[39m,\n      frecuencia_recomendada_dias: \u001b[33m14\u001b[39m,\n      proxima_inspeccion: \u001b[32m'2026-08-14'\u001b[39m,\n      dias_vencido: \u001b[33m-14\u001b[39m,\n      urgencia: \u001b[32m'NORMAL'\u001b[39m\n    }\n  ]\n}\n"
+                        }
+                      ],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-07-31T18:22:44.212Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
                 }
               ],
               "id": "e222d3e1dde26566875e-97c8e4182eb15bf00800",
               "file": "api/fase6b.spec.ts",
-              "line": 149,
-              "column": 9
-            }
-          ]
-        }
-      ]
-    },
-    {
-      "title": "api\\fase6c_benchmarking.spec.ts",
-      "file": "api/fase6c_benchmarking.spec.ts",
-      "column": 0,
-      "line": 0,
-      "specs": [],
-      "suites": [
-        {
-          "title": "Fase 6C.2: Benchmarking Verification",
-          "file": "api/fase6c_benchmarking.spec.ts",
-          "line": 9,
-          "column": 6,
-          "specs": [
-            {
-              "title": "6C.2: Should return benchmarking data grouped by brand",
-              "ok": true,
-              "tags": [],
-              "tests": [
-                {
-                  "timeout": 300000,
-                  "annotations": [],
-                  "expectedStatus": "passed",
-                  "projectId": "chromium",
-                  "projectName": "chromium",
-                  "results": [],
-                  "status": "skipped"
-                }
-              ],
-              "id": "aa44252293ea1ce68f6c-8ffbef27acd95bab0608",
-              "file": "api/fase6c_benchmarking.spec.ts",
-              "line": 101,
-              "column": 9
-            }
-          ]
-        }
-      ]
-    },
-    {
-      "title": "api\\fase6c_forecast.spec.ts",
-      "file": "api/fase6c_forecast.spec.ts",
-      "column": 0,
-      "line": 0,
-      "specs": [],
-      "suites": [
-        {
-          "title": "Fase 6C.4: Purchase Forecast Verification",
-          "file": "api/fase6c_forecast.spec.ts",
-          "line": 8,
-          "column": 6,
-          "specs": [
-            {
-              "title": "6C.4: Should forecast purchasing needs correctly",
-              "ok": true,
-              "tags": [],
-              "tests": [
-                {
-                  "timeout": 300000,
-                  "annotations": [],
-                  "expectedStatus": "passed",
-                  "projectId": "chromium",
-                  "projectName": "chromium",
-                  "results": [],
-                  "status": "skipped"
-                }
-              ],
-              "id": "b00854255c69369d2529-78558d2dc41f57338a2c",
-              "file": "api/fase6c_forecast.spec.ts",
-              "line": 84,
-              "column": 9
-            }
-          ]
-        }
-      ]
-    },
-    {
-      "title": "api\\fase6c_scoring.spec.ts",
-      "file": "api/fase6c_scoring.spec.ts",
-      "column": 0,
-      "line": 0,
-      "specs": [],
-      "suites": [
-        {
-          "title": "Fase 6C.3: Casing Scoring Verification",
-          "file": "api/fase6c_scoring.spec.ts",
-          "line": 8,
-          "column": 6,
-          "specs": [
-            {
-              "title": "6C.3: Validar Scoring Premium Nuevo (Apto)",
-              "ok": true,
-              "tags": [],
-              "tests": [
-                {
-                  "timeout": 300000,
-                  "annotations": [],
-                  "expectedStatus": "passed",
-                  "projectId": "chromium",
-                  "projectName": "chromium",
-                  "results": [],
-                  "status": "skipped"
-                }
-              ],
-              "id": "b1b21926fa5cb770673b-5e82a646b91813edf3ee",
-              "file": "api/fase6c_scoring.spec.ts",
-              "line": 97,
-              "column": 9
-            },
-            {
-              "title": "6C.3: Validar Scoring Premium Viejo/Max Vidas (Desecho)",
-              "ok": true,
-              "tags": [],
-              "tests": [
-                {
-                  "timeout": 300000,
-                  "annotations": [],
-                  "expectedStatus": "passed",
-                  "projectId": "chromium",
-                  "projectName": "chromium",
-                  "results": [],
-                  "status": "skipped"
-                }
-              ],
-              "id": "b1b21926fa5cb770673b-e4a2a3edfd51735da747",
-              "file": "api/fase6c_scoring.spec.ts",
-              "line": 109,
-              "column": 9
-            },
-            {
-              "title": "6C.3: Validar Scoring Budget (Limite Vidas)",
-              "ok": true,
-              "tags": [],
-              "tests": [
-                {
-                  "timeout": 300000,
-                  "annotations": [],
-                  "expectedStatus": "passed",
-                  "projectId": "chromium",
-                  "projectName": "chromium",
-                  "results": [],
-                  "status": "skipped"
-                }
-              ],
-              "id": "b1b21926fa5cb770673b-de3ee7a3429802e9d876",
-              "file": "api/fase6c_scoring.spec.ts",
-              "line": 122,
-              "column": 9
-            }
-          ]
-        }
-      ]
-    },
-    {
-      "title": "api\\fase6c.spec.ts",
-      "file": "api/fase6c.spec.ts",
-      "column": 0,
-      "line": 0,
-      "specs": [],
-      "suites": [
-        {
-          "title": "Fase 6C: Financials & TCO Verification",
-          "file": "api/fase6c.spec.ts",
-          "line": 7,
-          "column": 6,
-          "specs": [
-            {
-              "title": "6C.1: Validate TCO and CPK Calculation",
-              "ok": true,
-              "tags": [],
-              "tests": [
-                {
-                  "timeout": 300000,
-                  "annotations": [],
-                  "expectedStatus": "passed",
-                  "projectId": "chromium",
-                  "projectName": "chromium",
-                  "results": [],
-                  "status": "skipped"
-                }
-              ],
-              "id": "f31651af5dac7380170b-fc19ea39f1fcc0aada27",
-              "file": "api/fase6c.spec.ts",
-              "line": 79,
-              "column": 9
-            },
-            {
-              "title": "6C.2: Validate Fuel Impact Estimation",
-              "ok": true,
-              "tags": [],
-              "tests": [
-                {
-                  "timeout": 300000,
-                  "annotations": [],
-                  "expectedStatus": "passed",
-                  "projectId": "chromium",
-                  "projectName": "chromium",
-                  "results": [],
-                  "status": "skipped"
-                }
-              ],
-              "id": "f31651af5dac7380170b-770aad5f1b1b6d18f57e",
-              "file": "api/fase6c.spec.ts",
-              "line": 104,
+              "line": 150,
               "column": 9
             }
           ]
@@ -493,13 +308,27 @@
                       "expectedStatus": "passed",
                       "projectId": "chromium",
                       "projectName": "chromium",
-                      "results": [],
-                      "status": "skipped"
+                      "results": [
+                        {
+                          "workerIndex": 1,
+                          "parallelIndex": 0,
+                          "status": "passed",
+                          "duration": 1951,
+                          "errors": [],
+                          "stdout": [],
+                          "stderr": [],
+                          "retry": 0,
+                          "startTime": "2026-07-31T18:22:44.854Z",
+                          "annotations": [],
+                          "attachments": []
+                        }
+                      ],
+                      "status": "expected"
                     }
                   ],
                   "id": "99bb4746d1640918adf9-30d70b060d722cc3b87e",
                   "file": "auth-login.spec.ts",
-                  "line": 13,
+                  "line": 15,
                   "column": 13
                 },
                 {
@@ -513,13 +342,27 @@
                       "expectedStatus": "passed",
                       "projectId": "chromium",
                       "projectName": "chromium",
-                      "results": [],
-                      "status": "skipped"
+                      "results": [
+                        {
+                          "workerIndex": 1,
+                          "parallelIndex": 0,
+                          "status": "passed",
+                          "duration": 858,
+                          "errors": [],
+                          "stdout": [],
+                          "stderr": [],
+                          "retry": 0,
+                          "startTime": "2026-07-31T18:22:46.821Z",
+                          "annotations": [],
+                          "attachments": []
+                        }
+                      ],
+                      "status": "expected"
                     }
                   ],
                   "id": "99bb4746d1640918adf9-0f27542046cfc9b04a61",
                   "file": "auth-login.spec.ts",
-                  "line": 30,
+                  "line": 32,
                   "column": 13
                 },
                 {
@@ -533,13 +376,27 @@
                       "expectedStatus": "passed",
                       "projectId": "chromium",
                       "projectName": "chromium",
-                      "results": [],
-                      "status": "skipped"
+                      "results": [
+                        {
+                          "workerIndex": 1,
+                          "parallelIndex": 0,
+                          "status": "passed",
+                          "duration": 791,
+                          "errors": [],
+                          "stdout": [],
+                          "stderr": [],
+                          "retry": 0,
+                          "startTime": "2026-07-31T18:22:47.693Z",
+                          "annotations": [],
+                          "attachments": []
+                        }
+                      ],
+                      "status": "expected"
                     }
                   ],
                   "id": "99bb4746d1640918adf9-0832ba5dc63a02841e4e",
                   "file": "auth-login.spec.ts",
-                  "line": 45,
+                  "line": 47,
                   "column": 13
                 },
                 {
@@ -553,13 +410,27 @@
                       "expectedStatus": "passed",
                       "projectId": "chromium",
                       "projectName": "chromium",
-                      "results": [],
-                      "status": "skipped"
+                      "results": [
+                        {
+                          "workerIndex": 1,
+                          "parallelIndex": 0,
+                          "status": "passed",
+                          "duration": 3144,
+                          "errors": [],
+                          "stdout": [],
+                          "stderr": [],
+                          "retry": 0,
+                          "startTime": "2026-07-31T18:22:48.500Z",
+                          "annotations": [],
+                          "attachments": []
+                        }
+                      ],
+                      "status": "expected"
                     }
                   ],
                   "id": "99bb4746d1640918adf9-78072b0c79cd02afd376",
                   "file": "auth-login.spec.ts",
-                  "line": 58,
+                  "line": 60,
                   "column": 13
                 }
               ]
@@ -567,7 +438,7 @@
             {
               "title": "Logout",
               "file": "auth-login.spec.ts",
-              "line": 75,
+              "line": 77,
               "column": 10,
               "specs": [
                 {
@@ -581,13 +452,27 @@
                       "expectedStatus": "passed",
                       "projectId": "chromium",
                       "projectName": "chromium",
-                      "results": [],
-                      "status": "skipped"
+                      "results": [
+                        {
+                          "workerIndex": 1,
+                          "parallelIndex": 0,
+                          "status": "passed",
+                          "duration": 1908,
+                          "errors": [],
+                          "stdout": [],
+                          "stderr": [],
+                          "retry": 0,
+                          "startTime": "2026-07-31T18:22:51.657Z",
+                          "annotations": [],
+                          "attachments": []
+                        }
+                      ],
+                      "status": "expected"
                     }
                   ],
                   "id": "99bb4746d1640918adf9-c1f7961fdfef59ebe0cc",
                   "file": "auth-login.spec.ts",
-                  "line": 85,
+                  "line": 84,
                   "column": 13
                 },
                 {
@@ -601,8 +486,22 @@
                       "expectedStatus": "passed",
                       "projectId": "chromium",
                       "projectName": "chromium",
-                      "results": [],
-                      "status": "skipped"
+                      "results": [
+                        {
+                          "workerIndex": 1,
+                          "parallelIndex": 0,
+                          "status": "passed",
+                          "duration": 2145,
+                          "errors": [],
+                          "stdout": [],
+                          "stderr": [],
+                          "retry": 0,
+                          "startTime": "2026-07-31T18:22:53.581Z",
+                          "annotations": [],
+                          "attachments": []
+                        }
+                      ],
+                      "status": "expected"
                     }
                   ],
                   "id": "99bb4746d1640918adf9-a836a276084b51512221",
@@ -615,7 +514,7 @@
             {
               "title": "Protected Routes",
               "file": "auth-login.spec.ts",
-              "line": 106,
+              "line": 109,
               "column": 10,
               "specs": [
                 {
@@ -629,13 +528,27 @@
                       "expectedStatus": "passed",
                       "projectId": "chromium",
                       "projectName": "chromium",
-                      "results": [],
-                      "status": "skipped"
+                      "results": [
+                        {
+                          "workerIndex": 1,
+                          "parallelIndex": 0,
+                          "status": "passed",
+                          "duration": 710,
+                          "errors": [],
+                          "stdout": [],
+                          "stderr": [],
+                          "retry": 0,
+                          "startTime": "2026-07-31T18:22:55.739Z",
+                          "annotations": [],
+                          "attachments": []
+                        }
+                      ],
+                      "status": "expected"
                     }
                   ],
                   "id": "99bb4746d1640918adf9-bc64ca7b57c3c676cdac",
                   "file": "auth-login.spec.ts",
-                  "line": 107,
+                  "line": 112,
                   "column": 13
                 },
                 {
@@ -649,1426 +562,30 @@
                       "expectedStatus": "passed",
                       "projectId": "chromium",
                       "projectName": "chromium",
-                      "results": [],
-                      "status": "skipped"
+                      "results": [
+                        {
+                          "workerIndex": 1,
+                          "parallelIndex": 0,
+                          "status": "passed",
+                          "duration": 3142,
+                          "errors": [],
+                          "stdout": [],
+                          "stderr": [],
+                          "retry": 0,
+                          "startTime": "2026-07-31T18:22:56.463Z",
+                          "annotations": [],
+                          "attachments": []
+                        }
+                      ],
+                      "status": "expected"
                     }
                   ],
                   "id": "99bb4746d1640918adf9-ebb470544f7c67dd9bdc",
                   "file": "auth-login.spec.ts",
-                  "line": 115,
+                  "line": 120,
                   "column": 13
                 }
               ]
-            }
-          ]
-        }
-      ]
-    },
-    {
-      "title": "capture-screenshots.spec.ts",
-      "file": "capture-screenshots.spec.ts",
-      "column": 0,
-      "line": 0,
-      "specs": [],
-      "suites": [
-        {
-          "title": "Documentation Screenshots",
-          "file": "capture-screenshots.spec.ts",
-          "line": 9,
-          "column": 6,
-          "specs": [
-            {
-              "title": "capture dashboard home",
-              "ok": true,
-              "tags": [],
-              "tests": [
-                {
-                  "timeout": 300000,
-                  "annotations": [],
-                  "expectedStatus": "passed",
-                  "projectId": "chromium",
-                  "projectName": "chromium",
-                  "results": [],
-                  "status": "skipped"
-                }
-              ],
-              "id": "5baee18fb5ee74e93c3e-f77e618b6275b82bda86",
-              "file": "capture-screenshots.spec.ts",
-              "line": 21,
-              "column": 9
-            },
-            {
-              "title": "capture neumaticos list",
-              "ok": true,
-              "tags": [],
-              "tests": [
-                {
-                  "timeout": 300000,
-                  "annotations": [],
-                  "expectedStatus": "passed",
-                  "projectId": "chromium",
-                  "projectName": "chromium",
-                  "results": [],
-                  "status": "skipped"
-                }
-              ],
-              "id": "5baee18fb5ee74e93c3e-08939a621c021a7a00b5",
-              "file": "capture-screenshots.spec.ts",
-              "line": 32,
-              "column": 9
-            },
-            {
-              "title": "capture operations montaje",
-              "ok": true,
-              "tags": [],
-              "tests": [
-                {
-                  "timeout": 300000,
-                  "annotations": [],
-                  "expectedStatus": "passed",
-                  "projectId": "chromium",
-                  "projectName": "chromium",
-                  "results": [],
-                  "status": "skipped"
-                }
-              ],
-              "id": "5baee18fb5ee74e93c3e-0c06406e5ba1743686fb",
-              "file": "capture-screenshots.spec.ts",
-              "line": 43,
-              "column": 9
-            },
-            {
-              "title": "capture vehiculos list",
-              "ok": true,
-              "tags": [],
-              "tests": [
-                {
-                  "timeout": 300000,
-                  "annotations": [],
-                  "expectedStatus": "passed",
-                  "projectId": "chromium",
-                  "projectName": "chromium",
-                  "results": [],
-                  "status": "skipped"
-                }
-              ],
-              "id": "5baee18fb5ee74e93c3e-3b4d47618ffe6e15c508",
-              "file": "capture-screenshots.spec.ts",
-              "line": 54,
-              "column": 9
-            },
-            {
-              "title": "capture reportes",
-              "ok": true,
-              "tags": [],
-              "tests": [
-                {
-                  "timeout": 300000,
-                  "annotations": [],
-                  "expectedStatus": "passed",
-                  "projectId": "chromium",
-                  "projectName": "chromium",
-                  "results": [],
-                  "status": "skipped"
-                }
-              ],
-              "id": "5baee18fb5ee74e93c3e-ed44ede2ce7cc0360a80",
-              "file": "capture-screenshots.spec.ts",
-              "line": 65,
-              "column": 9
-            }
-          ]
-        }
-      ]
-    },
-    {
-      "title": "dashboard-access.spec.ts",
-      "file": "dashboard-access.spec.ts",
-      "column": 0,
-      "line": 0,
-      "specs": [],
-      "suites": [
-        {
-          "title": "RBAC Dashboard Access",
-          "file": "dashboard-access.spec.ts",
-          "line": 10,
-          "column": 6,
-          "specs": [],
-          "suites": [
-            {
-              "title": "Administrator Role",
-              "file": "dashboard-access.spec.ts",
-              "line": 14,
-              "column": 10,
-              "specs": [
-                {
-                  "title": "should have access to all modules",
-                  "ok": true,
-                  "tags": [],
-                  "tests": [
-                    {
-                      "timeout": 300000,
-                      "annotations": [],
-                      "expectedStatus": "passed",
-                      "projectId": "chromium",
-                      "projectName": "chromium",
-                      "results": [],
-                      "status": "skipped"
-                    }
-                  ],
-                  "id": "b565693d5c91bbf3ae55-684cddc78ec6ee07afa2",
-                  "file": "dashboard-access.spec.ts",
-                  "line": 17,
-                  "column": 13
-                },
-                {
-                  "title": "should be able to see create buttons",
-                  "ok": true,
-                  "tags": [],
-                  "tests": [
-                    {
-                      "timeout": 300000,
-                      "annotations": [],
-                      "expectedStatus": "passed",
-                      "projectId": "chromium",
-                      "projectName": "chromium",
-                      "results": [],
-                      "status": "skipped"
-                    }
-                  ],
-                  "id": "b565693d5c91bbf3ae55-4e23413c49ffdb31e165",
-                  "file": "dashboard-access.spec.ts",
-                  "line": 25,
-                  "column": 13
-                },
-                {
-                  "title": "should access admin-only routes",
-                  "ok": true,
-                  "tags": [],
-                  "tests": [
-                    {
-                      "timeout": 300000,
-                      "annotations": [],
-                      "expectedStatus": "passed",
-                      "projectId": "chromium",
-                      "projectName": "chromium",
-                      "results": [],
-                      "status": "skipped"
-                    }
-                  ],
-                  "id": "b565693d5c91bbf3ae55-55a6a15b0a1f87dc2c8e",
-                  "file": "dashboard-access.spec.ts",
-                  "line": 31,
-                  "column": 13
-                }
-              ]
-            },
-            {
-              "title": "Permission Checks",
-              "file": "dashboard-access.spec.ts",
-              "line": 38,
-              "column": 10,
-              "specs": [
-                {
-                  "title": "should display role-appropriate navigation",
-                  "ok": true,
-                  "tags": [],
-                  "tests": [
-                    {
-                      "timeout": 300000,
-                      "annotations": [],
-                      "expectedStatus": "passed",
-                      "projectId": "chromium",
-                      "projectName": "chromium",
-                      "results": [],
-                      "status": "skipped"
-                    }
-                  ],
-                  "id": "b565693d5c91bbf3ae55-3e1a7528ca4776b534ee",
-                  "file": "dashboard-access.spec.ts",
-                  "line": 39,
-                  "column": 13
-                },
-                {
-                  "title": "should show user role in UI",
-                  "ok": true,
-                  "tags": [],
-                  "tests": [
-                    {
-                      "timeout": 300000,
-                      "annotations": [],
-                      "expectedStatus": "passed",
-                      "projectId": "chromium",
-                      "projectName": "chromium",
-                      "results": [],
-                      "status": "skipped"
-                    }
-                  ],
-                  "id": "b565693d5c91bbf3ae55-5ff55f2471618d42ccf5",
-                  "file": "dashboard-access.spec.ts",
-                  "line": 46,
-                  "column": 13
-                }
-              ]
-            },
-            {
-              "title": "Access Control Enforcement",
-              "file": "dashboard-access.spec.ts",
-              "line": 54,
-              "column": 10,
-              "specs": [
-                {
-                  "title": "should prevent direct URL access to unauthorized routes",
-                  "ok": true,
-                  "tags": [],
-                  "tests": [
-                    {
-                      "timeout": 300000,
-                      "annotations": [],
-                      "expectedStatus": "passed",
-                      "projectId": "chromium",
-                      "projectName": "chromium",
-                      "results": [],
-                      "status": "skipped"
-                    }
-                  ],
-                  "id": "b565693d5c91bbf3ae55-de460cef9944f47cd9dc",
-                  "file": "dashboard-access.spec.ts",
-                  "line": 55,
-                  "column": 13
-                }
-              ]
-            },
-            {
-              "title": "UI Element Visibility",
-              "file": "dashboard-access.spec.ts",
-              "line": 64,
-              "column": 10,
-              "specs": [
-                {
-                  "title": "should hide action buttons based on permissions",
-                  "ok": true,
-                  "tags": [],
-                  "tests": [
-                    {
-                      "timeout": 300000,
-                      "annotations": [],
-                      "expectedStatus": "passed",
-                      "projectId": "chromium",
-                      "projectName": "chromium",
-                      "results": [],
-                      "status": "skipped"
-                    }
-                  ],
-                  "id": "b565693d5c91bbf3ae55-e102b3b8f49f3cb2b588",
-                  "file": "dashboard-access.spec.ts",
-                  "line": 65,
-                  "column": 13
-                },
-                {
-                  "title": "should enable/disable form fields based on permissions",
-                  "ok": true,
-                  "tags": [],
-                  "tests": [
-                    {
-                      "timeout": 300000,
-                      "annotations": [],
-                      "expectedStatus": "passed",
-                      "projectId": "chromium",
-                      "projectName": "chromium",
-                      "results": [],
-                      "status": "skipped"
-                    }
-                  ],
-                  "id": "b565693d5c91bbf3ae55-dcb985d6a6dcd146c570",
-                  "file": "dashboard-access.spec.ts",
-                  "line": 89,
-                  "column": 13
-                }
-              ]
-            }
-          ]
-        }
-      ]
-    },
-    {
-      "title": "neumatico-crud.spec.ts",
-      "file": "neumatico-crud.spec.ts",
-      "column": 0,
-      "line": 0,
-      "specs": [],
-      "suites": [
-        {
-          "title": "Neumatico CRUD Operations",
-          "file": "neumatico-crud.spec.ts",
-          "line": 8,
-          "column": 6,
-          "specs": [],
-          "suites": [
-            {
-              "title": "Create Neumatico",
-              "file": "neumatico-crud.spec.ts",
-              "line": 22,
-              "column": 10,
-              "specs": [
-                {
-                  "title": "should create a new neumatico successfully",
-                  "ok": true,
-                  "tags": [],
-                  "tests": [
-                    {
-                      "timeout": 300000,
-                      "annotations": [],
-                      "expectedStatus": "passed",
-                      "projectId": "chromium",
-                      "projectName": "chromium",
-                      "results": [],
-                      "status": "skipped"
-                    }
-                  ],
-                  "id": "4d39815845542594eb31-af32ab1b44f6edf5dee9",
-                  "file": "neumatico-crud.spec.ts",
-                  "line": 23,
-                  "column": 13
-                },
-                {
-                  "title": "should show validation errors for invalid input",
-                  "ok": true,
-                  "tags": [],
-                  "tests": [
-                    {
-                      "timeout": 300000,
-                      "annotations": [],
-                      "expectedStatus": "passed",
-                      "projectId": "chromium",
-                      "projectName": "chromium",
-                      "results": [],
-                      "status": "skipped"
-                    }
-                  ],
-                  "id": "4d39815845542594eb31-215cce7b60bcbc353483",
-                  "file": "neumatico-crud.spec.ts",
-                  "line": 48,
-                  "column": 13
-                },
-                {
-                  "title": "should handle duplicate numero_serie gracefully",
-                  "ok": true,
-                  "tags": [],
-                  "tests": [
-                    {
-                      "timeout": 300000,
-                      "annotations": [],
-                      "expectedStatus": "passed",
-                      "projectId": "chromium",
-                      "projectName": "chromium",
-                      "results": [],
-                      "status": "skipped"
-                    }
-                  ],
-                  "id": "4d39815845542594eb31-dcab988ce95ae5e6e8b3",
-                  "file": "neumatico-crud.spec.ts",
-                  "line": 59,
-                  "column": 13
-                }
-              ]
-            },
-            {
-              "title": "Read Neumatico",
-              "file": "neumatico-crud.spec.ts",
-              "line": 82,
-              "column": 10,
-              "specs": [
-                {
-                  "title": "should display list of neumaticos",
-                  "ok": true,
-                  "tags": [],
-                  "tests": [
-                    {
-                      "timeout": 300000,
-                      "annotations": [],
-                      "expectedStatus": "passed",
-                      "projectId": "chromium",
-                      "projectName": "chromium",
-                      "results": [],
-                      "status": "skipped"
-                    }
-                  ],
-                  "id": "4d39815845542594eb31-e87b3332a19f3c52f1fb",
-                  "file": "neumatico-crud.spec.ts",
-                  "line": 83,
-                  "column": 13
-                },
-                {
-                  "title": "should view neumatico details",
-                  "ok": true,
-                  "tags": [],
-                  "tests": [
-                    {
-                      "timeout": 300000,
-                      "annotations": [],
-                      "expectedStatus": "passed",
-                      "projectId": "chromium",
-                      "projectName": "chromium",
-                      "results": [],
-                      "status": "skipped"
-                    }
-                  ],
-                  "id": "4d39815845542594eb31-96c77f0df4cffebe5786",
-                  "file": "neumatico-crud.spec.ts",
-                  "line": 93,
-                  "column": 13
-                },
-                {
-                  "title": "should filter/search neumaticos",
-                  "ok": true,
-                  "tags": [],
-                  "tests": [
-                    {
-                      "timeout": 300000,
-                      "annotations": [],
-                      "expectedStatus": "passed",
-                      "projectId": "chromium",
-                      "projectName": "chromium",
-                      "results": [],
-                      "status": "skipped"
-                    }
-                  ],
-                  "id": "4d39815845542594eb31-311a91b47039362f44c6",
-                  "file": "neumatico-crud.spec.ts",
-                  "line": 106,
-                  "column": 13
-                }
-              ]
-            },
-            {
-              "title": "Update Neumatico",
-              "file": "neumatico-crud.spec.ts",
-              "line": 121,
-              "column": 10,
-              "specs": [
-                {
-                  "title": "should update neumatico successfully",
-                  "ok": true,
-                  "tags": [],
-                  "tests": [
-                    {
-                      "timeout": 300000,
-                      "annotations": [],
-                      "expectedStatus": "passed",
-                      "projectId": "chromium",
-                      "projectName": "chromium",
-                      "results": [],
-                      "status": "skipped"
-                    }
-                  ],
-                  "id": "4d39815845542594eb31-41224fb5b8b48b05ac55",
-                  "file": "neumatico-crud.spec.ts",
-                  "line": 122,
-                  "column": 13
-                },
-                {
-                  "title": "should cancel update without saving",
-                  "ok": true,
-                  "tags": [],
-                  "tests": [
-                    {
-                      "timeout": 300000,
-                      "annotations": [],
-                      "expectedStatus": "passed",
-                      "projectId": "chromium",
-                      "projectName": "chromium",
-                      "results": [],
-                      "status": "skipped"
-                    }
-                  ],
-                  "id": "4d39815845542594eb31-12e71c1eff4dc53bce0e",
-                  "file": "neumatico-crud.spec.ts",
-                  "line": 146,
-                  "column": 13
-                }
-              ]
-            },
-            {
-              "title": "Delete Neumatico",
-              "file": "neumatico-crud.spec.ts",
-              "line": 162,
-              "column": 10,
-              "specs": [
-                {
-                  "title": "should soft delete neumatico with confirmation",
-                  "ok": true,
-                  "tags": [],
-                  "tests": [
-                    {
-                      "timeout": 300000,
-                      "annotations": [],
-                      "expectedStatus": "passed",
-                      "projectId": "chromium",
-                      "projectName": "chromium",
-                      "results": [],
-                      "status": "skipped"
-                    }
-                  ],
-                  "id": "4d39815845542594eb31-1ee8fd498d20d71b79e0",
-                  "file": "neumatico-crud.spec.ts",
-                  "line": 163,
-                  "column": 13
-                },
-                {
-                  "title": "should cancel deletion",
-                  "ok": true,
-                  "tags": [],
-                  "tests": [
-                    {
-                      "timeout": 300000,
-                      "annotations": [],
-                      "expectedStatus": "passed",
-                      "projectId": "chromium",
-                      "projectName": "chromium",
-                      "results": [],
-                      "status": "skipped"
-                    }
-                  ],
-                  "id": "4d39815845542594eb31-8672741659ddc6f5400f",
-                  "file": "neumatico-crud.spec.ts",
-                  "line": 190,
-                  "column": 13
-                }
-              ]
-            },
-            {
-              "title": "Pagination",
-              "file": "neumatico-crud.spec.ts",
-              "line": 205,
-              "column": 10,
-              "specs": [
-                {
-                  "title": "should navigate between pages",
-                  "ok": true,
-                  "tags": [],
-                  "tests": [
-                    {
-                      "timeout": 300000,
-                      "annotations": [],
-                      "expectedStatus": "passed",
-                      "projectId": "chromium",
-                      "projectName": "chromium",
-                      "results": [],
-                      "status": "skipped"
-                    }
-                  ],
-                  "id": "4d39815845542594eb31-c448d16426f562a213e9",
-                  "file": "neumatico-crud.spec.ts",
-                  "line": 206,
-                  "column": 13
-                }
-              ]
-            }
-          ]
-        }
-      ]
-    },
-    {
-      "title": "operaciones\\desmontaje.spec.ts",
-      "file": "operaciones/desmontaje.spec.ts",
-      "column": 0,
-      "line": 0,
-      "specs": [],
-      "suites": [
-        {
-          "title": "Desmontaje Operations",
-          "file": "operaciones/desmontaje.spec.ts",
-          "line": 8,
-          "column": 6,
-          "specs": [
-            {
-              "title": "should create a new desmontaje successfully",
-              "ok": true,
-              "tags": [],
-              "tests": [
-                {
-                  "timeout": 300000,
-                  "annotations": [],
-                  "expectedStatus": "passed",
-                  "projectId": "chromium",
-                  "projectName": "chromium",
-                  "results": [],
-                  "status": "skipped"
-                }
-              ],
-              "id": "76f88d27cf3c649f336f-9172c5c54c2a8897046e",
-              "file": "operaciones/desmontaje.spec.ts",
-              "line": 24,
-              "column": 9
-            },
-            {
-              "title": "should validate km_vehiculo is greater than montaje km",
-              "ok": true,
-              "tags": [],
-              "tests": [
-                {
-                  "timeout": 300000,
-                  "annotations": [],
-                  "expectedStatus": "passed",
-                  "projectId": "chromium",
-                  "projectName": "chromium",
-                  "results": [],
-                  "status": "skipped"
-                }
-              ],
-              "id": "76f88d27cf3c649f336f-ef48312168cc1362d0f1",
-              "file": "operaciones/desmontaje.spec.ts",
-              "line": 52,
-              "column": 9
-            },
-            {
-              "title": "should validate required motivo field",
-              "ok": true,
-              "tags": [],
-              "tests": [
-                {
-                  "timeout": 300000,
-                  "annotations": [],
-                  "expectedStatus": "passed",
-                  "projectId": "chromium",
-                  "projectName": "chromium",
-                  "results": [],
-                  "status": "skipped"
-                }
-              ],
-              "id": "76f88d27cf3c649f336f-1447a1b0f236614337a3",
-              "file": "operaciones/desmontaje.spec.ts",
-              "line": 65,
-              "column": 9
-            },
-            {
-              "title": "should update neumático status to DISPONIBLE after desmontaje",
-              "ok": true,
-              "tags": [],
-              "tests": [
-                {
-                  "timeout": 300000,
-                  "annotations": [],
-                  "expectedStatus": "passed",
-                  "projectId": "chromium",
-                  "projectName": "chromium",
-                  "results": [],
-                  "status": "skipped"
-                }
-              ],
-              "id": "76f88d27cf3c649f336f-9c13074eafc484bacd50",
-              "file": "operaciones/desmontaje.spec.ts",
-              "line": 79,
-              "column": 9
-            },
-            {
-              "title": "should list all desmontajes",
-              "ok": true,
-              "tags": [],
-              "tests": [
-                {
-                  "timeout": 300000,
-                  "annotations": [],
-                  "expectedStatus": "passed",
-                  "projectId": "chromium",
-                  "projectName": "chromium",
-                  "results": [],
-                  "status": "skipped"
-                }
-              ],
-              "id": "76f88d27cf3c649f336f-4a914c3717250c7095d8",
-              "file": "operaciones/desmontaje.spec.ts",
-              "line": 91,
-              "column": 9
-            },
-            {
-              "title": "should filter desmontajes by motivo",
-              "ok": true,
-              "tags": [],
-              "tests": [
-                {
-                  "timeout": 300000,
-                  "annotations": [],
-                  "expectedStatus": "passed",
-                  "projectId": "chromium",
-                  "projectName": "chromium",
-                  "results": [],
-                  "status": "skipped"
-                }
-              ],
-              "id": "76f88d27cf3c649f336f-1cde2bd3e01bae17bb68",
-              "file": "operaciones/desmontaje.spec.ts",
-              "line": 101,
-              "column": 9
-            },
-            {
-              "title": "should view desmontaje details",
-              "ok": true,
-              "tags": [],
-              "tests": [
-                {
-                  "timeout": 300000,
-                  "annotations": [],
-                  "expectedStatus": "passed",
-                  "projectId": "chromium",
-                  "projectName": "chromium",
-                  "results": [],
-                  "status": "skipped"
-                }
-              ],
-              "id": "76f88d27cf3c649f336f-d2bf4e69c9b74e633aeb",
-              "file": "operaciones/desmontaje.spec.ts",
-              "line": 116,
-              "column": 9
-            }
-          ]
-        }
-      ]
-    },
-    {
-      "title": "operaciones\\inspeccion.spec.ts",
-      "file": "operaciones/inspeccion.spec.ts",
-      "column": 0,
-      "line": 0,
-      "specs": [],
-      "suites": [
-        {
-          "title": "Inspección Operations",
-          "file": "operaciones/inspeccion.spec.ts",
-          "line": 8,
-          "column": 6,
-          "specs": [
-            {
-              "title": "should create a new inspección successfully",
-              "ok": true,
-              "tags": [],
-              "tests": [
-                {
-                  "timeout": 300000,
-                  "annotations": [],
-                  "expectedStatus": "passed",
-                  "projectId": "chromium",
-                  "projectName": "chromium",
-                  "results": [],
-                  "status": "skipped"
-                }
-              ],
-              "id": "d8a12f1ebdec731dba3c-22319833b3523120a9bd",
-              "file": "operaciones/inspeccion.spec.ts",
-              "line": 24,
-              "column": 9
-            },
-            {
-              "title": "should validate profundidad_actual > 0",
-              "ok": true,
-              "tags": [],
-              "tests": [
-                {
-                  "timeout": 300000,
-                  "annotations": [],
-                  "expectedStatus": "passed",
-                  "projectId": "chromium",
-                  "projectName": "chromium",
-                  "results": [],
-                  "status": "skipped"
-                }
-              ],
-              "id": "d8a12f1ebdec731dba3c-be25f5af31ddc94431c3",
-              "file": "operaciones/inspeccion.spec.ts",
-              "line": 52,
-              "column": 9
-            },
-            {
-              "title": "should validate presión within acceptable range",
-              "ok": true,
-              "tags": [],
-              "tests": [
-                {
-                  "timeout": 300000,
-                  "annotations": [],
-                  "expectedStatus": "passed",
-                  "projectId": "chromium",
-                  "projectName": "chromium",
-                  "results": [],
-                  "status": "skipped"
-                }
-              ],
-              "id": "d8a12f1ebdec731dba3c-2d4fc6d9913ce434b530",
-              "file": "operaciones/inspeccion.spec.ts",
-              "line": 65,
-              "column": 9
-            },
-            {
-              "title": "should show pressure alert for low values",
-              "ok": true,
-              "tags": [],
-              "tests": [
-                {
-                  "timeout": 300000,
-                  "annotations": [],
-                  "expectedStatus": "passed",
-                  "projectId": "chromium",
-                  "projectName": "chromium",
-                  "results": [],
-                  "status": "skipped"
-                }
-              ],
-              "id": "d8a12f1ebdec731dba3c-db914286a3c4577ccbc8",
-              "file": "operaciones/inspeccion.spec.ts",
-              "line": 78,
-              "column": 9
-            },
-            {
-              "title": "should list all inspecciones",
-              "ok": true,
-              "tags": [],
-              "tests": [
-                {
-                  "timeout": 300000,
-                  "annotations": [],
-                  "expectedStatus": "passed",
-                  "projectId": "chromium",
-                  "projectName": "chromium",
-                  "results": [],
-                  "status": "skipped"
-                }
-              ],
-              "id": "d8a12f1ebdec731dba3c-5eeeb1842cbb9e92bdd3",
-              "file": "operaciones/inspeccion.spec.ts",
-              "line": 93,
-              "column": 9
-            },
-            {
-              "title": "should filter inspecciones by date range",
-              "ok": true,
-              "tags": [],
-              "tests": [
-                {
-                  "timeout": 300000,
-                  "annotations": [],
-                  "expectedStatus": "passed",
-                  "projectId": "chromium",
-                  "projectName": "chromium",
-                  "results": [],
-                  "status": "skipped"
-                }
-              ],
-              "id": "d8a12f1ebdec731dba3c-1d057a868918a1d56d3b",
-              "file": "operaciones/inspeccion.spec.ts",
-              "line": 103,
-              "column": 9
-            },
-            {
-              "title": "should view inspection history for a tire",
-              "ok": true,
-              "tags": [],
-              "tests": [
-                {
-                  "timeout": 300000,
-                  "annotations": [],
-                  "expectedStatus": "passed",
-                  "projectId": "chromium",
-                  "projectName": "chromium",
-                  "results": [],
-                  "status": "skipped"
-                }
-              ],
-              "id": "d8a12f1ebdec731dba3c-1493c0028c3338cc6f2f",
-              "file": "operaciones/inspeccion.spec.ts",
-              "line": 119,
-              "column": 9
-            }
-          ]
-        }
-      ]
-    },
-    {
-      "title": "operaciones\\montaje.spec.ts",
-      "file": "operaciones/montaje.spec.ts",
-      "column": 0,
-      "line": 0,
-      "specs": [],
-      "suites": [
-        {
-          "title": "Montaje Operations",
-          "file": "operaciones/montaje.spec.ts",
-          "line": 8,
-          "column": 6,
-          "specs": [
-            {
-              "title": "should create a new montaje successfully",
-              "ok": true,
-              "tags": [],
-              "tests": [
-                {
-                  "timeout": 300000,
-                  "annotations": [],
-                  "expectedStatus": "passed",
-                  "projectId": "chromium",
-                  "projectName": "chromium",
-                  "results": [],
-                  "status": "skipped"
-                }
-              ],
-              "id": "e7324513b5932c90df4d-05c7323074b3c8e84d66",
-              "file": "operaciones/montaje.spec.ts",
-              "line": 25,
-              "column": 9
-            },
-            {
-              "title": "should validate required fields",
-              "ok": true,
-              "tags": [],
-              "tests": [
-                {
-                  "timeout": 300000,
-                  "annotations": [],
-                  "expectedStatus": "passed",
-                  "projectId": "chromium",
-                  "projectName": "chromium",
-                  "results": [],
-                  "status": "skipped"
-                }
-              ],
-              "id": "e7324513b5932c90df4d-91d61983b0a8eb4775c6",
-              "file": "operaciones/montaje.spec.ts",
-              "line": 60,
-              "column": 9
-            },
-            {
-              "title": "should validate km_vehiculo is positive",
-              "ok": true,
-              "tags": [],
-              "tests": [
-                {
-                  "timeout": 300000,
-                  "annotations": [],
-                  "expectedStatus": "passed",
-                  "projectId": "chromium",
-                  "projectName": "chromium",
-                  "results": [],
-                  "status": "skipped"
-                }
-              ],
-              "id": "e7324513b5932c90df4d-eb959c0f2558133e0274",
-              "file": "operaciones/montaje.spec.ts",
-              "line": 74,
-              "column": 9
-            },
-            {
-              "title": "should list existing montajes",
-              "ok": true,
-              "tags": [],
-              "tests": [
-                {
-                  "timeout": 300000,
-                  "annotations": [],
-                  "expectedStatus": "passed",
-                  "projectId": "chromium",
-                  "projectName": "chromium",
-                  "results": [],
-                  "status": "skipped"
-                }
-              ],
-              "id": "e7324513b5932c90df4d-1ce49d39b99602be5d78",
-              "file": "operaciones/montaje.spec.ts",
-              "line": 87,
-              "column": 9
-            },
-            {
-              "title": "should filter montajes by vehicle",
-              "ok": true,
-              "tags": [],
-              "tests": [
-                {
-                  "timeout": 300000,
-                  "annotations": [],
-                  "expectedStatus": "passed",
-                  "projectId": "chromium",
-                  "projectName": "chromium",
-                  "results": [],
-                  "status": "skipped"
-                }
-              ],
-              "id": "e7324513b5932c90df4d-214a80655dd661085078",
-              "file": "operaciones/montaje.spec.ts",
-              "line": 97,
-              "column": 9
-            },
-            {
-              "title": "should view montaje details",
-              "ok": true,
-              "tags": [],
-              "tests": [
-                {
-                  "timeout": 300000,
-                  "annotations": [],
-                  "expectedStatus": "passed",
-                  "projectId": "chromium",
-                  "projectName": "chromium",
-                  "results": [],
-                  "status": "skipped"
-                }
-              ],
-              "id": "e7324513b5932c90df4d-34ef7f86d15368f45f65",
-              "file": "operaciones/montaje.spec.ts",
-              "line": 112,
-              "column": 9
-            }
-          ]
-        }
-      ]
-    },
-    {
-      "title": "reportes\\generation.spec.ts",
-      "file": "reportes/generation.spec.ts",
-      "column": 0,
-      "line": 0,
-      "specs": [],
-      "suites": [
-        {
-          "title": "Reportes Generation",
-          "file": "reportes/generation.spec.ts",
-          "line": 8,
-          "column": 6,
-          "specs": [
-            {
-              "title": "should display reportes page",
-              "ok": true,
-              "tags": [],
-              "tests": [
-                {
-                  "timeout": 300000,
-                  "annotations": [],
-                  "expectedStatus": "passed",
-                  "projectId": "chromium",
-                  "projectName": "chromium",
-                  "results": [],
-                  "status": "skipped"
-                }
-              ],
-              "id": "3293e65664daac8161f9-7b33a4089cbe1bc902ea",
-              "file": "reportes/generation.spec.ts",
-              "line": 24,
-              "column": 9
-            },
-            {
-              "title": "should have report type options",
-              "ok": true,
-              "tags": [],
-              "tests": [
-                {
-                  "timeout": 300000,
-                  "annotations": [],
-                  "expectedStatus": "passed",
-                  "projectId": "chromium",
-                  "projectName": "chromium",
-                  "results": [],
-                  "status": "skipped"
-                }
-              ],
-              "id": "3293e65664daac8161f9-f2ad63605a2242947d9d",
-              "file": "reportes/generation.spec.ts",
-              "line": 31,
-              "column": 9
-            },
-            {
-              "title": "should generate neumaticos report",
-              "ok": true,
-              "tags": [],
-              "tests": [
-                {
-                  "timeout": 300000,
-                  "annotations": [],
-                  "expectedStatus": "passed",
-                  "projectId": "chromium",
-                  "projectName": "chromium",
-                  "results": [],
-                  "status": "skipped"
-                }
-              ],
-              "id": "3293e65664daac8161f9-8528b78dee3603cf27f0",
-              "file": "reportes/generation.spec.ts",
-              "line": 42,
-              "column": 9
-            },
-            {
-              "title": "should filter report by date range",
-              "ok": true,
-              "tags": [],
-              "tests": [
-                {
-                  "timeout": 300000,
-                  "annotations": [],
-                  "expectedStatus": "passed",
-                  "projectId": "chromium",
-                  "projectName": "chromium",
-                  "results": [],
-                  "status": "skipped"
-                }
-              ],
-              "id": "3293e65664daac8161f9-580618f45c957f4c66d8",
-              "file": "reportes/generation.spec.ts",
-              "line": 59,
-              "column": 9
-            },
-            {
-              "title": "should export report as PDF",
-              "ok": true,
-              "tags": [],
-              "tests": [
-                {
-                  "timeout": 300000,
-                  "annotations": [],
-                  "expectedStatus": "passed",
-                  "projectId": "chromium",
-                  "projectName": "chromium",
-                  "results": [],
-                  "status": "skipped"
-                }
-              ],
-              "id": "3293e65664daac8161f9-e10d851a23b314304460",
-              "file": "reportes/generation.spec.ts",
-              "line": 81,
-              "column": 9
-            },
-            {
-              "title": "should show report statistics",
-              "ok": true,
-              "tags": [],
-              "tests": [
-                {
-                  "timeout": 300000,
-                  "annotations": [],
-                  "expectedStatus": "passed",
-                  "projectId": "chromium",
-                  "projectName": "chromium",
-                  "results": [],
-                  "status": "skipped"
-                }
-              ],
-              "id": "3293e65664daac8161f9-6ffc6366d2b931b549ab",
-              "file": "reportes/generation.spec.ts",
-              "line": 103,
-              "column": 9
-            },
-            {
-              "title": "should filter report by vehicle",
-              "ok": true,
-              "tags": [],
-              "tests": [
-                {
-                  "timeout": 300000,
-                  "annotations": [],
-                  "expectedStatus": "passed",
-                  "projectId": "chromium",
-                  "projectName": "chromium",
-                  "results": [],
-                  "status": "skipped"
-                }
-              ],
-              "id": "3293e65664daac8161f9-61326615547108578bb7",
-              "file": "reportes/generation.spec.ts",
-              "line": 113,
-              "column": 9
-            },
-            {
-              "title": "should paginate large reports",
-              "ok": true,
-              "tags": [],
-              "tests": [
-                {
-                  "timeout": 300000,
-                  "annotations": [],
-                  "expectedStatus": "passed",
-                  "projectId": "chromium",
-                  "projectName": "chromium",
-                  "results": [],
-                  "status": "skipped"
-                }
-              ],
-              "id": "3293e65664daac8161f9-fe1ddf14b7a4332ca9f8",
-              "file": "reportes/generation.spec.ts",
-              "line": 130,
-              "column": 9
-            }
-          ]
-        }
-      ]
-    },
-    {
-      "title": "vehiculos\\crud.spec.ts",
-      "file": "vehiculos/crud.spec.ts",
-      "column": 0,
-      "line": 0,
-      "specs": [],
-      "suites": [
-        {
-          "title": "Vehículos CRUD",
-          "file": "vehiculos/crud.spec.ts",
-          "line": 8,
-          "column": 6,
-          "specs": [
-            {
-              "title": "should list all vehicles",
-              "ok": true,
-              "tags": [],
-              "tests": [
-                {
-                  "timeout": 300000,
-                  "annotations": [],
-                  "expectedStatus": "passed",
-                  "projectId": "chromium",
-                  "projectName": "chromium",
-                  "results": [],
-                  "status": "skipped"
-                }
-              ],
-              "id": "905269ab8d255aea2002-30d479b9b236f288714a",
-              "file": "vehiculos/crud.spec.ts",
-              "line": 24,
-              "column": 9
-            },
-            {
-              "title": "should create a new vehicle successfully",
-              "ok": true,
-              "tags": [],
-              "tests": [
-                {
-                  "timeout": 300000,
-                  "annotations": [],
-                  "expectedStatus": "passed",
-                  "projectId": "chromium",
-                  "projectName": "chromium",
-                  "results": [],
-                  "status": "skipped"
-                }
-              ],
-              "id": "905269ab8d255aea2002-80f5b709e40203376c12",
-              "file": "vehiculos/crud.spec.ts",
-              "line": 34,
-              "column": 9
-            },
-            {
-              "title": "should validate patente is required",
-              "ok": true,
-              "tags": [],
-              "tests": [
-                {
-                  "timeout": 300000,
-                  "annotations": [],
-                  "expectedStatus": "passed",
-                  "projectId": "chromium",
-                  "projectName": "chromium",
-                  "results": [],
-                  "status": "skipped"
-                }
-              ],
-              "id": "905269ab8d255aea2002-26fedb6cb7e56e2ab0a8",
-              "file": "vehiculos/crud.spec.ts",
-              "line": 56,
-              "column": 9
-            },
-            {
-              "title": "should validate patente format",
-              "ok": true,
-              "tags": [],
-              "tests": [
-                {
-                  "timeout": 300000,
-                  "annotations": [],
-                  "expectedStatus": "passed",
-                  "projectId": "chromium",
-                  "projectName": "chromium",
-                  "results": [],
-                  "status": "skipped"
-                }
-              ],
-              "id": "905269ab8d255aea2002-f28d999a47065d468b7f",
-              "file": "vehiculos/crud.spec.ts",
-              "line": 71,
-              "column": 9
-            },
-            {
-              "title": "should edit an existing vehicle",
-              "ok": true,
-              "tags": [],
-              "tests": [
-                {
-                  "timeout": 300000,
-                  "annotations": [],
-                  "expectedStatus": "passed",
-                  "projectId": "chromium",
-                  "projectName": "chromium",
-                  "results": [],
-                  "status": "skipped"
-                }
-              ],
-              "id": "905269ab8d255aea2002-e51c3df4e659e142a8ac",
-              "file": "vehiculos/crud.spec.ts",
-              "line": 84,
-              "column": 9
-            },
-            {
-              "title": "should search vehicles by patente",
-              "ok": true,
-              "tags": [],
-              "tests": [
-                {
-                  "timeout": 300000,
-                  "annotations": [],
-                  "expectedStatus": "passed",
-                  "projectId": "chromium",
-                  "projectName": "chromium",
-                  "results": [],
-                  "status": "skipped"
-                }
-              ],
-              "id": "905269ab8d255aea2002-4adbbbb3c2d6524bb150",
-              "file": "vehiculos/crud.spec.ts",
-              "line": 103,
-              "column": 9
-            },
-            {
-              "title": "should view vehicle details",
-              "ok": true,
-              "tags": [],
-              "tests": [
-                {
-                  "timeout": 300000,
-                  "annotations": [],
-                  "expectedStatus": "passed",
-                  "projectId": "chromium",
-                  "projectName": "chromium",
-                  "results": [],
-                  "status": "skipped"
-                }
-              ],
-              "id": "905269ab8d255aea2002-afee91d09e772cdc1003",
-              "file": "vehiculos/crud.spec.ts",
-              "line": 118,
-              "column": 9
-            },
-            {
-              "title": "should delete a vehicle",
-              "ok": true,
-              "tags": [],
-              "tests": [
-                {
-                  "timeout": 300000,
-                  "annotations": [],
-                  "expectedStatus": "passed",
-                  "projectId": "chromium",
-                  "projectName": "chromium",
-                  "results": [],
-                  "status": "skipped"
-                }
-              ],
-              "id": "905269ab8d255aea2002-25de7999cb36877be1b0",
-              "file": "vehiculos/crud.spec.ts",
-              "line": 135,
-              "column": 9
             }
           ]
         }
@@ -2077,11 +594,11 @@
   ],
   "errors": [],
   "stats": {
-    "startTime": "2026-04-09T22:57:23.108Z",
-    "duration": 61730.703,
-    "expected": 0,
-    "skipped": 78,
-    "unexpected": 1,
+    "startTime": "2026-07-31T18:22:15.860Z",
+    "duration": 44140.049,
+    "expected": 12,
+    "skipped": 0,
+    "unexpected": 0,
     "flaky": 0
   }
 }

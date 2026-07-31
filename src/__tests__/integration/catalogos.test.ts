@@ -45,7 +45,7 @@ describe('Catálogos API Integration Tests', () => {
             });
 
             it('should return 200 for all roles', async () => {
-                const allRoles = ['admin', 'gestor', 'operador', 'consultor'] as const;
+                const allRoles = ['admin', 'gestor', 'operador'] as const;
 
                 for (const role of allRoles) {
                     (auth as jest.Mock).mockResolvedValue(mockSessions[role]);
@@ -59,8 +59,8 @@ describe('Catálogos API Integration Tests', () => {
         });
 
         describe('POST /api/v1/catalogos/almacenes', () => {
-            it('should return 403 when consultor tries to create', async () => {
-                (auth as jest.Mock).mockResolvedValue(mockSessions.consultor);
+            it('should return 403 when user without permissions tries to create', async () => {
+                (auth as jest.Mock).mockResolvedValue(mockSessions.readonly);
                 const req = new NextRequest(`${BASE_URL}/almacenes`, {
                     method: 'POST',
                     body: JSON.stringify({ nombre: '[TEST] Almacen Consultor' })
@@ -121,7 +121,7 @@ describe('Catálogos API Integration Tests', () => {
             });
 
             it('should return 200 for all roles', async () => {
-                const allRoles = ['admin', 'gestor', 'operador', 'consultor'] as const;
+                const allRoles = ['admin', 'gestor', 'operador'] as const;
 
                 for (const role of allRoles) {
                     (auth as jest.Mock).mockResolvedValue(mockSessions[role]);
@@ -135,8 +135,8 @@ describe('Catálogos API Integration Tests', () => {
         });
 
         describe('POST /api/v1/catalogos/proveedores', () => {
-            it('should return 403 when consultor tries to create', async () => {
-                (auth as jest.Mock).mockResolvedValue(mockSessions.consultor);
+            it('should return 403 when user without permissions tries to create', async () => {
+                (auth as jest.Mock).mockResolvedValue(mockSessions.readonly);
                 const req = new NextRequest(`${BASE_URL}/proveedores`, {
                     method: 'POST',
                     body: JSON.stringify({ nombre: '[TEST] Proveedor', tipo: 'FABRICANTE' })

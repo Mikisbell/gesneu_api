@@ -181,16 +181,20 @@ export class ReportesService {
      * Agrupa todos los neumáticos con kilometraje > 0 por fabricante.
      */
     async getComparativoMarcas(empresaId: string): Promise<BrandComparisonResult> {
-        // Obtener todos los neumáticos del tenant con km > 0 y sus fabricantes
+        // Obtener solo las columnas necesarias para el cálculo de CPK
         const neumaticos = await prisma.neumatico.findMany({
             where: {
                 empresa_id: empresaId,
                 kilometraje_acumulado: { gt: 0 }
             },
-            include: {
+            select: {
+                costo_compra: true,
+                kilometraje_acumulado: true,
                 modelo: {
-                    include: {
-                        fabricante: true
+                    select: {
+                        fabricante: {
+                            select: { id: true, nombre: true }
+                        }
                     }
                 },
                 eventos: {
@@ -198,7 +202,6 @@ export class ReportesService {
                         costo_evento: { not: null }
                     },
                     select: {
-                        tipo_evento: true,
                         costo_evento: true
                     }
                 }
@@ -282,21 +285,27 @@ export class ReportesService {
      * Vehículos activos, neumáticos instalados vs stock.
      */
     async getFlotaStatus(empresaId: string) {
-        // Vehículos
-        const totalVehiculos = await prisma.vehiculo.count({ where: { activo: true, empresa_id: empresaId } });
-
-        // Neumáticos
-        const totalNeumaticos = await prisma.neumatico.count({ where: { activo: true, empresa_id: empresaId, estado_actual: { not: 'DESECHADO' } } });
-        const instalados = await prisma.neumatico.count({ where: { activo: true, empresa_id: empresaId, estado_actual: 'INSTALADO' } });
-        const stock = await prisma.neumatico.count({ where: { activo: true, empresa_id: empresaId, estado_actual: 'EN_STOCK' } });
-        const reencauche = await prisma.neumatico.count({ where: { activo: true, empresa_id: empresaId, estado_actual: 'EN_REENCAUCHE' } });
-        const reparacion = await prisma.neumatico.count({ where: { activo: true, empresa_id: empresaId, estado_actual: 'EN_REPARACION' } });
-
-        // Valor inventario (estimado)
-        const valorInventario = await prisma.neumatico.aggregate({
-            where: { activo: true, empresa_id: empresaId, estado_actual: { not: 'DESECHADO' } },
-            _sum: { costo_compra: true }
-        });
+        // Ejecutar todas las métricas de flota en paralelo
+        const [
+            totalVehiculos,
+            totalNeumaticos,
+            instalados,
+            stock,
+            reencauche,
+            reparacion,
+            valorInventario
+        ] = await Promise.all([
+            prisma.vehiculo.count({ where: { activo: true, empresa_id: empresaId } }),
+            prisma.neumatico.count({ where: { activo: true, empresa_id: empresaId, estado_actual: { not: 'DESECHADO' } } }),
+            prisma.neumatico.count({ where: { activo: true, empresa_id: empresaId, estado_actual: 'INSTALADO' } }),
+            prisma.neumatico.count({ where: { activo: true, empresa_id: empresaId, estado_actual: 'EN_STOCK' } }),
+            prisma.neumatico.count({ where: { activo: true, empresa_id: empresaId, estado_actual: 'EN_REENCAUCHE' } }),
+            prisma.neumatico.count({ where: { activo: true, empresa_id: empresaId, estado_actual: 'EN_REPARACION' } }),
+            prisma.neumatico.aggregate({
+                where: { activo: true, empresa_id: empresaId, estado_actual: { not: 'DESECHADO' } },
+                _sum: { costo_compra: true }
+            })
+        ]);
 
         return {
             vehiculos: { total: totalVehiculos },

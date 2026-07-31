@@ -2,6 +2,7 @@
 
 import { PieChart, Pie, Cell, ResponsiveContainer, Legend, Tooltip } from 'recharts';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { ChartContainer } from '@/components/ui/chart-container';
 
 interface InventoryPieChartProps {
     data: {
@@ -32,8 +33,8 @@ export function InventoryPieChart({ data }: InventoryPieChartProps) {
                 <CardTitle>Inventario por Marca</CardTitle>
             </CardHeader>
             <CardContent>
-                <div className="h-[300px]">
-                    <ResponsiveContainer width="100%" height="100%">
+                <ChartContainer className="h-[300px] w-full">
+                    <ResponsiveContainer width="100%" height="100%" initialDimension={{ width: 400, height: 300 }}>
                         <PieChart>
                             <Pie
                                 data={data}
@@ -54,7 +55,7 @@ export function InventoryPieChart({ data }: InventoryPieChartProps) {
                             <Legend />
                         </PieChart>
                     </ResponsiveContainer>
-                </div>
+                </ChartContainer>
             </CardContent>
         </Card>
     );

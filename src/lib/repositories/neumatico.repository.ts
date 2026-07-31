@@ -73,6 +73,7 @@ export class NeumaticoRepository extends BaseRepository<Neumatico, CreateNeumati
         try {
             return await this.model.findMany({
                 where,
+                take: 100,
                 include: {
                     modelo: {
                         include: {

@@ -1,17 +1,12 @@
 
 import 'dotenv/config';
-import { PrismaClient } from '@prisma/client';
+import { prisma } from '../src/lib/prisma';
 
 import { seedTenants } from './seeds/seed-tenants';
 import { seedCatalogs } from './seeds/seed-catalogs';
 import { seedInfrastructure } from './seeds/seed-infrastructure';
 import { seedFleet } from './seeds/seed-fleet';
 import { seedInventory } from './seeds/seed-inventory';
-
-// Standard Prisma Client (Binary Engine)
-const prisma = new PrismaClient({
-    log: ['info', 'warn', 'error']
-});
 
 async function main() {
     console.log('🌱 Starting Enhanced Database Seeding...');

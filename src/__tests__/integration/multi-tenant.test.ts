@@ -19,11 +19,14 @@ describe('Multi-tenant Isolation', () => {
 
     beforeAll(async () => {
         // Seed Prerequisites: Empresas
+        const rucA = '20' + Math.floor(10000000 + Math.random() * 90000000).toString() + '1';
+        const rucB = '20' + Math.floor(10000000 + Math.random() * 90000000).toString() + '2';
+
         await prisma.empresa.create({
             data: {
                 id: tenantA,
                 nombre: 'Empresa Tenant A',
-                ruc: '20' + Date.now() + '1',
+                ruc: rucA,
                 activo: true
             }
         });
@@ -31,7 +34,7 @@ describe('Multi-tenant Isolation', () => {
             data: {
                 id: tenantB,
                 nombre: 'Empresa Tenant B',
-                ruc: '20' + Date.now() + '2',
+                ruc: rucB,
                 activo: true
             }
         });
@@ -51,10 +54,13 @@ describe('Multi-tenant Isolation', () => {
 
     describe('VehiculoService Isolation', () => {
         let vehiculoAId: VehiculoId;
+        let vehiculoAPlaca: string;
 
         it('Tenant A should create a vehicle', async () => {
+            vehiculoAPlaca = 'AAA-' + randomUUID().substring(0, 4).toUpperCase();
             const dto: CreateVehiculoDTO = {
-                placa: 'AAA-111',
+                placa: vehiculoAPlaca,
+                numero_economico: 'ECO-' + randomUUID().substring(0, 8).toUpperCase(),
                 marca: 'TestBrand',
                 modelo: 'TestModel',
                 tipo_vehiculo_id: 'uuid-dummy-tipo', // Will be replaced
@@ -70,7 +76,7 @@ describe('Multi-tenant Isolation', () => {
             const result = await vehiculoService.create(dto, tenantA);
 
             if (!result.success) {
-                console.error('Create failed:', JSON.stringify(result.error, null, 2));
+                process.stdout.write('=== CREATE FAILED: ' + JSON.stringify(result.error, null, 2) + '\n');
             }
 
             expect(result.success).toBe(true);
@@ -86,7 +92,7 @@ describe('Multi-tenant Isolation', () => {
             if (result.success) {
                 // Response does not include empresaId (security)
                 expect(result.data.id).toBe(vehiculoAId);
-                expect(result.data.placa).toBe('AAA-111');
+                expect(result.data.placa).toBe(vehiculoAPlaca);
             }
         });
 

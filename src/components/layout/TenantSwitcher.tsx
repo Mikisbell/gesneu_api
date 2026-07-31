@@ -19,6 +19,7 @@ import { useQuery } from "@tanstack/react-query"
 import { useRouter } from "next/navigation"
 import { useToast } from "@/components/ui/use-toast"
 import { useSession } from "next-auth/react"
+import { MULTI_TENANT_ENABLED } from "@/lib/features"
 
 type Tenant = {
     id: string
@@ -26,6 +27,10 @@ type Tenant = {
 }
 
 export function TenantSwitcher({ className }: { className?: string }) {
+    if (!MULTI_TENANT_ENABLED) {
+        return null
+    }
+
     const router = useRouter()
     const { toast } = useToast()
     const { data: session, update } = useSession()

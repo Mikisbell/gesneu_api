@@ -17,6 +17,11 @@ setup('authenticate', async ({ page }) => {
     console.log(`Authenticating as ${USER}...`);
 
     await page.goto(LOGIN_URL);
+    if (page.url().includes('/dashboard')) {
+        console.log('Already on dashboard. Saving session...');
+        await page.context().storageState({ path: AUTH_FILE });
+        return;
+    }
     await page.fill('input[name="identifier"]', USER);
     await page.fill('input[name="password"]', PASS);
     await page.click('button[type="submit"]');

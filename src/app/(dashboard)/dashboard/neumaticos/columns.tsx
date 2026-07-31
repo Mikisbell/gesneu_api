@@ -53,10 +53,12 @@ export const getColumns = ({ onEdit, onDelete }: GetColumnsProps): ColumnDef<Neu
         accessorKey: "dot",
         header: "DOT / Antigüedad",
         cell: ({ row }) => {
-            const dot = row.original.dot;
+            const dot = row.original.dot || (row.original as any).dot;
             return (
                 <div className="flex items-center gap-2">
-                    <span className="font-mono text-sm border px-1 rounded bg-muted">{dot || '----'}</span>
+                    <span className="font-mono text-xs border px-1.5 py-0.5 rounded bg-slate-50 border-slate-200">
+                        {dot || 'S/DOT'}
+                    </span>
                 </div>
             )
         }
@@ -65,27 +67,34 @@ export const getColumns = ({ onEdit, onDelete }: GetColumnsProps): ColumnDef<Neu
         accessorKey: "estado",
         header: "Estado",
         cell: ({ row }) => {
-            const estado = row.original.estado;
+            const item = row.original as any;
+            const estado = item.estado || item.estado_actual || 'DISPONIBLE';
 
             const variantMap: Record<string, "default" | "secondary" | "destructive" | "outline"> = {
-                DISPONIBLE: "outline", // Greenish usually better, but shadcn default outline is clean
-                INSTALADO: "default", // Black/Primary
-                EN_REPARACION: "secondary", // Gray/Orange
+                DISPONIBLE: "outline",
+                EN_STOCK: "outline",
+                INSTALADO: "default",
+                EN_USO: "default",
+                EN_REPARACION: "secondary",
                 PARA_REENCAUCHE: "secondary",
-                DESECHO: "destructive", // Red
+                DESECHO: "destructive",
+                DESECHADO: "destructive",
             };
 
             const labelMap: Record<string, string> = {
                 DISPONIBLE: "En Almacén",
-                INSTALADO: "Rodando",
-                EN_REPARACION: "Reparación",
-                PARA_REENCAUCHE: "Reencauche",
-                DESECHO: "Baja/Scrap"
+                EN_STOCK: "En Almacén",
+                INSTALADO: "En Uso (Rodando)",
+                EN_USO: "En Uso (Rodando)",
+                EN_REPARACION: "En Reparación",
+                PARA_REENCAUCHE: "En Reencauche",
+                DESECHO: "Desechado",
+                DESECHADO: "Desechado"
             };
 
             return (
                 <Badge variant={variantMap[estado] || "secondary"} className="capitalize">
-                    {labelMap[estado] || estado?.replace("_", " ")}
+                    {labelMap[estado] || estado.replace("_", " ")}
                 </Badge>
             )
         },
@@ -94,29 +103,69 @@ export const getColumns = ({ onEdit, onDelete }: GetColumnsProps): ColumnDef<Neu
         id: "ubicacion",
         header: "Ubicación Actual",
         cell: ({ row }) => {
-            const u = row.original.ubicacion;
-            if (u.tipo === 'VEHICULO' && u.vehiculo) {
+            const item = row.original as any;
+            const u = item.ubicacion;
+            const estado = item.estado || item.estado_actual;
+
+            // Vehículo asignado (Response mapeada o entidad Prisma directa)
+            const vehiculoPlaca = u?.vehiculo?.placa || item.ubicacion_vehiculo?.placa || item.vehiculo?.placa;
+            const vehiculoId = item.ubicacion_vehiculo_id || item.ubicacion_vehiculo?.id || u?.vehiculo?.id;
+            const posicionCodigo = u?.posicion?.codigo || item.ubicacion_posicion?.codigo_posicion || item.posicion?.codigo;
+
+            if (vehiculoPlaca) {
                 return (
                     <div className="flex flex-col">
-                        <span className="font-medium text-sm flex items-center gap-1">
-                            🚛 {u.vehiculo.placa}
+                        <span className="font-semibold text-sm flex items-center gap-1 text-slate-800">
+                            🚛 Placa: {vehiculoPlaca}
                         </span>
                         <span className="text-xs text-muted-foreground">
-                            Pos: {u.posicion?.codigo || 'Indefinida'}
+                            Posición: {posicionCodigo || 'Instalado'}
                         </span>
                     </div>
                 )
             }
-            if (u.tipo === 'ALMACEN' && u.almacen) {
+
+            if (u?.tipo === 'VEHICULO' || estado === 'INSTALADO' || estado === 'EN_USO') {
+                return (
+                    <div className="flex flex-col">
+                        <span className="font-medium text-xs flex items-center gap-1 text-amber-700 bg-amber-50 px-2 py-1 rounded border border-amber-200">
+                            ⚠️ {vehiculoId ? `Vehículo ID: ${vehiculoId.slice(0, 8)}...` : 'En uso (Pendiente asignación)'}
+                        </span>
+                        <span className="text-[10px] text-muted-foreground mt-0.5">
+                            {posicionCodigo ? `Posición: ${posicionCodigo}` : 'Sin posición registrada'}
+                        </span>
+                    </div>
+                )
+            }
+
+            // Almacén asignado
+            const almacenNombre = u?.almacen?.nombre || item.ubicacion_almacen?.nombre || item.almacen?.nombre;
+            if (almacenNombre || u?.tipo === 'ALMACEN' || estado === 'EN_STOCK' || estado === 'DISPONIBLE') {
                 return (
                     <div className="flex flex-col">
                         <span className="font-medium text-sm flex items-center gap-1">
-                            🏭 {u.almacen.nombre}
+                            🏭 {almacenNombre || 'Almacén Principal'}
                         </span>
-                        <span className="text-xs text-muted-foreground">Stock</span>
+                        <span className="text-xs text-muted-foreground">En Stock</span>
                     </div>
                 )
             }
+
+            // Desecho
+            const motivoDesecho = item.motivo_desecho?.nombre || item.motivo_desecho_id;
+            if (u?.tipo === 'DESECHO' || estado === 'DESECHO' || estado === 'DESECHADO') {
+                return (
+                    <div className="flex flex-col">
+                        <span className="font-medium text-sm flex items-center gap-1 text-red-600">
+                            🗑️ Desechado
+                        </span>
+                        {motivoDesecho && (
+                            <span className="text-xs text-muted-foreground">{motivoDesecho}</span>
+                        )}
+                    </div>
+                )
+            }
+
             return <span className="text-sm text-muted-foreground italic">Sin ubicación registrada</span>
         },
     },

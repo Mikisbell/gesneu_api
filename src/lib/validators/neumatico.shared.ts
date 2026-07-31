@@ -44,10 +44,9 @@ export const BaseNeumaticoSchema = z.object({
         .optional()
         .or(z.literal('')),
 
-    // ✅ z.coerce.number convierte string → number automáticamente
     profundidad_inicial_mm: z.coerce
         .number({ error: 'Debe ser un número' })
-        .min(0, 'Profundidad no puede ser negativa')
+        .gt(0, 'Profundidad debe ser mayor a 0mm')
         .max(50, 'Profundidad máxima: 50mm'),
 
     profundidad_actual_mm: z.coerce
@@ -56,10 +55,22 @@ export const BaseNeumaticoSchema = z.object({
         .max(50, 'Profundidad máxima: 50mm'),
 
     costo_compra: z.coerce
-        .number()
-        .min(0, 'Costo no puede ser negativo')
+        .number({ error: 'El costo debe ser un número válido' })
+        .gt(0, 'El costo de compra debe ser mayor a 0'),
+
+    fecha_compra: z
+        .string()
+        .min(1, 'La fecha de compra es requerida'),
+
+    moneda_compra: z.string().length(3).optional().default('PEN'),
+
+    proveedor_compra_id: z
+        .string()
+        .uuid('ID de proveedor inválido')
         .optional()
         .or(z.literal('')),
+
+    es_reencauchado: z.boolean().optional().default(false),
 
     ubicacion_almacen_id: z
         .string()
@@ -80,9 +91,7 @@ export const NeumaticoFormSchema = BaseNeumaticoSchema.omit({ profundidad_actual
  * Extiende base con campos server-only
  */
 export const CreateNeumaticoSchema = BaseNeumaticoSchema.extend({
-    es_reencauchado: z.boolean().optional().default(false),
-
-    // Validación de fecha con rangos
+    // Validación de fecha con rangos para backend
     fecha_compra: z
         .string()
         .datetime({ offset: true })
@@ -97,15 +106,12 @@ export const CreateNeumaticoSchema = BaseNeumaticoSchema.extend({
         ),
 
     fecha_fabricacion: z.string().optional(),
-    moneda_compra: z.string().length(3).optional().default('PEN'),
-    proveedor_compra_id: z.string().uuid().optional(),
 
     // Profundidades adicionales
     profundidad_int: z.coerce.number().min(0).optional(),
     profundidad_cen: z.coerce.number().min(0).optional(),
     profundidad_ext: z.coerce.number().min(0).optional(),
     presion_actual_psi: z.coerce.number().min(0).optional(),
-    // ✅ Allow optional actual depth (defaults to initial)
     profundidad_actual_mm: z.coerce.number().min(0).max(50).optional(),
 })
 

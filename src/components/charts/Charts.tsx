@@ -1,5 +1,7 @@
 'use client';
 
+import { ChartContainer } from '@/components/ui/chart-container';
+
 import {
     BarChart as RechartsBarChart,
     Bar,
@@ -51,9 +53,9 @@ export function BarChart({ labels, data, title, color = chartColors.primary }: B
     }));
 
     return (
-        <div className="w-full h-64">
+        <ChartContainer className="w-full h-64">
             <p className="text-sm font-medium text-center mb-2">{title}</p>
-            <ResponsiveContainer width="100%" height="90%">
+            <ResponsiveContainer width="100%" height="90%" minHeight={200}>
                 <RechartsBarChart data={chartData}>
                     <CartesianGrid strokeDasharray="3 3" />
                     <XAxis dataKey="name" fontSize={12} />
@@ -62,7 +64,7 @@ export function BarChart({ labels, data, title, color = chartColors.primary }: B
                     <Bar dataKey="value" fill={color} radius={[4, 4, 0, 0]} />
                 </RechartsBarChart>
             </ResponsiveContainer>
-        </div>
+        </ChartContainer>
     );
 }
 
@@ -82,9 +84,9 @@ export function DoughnutChart({ labels, data, title, colors }: DoughnutChartProp
     const fillColors = colors || COLORS.slice(0, data.length);
 
     return (
-        <div className="w-full h-64">
+        <ChartContainer className="w-full h-64">
             <p className="text-sm font-medium text-center mb-2">{title}</p>
-            <ResponsiveContainer width="100%" height="90%">
+            <ResponsiveContainer width="100%" height="90%" minHeight={200}>
                 <PieChart>
                     <Pie
                         data={chartData}
@@ -105,7 +107,7 @@ export function DoughnutChart({ labels, data, title, colors }: DoughnutChartProp
                     <Legend />
                 </PieChart>
             </ResponsiveContainer>
-        </div>
+        </ChartContainer>
     );
 }
 
@@ -123,9 +125,9 @@ export function LineChart({ labels, data, title, color = chartColors.primary }: 
     }));
 
     return (
-        <div className="w-full h-64">
+        <ChartContainer className="w-full h-64">
             <p className="text-sm font-medium text-center mb-2">{title}</p>
-            <ResponsiveContainer width="100%" height="90%">
+            <ResponsiveContainer width="100%" height="90%" minHeight={200}>
                 <AreaChart data={chartData}>
                     <CartesianGrid strokeDasharray="3 3" />
                     <XAxis dataKey="name" fontSize={12} />
@@ -140,7 +142,7 @@ export function LineChart({ labels, data, title, color = chartColors.primary }: 
                     />
                 </AreaChart>
             </ResponsiveContainer>
-        </div>
+        </ChartContainer>
     );
 }
 

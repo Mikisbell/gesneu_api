@@ -35,6 +35,10 @@ export function DraggableTire({ neumatico }: DraggableTireProps) {
         return 'bg-red-500 animate-pulse';  // Crítico
     };
 
+    const isRetread = Boolean(neumatico?.condicion?.esReencauchado || (neumatico as any)?.es_reencauchado || (neumatico as any)?.esReencauchado);
+    const serie = neumatico?.numeroSerie || (neumatico as any)?.numero_serie || (neumatico as any)?.codigo || 'S/N';
+    const reencauchesCount = neumatico?.condicion?.reencauchesRealizados || (neumatico as any)?.reencauches_realizados || 0;
+
     return (
         <div
             ref={setNodeRef}
@@ -45,17 +49,17 @@ export function DraggableTire({ neumatico }: DraggableTireProps) {
                 "relative p-3 mb-2 bg-white rounded-lg border shadow-sm cursor-grab active:cursor-grabbing hover:shadow-md transition-all select-none group",
                 isDragging && "ring-2 ring-blue-500 shadow-xl opacity-80",
                 // Borde naranja si es reencauchada para diferenciar visualmente
-                neumatico.condicion.esReencauchado ? "border-l-4 border-l-orange-400" : "border-l-4 border-l-blue-500"
+                isRetread ? "border-l-4 border-l-orange-400" : "border-l-4 border-l-blue-500"
             )}
         >
             <div className="pl-2 flex justify-between items-start">
                 <div>
                     <div className="flex items-center gap-1.5">
-                        <p className="font-bold text-sm text-slate-800">{neumatico.numeroSerie}</p>
+                        <p className="font-bold text-sm text-slate-800">{serie}</p>
                         {/* Badge distintivo */}
-                        {neumatico.condicion.esReencauchado && (
+                        {isRetread && (
                             <span className="text-[9px] font-bold bg-orange-100 text-orange-700 px-1.5 py-0.5 rounded-full border border-orange-200">
-                                R{neumatico.condicion.reencauchesRealizados}
+                                R{reencauchesCount}
                             </span>
                         )}
                     </div>

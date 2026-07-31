@@ -2,6 +2,7 @@
 
 import { PieChart, Pie, Cell, ResponsiveContainer, Legend, Tooltip } from 'recharts';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { ChartContainer } from '@/components/ui/chart-container';
 
 interface StatusPieChartProps {
     data: {
@@ -48,8 +49,8 @@ export function StatusPieChart({ data }: StatusPieChartProps) {
                 <CardDescription>Estado actual de los neumáticos</CardDescription>
             </CardHeader>
             <CardContent>
-                <div className="h-[300px] w-full min-h-[300px]">
-                    <ResponsiveContainer width="100%" height="100%">
+                <ChartContainer className="h-[300px] w-full">
+                    <ResponsiveContainer width="100%" height="100%" initialDimension={{ width: 400, height: 300 }}>
                         <PieChart>
                             <Pie
                                 data={chartData}
@@ -68,7 +69,7 @@ export function StatusPieChart({ data }: StatusPieChartProps) {
                             <Legend />
                         </PieChart>
                     </ResponsiveContainer>
-                </div>
+                </ChartContainer>
             </CardContent>
         </Card>
     );

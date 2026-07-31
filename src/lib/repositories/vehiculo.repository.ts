@@ -57,6 +57,7 @@ export class VehiculoRepository extends BaseRepository<Vehiculo, CreateVehiculoD
         try {
             const result = await this.model.findMany({
                 where,
+                take: 100,
                 include: {
                     tipo_vehiculo: true,
                     neumaticos_instalados: {

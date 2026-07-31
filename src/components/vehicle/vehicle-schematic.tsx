@@ -19,15 +19,15 @@ export function VehicleSchematic({
     onPositionClick,
     isInteractive = false
 }: VehicleSchematicProps) {
-    if (!vehiculo || !vehiculo.tipo_vehiculo?.configuraciones) {
+    const configuraciones = vehiculo?.tipo_vehiculo?.configuraciones || vehiculo?.tipoVehiculo?.configuraciones || vehiculo?.configuraciones;
+
+    if (!vehiculo || !configuraciones || configuraciones.length === 0) {
         return (
             <div className="flex flex-col items-center justify-center h-64 text-slate-400 border-2 border-dashed rounded-lg">
                 <p>No hay configuración disponible.</p>
             </div>
         );
     }
-
-    const configuraciones = vehiculo.tipo_vehiculo.configuraciones;
     const currentTires = neumaticos || vehiculo.neumaticos_instalados || [];
 
     const getTireInPosition = (posicionId: string) => {

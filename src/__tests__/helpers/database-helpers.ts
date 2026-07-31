@@ -73,7 +73,12 @@ export async function cleanTestData() {
 
     // Now delete test neumaticos
     await prisma.neumatico.deleteMany({
-        where: { numero_serie: { startsWith: 'TEST-' } }
+        where: {
+            OR: [
+                { numero_serie: { startsWith: 'TEST-' } },
+                { numero_serie: { contains: 'SERIE-' } }
+            ]
+        }
     });
 
     // Delete test vehiculos
@@ -93,12 +98,34 @@ export async function cleanTestData() {
 
     // Delete test models
     await prisma.modeloNeumatico.deleteMany({
-        where: { nombre_modelo: { endsWith: 'Test' } }
+        where: {
+            OR: [
+                { nombre_modelo: { contains: 'Test' } },
+                { nombre_modelo: { startsWith: '[TEST]' } },
+                { fabricante: { nombre: { contains: 'Test' } } }
+            ]
+        }
     });
 
     // Delete test manufacturers
     await prisma.fabricanteNeumatico.deleteMany({
-        where: { nombre: { endsWith: 'Test' } }
+        where: {
+            OR: [
+                { nombre: { contains: 'Test' } },
+                { nombre: { startsWith: '[TEST]' } }
+            ]
+        }
+    });
+
+    // Delete test certificados emitidos
+    await prisma.certificadoEmitido.deleteMany({
+        where: {
+            OR: [
+                { emisor: { username: { startsWith: 'testuser_' } } },
+                { vehiculo: { placa: { startsWith: 'T-' } } },
+                { vehiculo: { placa: { startsWith: 'TEST-' } } },
+            ],
+        },
     });
 
     // Delete test users (generic cleanup for created users)

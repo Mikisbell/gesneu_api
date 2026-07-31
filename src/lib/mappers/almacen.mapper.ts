@@ -30,6 +30,7 @@ export function mapEntityToResponse(entity: AlmacenEntity): AlmacenResponse {
         nombre: e.nombre,
         tipo: e.tipo || null,
         direccion: e.direccion || null,
+        totalNeumaticos: e._count?.neumaticos ?? 0,
         activo: e.activo,
         createdAt: e.creado_en?.toISOString() ?? new Date().toISOString(),
         updatedAt: e.actualizado_en?.toISOString() ?? new Date().toISOString(),

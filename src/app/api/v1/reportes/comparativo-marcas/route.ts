@@ -3,6 +3,7 @@ import { ApiResponseHelper } from '@/lib/utils/api-response';
 import { requireAuth, requirePermission } from '@/lib/auth/authorization';
 import { PERMISSIONS } from '@/lib/auth/permissions';
 import { ReportesService } from '@/lib/services/reportes.service';
+import { setEdgeCacheHeaders } from '@/lib/http/cache';
 
 const service = new ReportesService();
 
@@ -44,9 +45,9 @@ export async function GET(request: NextRequest) {
         // 3. Service Call
         const data = await service.getComparativoMarcas(session.user.empresa_id || '');
 
-        return ApiResponseHelper.success(data);
+        const response = ApiResponseHelper.success(data);
+        return setEdgeCacheHeaders(response, { sMaxAge: 60, staleWhileRevalidate: 300 });
     } catch (error) {
         return ApiResponseHelper.handleError(error);
     }
 }
-

@@ -17,6 +17,12 @@ const nextConfig = {
     ignoreBuildErrors: false,
   },
 
+  // ✅ Dev indicators activos en la esquina inferior derecha para no tapar la UI
+  devIndicators: {
+    appIsrStatus: false,
+    buildActivityPosition: 'bottom-right',
+  },
+
   // ✅ Next.js 16: Turbopack is default, add empty config to silence warning
   turbopack: {},
 
@@ -57,6 +63,14 @@ const nextConfig = {
           {
             key: 'Referrer-Policy',
             value: 'strict-origin-when-cross-origin',
+          },
+          {
+            key: 'Permissions-Policy',
+            value: 'camera=(), microphone=(), geolocation=(), browsing-topics=()',
+          },
+          {
+            key: 'X-XSS-Protection',
+            value: '1; mode=block',
           },
         ],
       },

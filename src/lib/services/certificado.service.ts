@@ -22,6 +22,62 @@ export const OPERATIVIDAD_THRESHOLDS = {
     },
 } as const;
 
+export interface OperatividadThresholds {
+    profundidad: {
+        critica_mm: number;
+        condicional_mm: number;
+    };
+    presion: {
+        desviacion_critica_pct: number;
+        desviacion_condicional_pct: number;
+    };
+}
+
+/**
+ * Obtiene los umbrales de operatividad dinámicos desde ParametroSistema o usa los defaults.
+ */
+export async function obtenerUmbralesOperatividad(
+    _empresaId?: string
+): Promise<OperatividadThresholds> {
+    try {
+        const parametros = await prisma.parametroSistema.findMany({
+            where: {
+                clave: {
+                    in: [
+                        'OPERATIVIDAD_PROFUNDIDAD_CRITICA_MM',
+                        'OPERATIVIDAD_PROFUNDIDAD_CONDICIONAL_MM',
+                        'OPERATIVIDAD_PRESION_DESVIACION_CRITICA_PCT',
+                        'OPERATIVIDAD_PRESION_DESVIACION_CONDICIONAL_PCT',
+                    ],
+                },
+            },
+        });
+
+        const paramMap = new Map(parametros.map((p) => [p.clave, parseFloat(p.valor)]));
+
+        return {
+            profundidad: {
+                critica_mm:
+                    paramMap.get('OPERATIVIDAD_PROFUNDIDAD_CRITICA_MM') ??
+                    OPERATIVIDAD_THRESHOLDS.profundidad.critica_mm,
+                condicional_mm:
+                    paramMap.get('OPERATIVIDAD_PROFUNDIDAD_CONDICIONAL_MM') ??
+                    OPERATIVIDAD_THRESHOLDS.profundidad.condicional_mm,
+            },
+            presion: {
+                desviacion_critica_pct:
+                    paramMap.get('OPERATIVIDAD_PRESION_DESVIACION_CRITICA_PCT') ??
+                    OPERATIVIDAD_THRESHOLDS.presion.desviacion_critica_pct,
+                desviacion_condicional_pct:
+                    paramMap.get('OPERATIVIDAD_PRESION_DESVIACION_CONDICIONAL_PCT') ??
+                    OPERATIVIDAD_THRESHOLDS.presion.desviacion_condicional_pct,
+            },
+        };
+    } catch {
+        return OPERATIVIDAD_THRESHOLDS;
+    }
+}
+
 export interface NeumaticoEvaluado {
     neumatico_id: string;
     numero_serie: string | null;
@@ -65,8 +121,10 @@ type NeumaticoParaEvaluacion = Prisma.NeumaticoGetPayload<{
  * - APTO: todos los neumáticos en rangos aceptables
  */
 export function evaluarOperatividadVehiculo(
-    neumaticos: NeumaticoParaEvaluacion[]
+    neumaticos: NeumaticoParaEvaluacion[],
+    customThresholds?: OperatividadThresholds
 ): EvaluacionVehiculo {
+    const thresholds = customThresholds ?? OPERATIVIDAD_THRESHOLDS;
     if (neumaticos.length === 0) {
         return {
             estado: EstadoOperatividadEnum.NO_APTO,
@@ -86,12 +144,12 @@ export function evaluarOperatividadVehiculo(
         let estado: EstadoOperatividadEnum = EstadoOperatividadEnum.APTO;
 
         // Evaluación de profundidad de dibujo
-        if (profundidad < OPERATIVIDAD_THRESHOLDS.profundidad.critica_mm) {
+        if (profundidad < thresholds.profundidad.critica_mm) {
             estado = EstadoOperatividadEnum.NO_APTO;
             razones.push(
-                `Profundidad crítica: ${profundidad}mm (mínimo operativo ${OPERATIVIDAD_THRESHOLDS.profundidad.critica_mm}mm)`
+                `Profundidad crítica: ${profundidad}mm (mínimo operativo ${thresholds.profundidad.critica_mm}mm)`
             );
-        } else if (profundidad < OPERATIVIDAD_THRESHOLDS.profundidad.condicional_mm) {
+        } else if (profundidad < thresholds.profundidad.condicional_mm) {
             estado = EstadoOperatividadEnum.CONDICIONAL;
             razones.push(`Profundidad en rango condicional: ${profundidad}mm`);
         }
@@ -101,12 +159,12 @@ export function evaluarOperatividadVehiculo(
             const desviacionPct = Math.abs(
                 ((presion - presionRecomendada) / presionRecomendada) * 100
             );
-            if (desviacionPct > OPERATIVIDAD_THRESHOLDS.presion.desviacion_critica_pct) {
+            if (desviacionPct > thresholds.presion.desviacion_critica_pct) {
                 estado = EstadoOperatividadEnum.NO_APTO;
                 razones.push(
                     `Presión crítica: ${presion}psi vs recomendada ${presionRecomendada}psi (${desviacionPct.toFixed(1)}% desviación)`
                 );
-            } else if (desviacionPct > OPERATIVIDAD_THRESHOLDS.presion.desviacion_condicional_pct) {
+            } else if (desviacionPct > thresholds.presion.desviacion_condicional_pct) {
                 if (estado === EstadoOperatividadEnum.APTO) {
                     estado = EstadoOperatividadEnum.CONDICIONAL;
                 }
@@ -256,8 +314,9 @@ export async function emitirCertificadoOperatividad(params: {
         });
     }
 
-    // 3. Evaluar operatividad real
-    const evaluacion = evaluarOperatividadVehiculo(vehiculo.neumaticos_instalados);
+    // 3. Evaluar operatividad real con umbrales dinámicos (ParametroSistema / fallback)
+    const thresholds = await obtenerUmbralesOperatividad(empresaId);
+    const evaluacion = evaluarOperatividadVehiculo(vehiculo.neumaticos_instalados, thresholds);
 
     // 4. Crear certificado con folio secuencial atómico (con reintentos defensivos)
     const fechaEmision = new Date();
@@ -350,3 +409,164 @@ export async function emitirCertificadoOperatividad(params: {
         `No se pudo emitir el certificado tras ${maxRetries} intentos: ${String(ultimoError)}`
     );
 }
+
+/**
+ * Obtiene un certificado previamente emitido a partir de su folio secuencial y empresa.
+ * Reconstruye la estructura CertificadoEmitidoResult desde el snapshot_data inmutable.
+ *
+ * @throws Error si el certificado no existe o no pertenece a la empresa
+ */
+export async function obtenerCertificadoPorFolio(params: {
+    empresaId: string;
+    folioNumero: number;
+}): Promise<CertificadoEmitidoResult> {
+    const { empresaId, folioNumero } = params;
+
+    const certificado = await prisma.certificadoEmitido.findFirst({
+        where: {
+            empresa_id: empresaId,
+            folio_numero: folioNumero,
+        },
+    });
+
+    if (!certificado) {
+        throw new Error('Certificado no encontrado o no pertenece a su empresa');
+    }
+
+    const snapshot = certificado.snapshot_data as any;
+
+    return {
+        id: certificado.id,
+        folio_numero: certificado.folio_numero,
+        fecha_emision: certificado.fecha_emision,
+        estado_operatividad: certificado.estado_operatividad,
+        vehiculo: snapshot.vehiculo ?? {
+            placa: 'N/A',
+            tipo: 'N/A',
+            marca: 'N/A',
+            modelo: 'N/A',
+            kilometraje: 0,
+        },
+        inspeccion: {
+            fecha: snapshot.inspeccion?.fecha ? new Date(snapshot.inspeccion.fecha) : null,
+            inspector: snapshot.inspeccion?.inspector ?? 'N/A',
+        },
+        evaluacion: snapshot.evaluacion ?? {
+            estado: certificado.estado_operatividad,
+            razones: (certificado.razones as string[]) ?? [],
+            neumaticos: [],
+        },
+    };
+}
+
+/**
+ * Lista los certificados emitidos históricamente para un vehículo.
+ */
+export async function listarCertificadosVehiculo(params: {
+    empresaId: string;
+    vehiculoId: string;
+}) {
+    const { empresaId, vehiculoId } = params;
+
+    return await prisma.certificadoEmitido.findMany({
+        where: {
+            empresa_id: empresaId,
+            vehiculo_id: vehiculoId,
+        },
+        orderBy: { folio_numero: 'desc' },
+        select: {
+            id: true,
+            folio_numero: true,
+            fecha_emision: true,
+            estado_operatividad: true,
+            emitido_por: true,
+        },
+    });
+}
+
+export interface ListarCertificadosFlotaFilters {
+    page?: number;
+    limit?: number;
+    search?: string;
+    estado?: EstadoOperatividadEnum;
+    fechaDesde?: Date;
+    fechaHasta?: Date;
+}
+
+/**
+ * Lista certificados de operatividad emitidos históricamente para toda la flota de la empresa,
+ * soporta paginación, búsqueda por folio/placa y filtrado por estado y fecha.
+ */
+export async function listarCertificadosFlota(
+    empresaId: string,
+    filters: ListarCertificadosFlotaFilters = {}
+) {
+    const page = Math.max(1, filters.page ?? 1);
+    const limit = Math.min(100, Math.max(1, filters.limit ?? 20));
+    const skip = (page - 1) * limit;
+
+    const where: Prisma.CertificadoEmitidoWhereInput = {
+        empresa_id: empresaId,
+        ...(filters.estado ? { estado_operatividad: filters.estado } : {}),
+        ...(filters.fechaDesde || filters.fechaHasta
+            ? {
+                  fecha_emision: {
+                      ...(filters.fechaDesde ? { gte: filters.fechaDesde } : {}),
+                      ...(filters.fechaHasta ? { lte: filters.fechaHasta } : {}),
+                  },
+              }
+            : {}),
+    };
+
+    if (filters.search && filters.search.trim() !== '') {
+        const queryStr = filters.search.trim();
+        const numericFolio = parseInt(queryStr, 10);
+        where.OR = [
+            ...(!isNaN(numericFolio) ? [{ folio_numero: numericFolio }] : []),
+            {
+                vehiculo: {
+                    placa: { contains: queryStr, mode: 'insensitive' as const },
+                },
+            },
+        ];
+    }
+
+    const [total, items] = await Promise.all([
+        prisma.certificadoEmitido.count({ where }),
+        prisma.certificadoEmitido.findMany({
+            where,
+            orderBy: { folio_numero: 'desc' },
+            skip,
+            take: limit,
+            include: {
+                vehiculo: {
+                    select: {
+                        id: true,
+                        placa: true,
+                        numero_economico: true,
+                        marca: true,
+                        modelo_vehiculo: true,
+                    },
+                },
+                emisor: {
+                    select: {
+                        id: true,
+                        nombre_completo: true,
+                        email: true,
+                    },
+                },
+            },
+        }),
+    ]);
+
+    return {
+        data: items,
+        pagination: {
+            total,
+            page,
+            limit,
+            totalPages: Math.ceil(total / limit),
+        },
+    };
+}
+

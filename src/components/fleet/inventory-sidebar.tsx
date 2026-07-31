@@ -10,10 +10,11 @@ interface InventorySidebarProps {
     neumaticos: INeumatico[];
 }
 
-export function InventorySidebar({ neumaticos }: InventorySidebarProps) {
-    // 1. Separación Lógica de Grupos
-    const originales = neumaticos.filter(n => !n.condicion.esReencauchado);
-    const reencauchados = neumaticos.filter(n => n.condicion.esReencauchado);
+export function InventorySidebar({ neumaticos = [] }: InventorySidebarProps) {
+    // 1. Separación Lógica de Grupos segura
+    const isRetread = (n: any) => Boolean(n?.condicion?.esReencauchado || n?.es_reencauchado || n?.esReencauchado);
+    const originales = neumaticos.filter(n => !isRetread(n));
+    const reencauchados = neumaticos.filter(n => isRetread(n));
 
     return (
         <div className="w-80 h-[calc(100vh-4rem)] border-r border-slate-200 bg-white flex flex-col shadow-sm z-20">

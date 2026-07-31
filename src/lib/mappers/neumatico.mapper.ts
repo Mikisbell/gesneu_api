@@ -63,13 +63,26 @@ export function mapEntityToResponse(entity: NeumaticoEntity): NeumaticoResponse 
     else if (entity.ubicacion_vehiculo_id) ubicacionTipo = 'VEHICULO';
     else if (entity.motivo_desecho_id) ubicacionTipo = 'DESECHO'; // implied state
 
-    return {
+    const response: any = {
         id: entity.id,
         numeroSerie: entity.numero_serie,
         codigo: entity.numero_serie ?? 'S/N', // Fallback
         deviceId: entity.sensor_id,
         dot: entity.dot,
         estado: entity.estado_actual,
+
+        // Alias para compatibilidad directa con componentes Prisma legacy
+        numero_serie: entity.numero_serie,
+        estado_actual: entity.estado_actual,
+        es_reencauchado: entity.es_reencauchado,
+        reencauches_realizados: entity.reencauches_realizados,
+        profundidad_remanente_actual_mm: entity.profundidad_remanente_actual_mm ? Number(entity.profundidad_remanente_actual_mm) : 0,
+        ubicacion_almacen_id: entity.ubicacion_almacen_id,
+        ubicacion_vehiculo_id: entity.ubicacion_vehiculo_id,
+        ubicacion_posicion_id: entity.ubicacion_posicion_id,
+        ubicacion_vehiculo: entity.ubicacion_vehiculo,
+        ubicacion_almacen: entity.ubicacion_almacen,
+        ubicacion_posicion: entity.ubicacion_posicion,
 
         modelo: {
             id: entity.modelo?.id ?? '',
@@ -101,7 +114,7 @@ export function mapEntityToResponse(entity: NeumaticoEntity): NeumaticoResponse 
             } : undefined,
             vehiculo: entity.ubicacion_vehiculo ? {
                 id: entity.ubicacion_vehiculo.id,
-                placa: entity.ubicacion_vehiculo.placa ?? 'SIN-PLACA'
+                placa: entity.ubicacion_vehiculo.placa ?? entity.ubicacion_vehiculo.numero_economico ?? 'SIN-PLACA'
             } : undefined,
             posicion: entity.ubicacion_posicion ? {
                 id: entity.ubicacion_posicion.id,
@@ -127,4 +140,6 @@ export function mapEntityToResponse(entity: NeumaticoEntity): NeumaticoResponse 
         createdAt: entity.creado_en.toISOString(),
         updatedAt: entity.actualizado_en?.toISOString() ?? null
     };
+
+    return response as NeumaticoResponse;
 }

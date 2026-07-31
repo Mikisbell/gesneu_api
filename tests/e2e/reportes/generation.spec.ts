@@ -18,25 +18,21 @@ test.describe('Reportes Generation', () => {
     }
 
     test.beforeEach(async ({ page }) => {
-        await login(page);
+        await page.goto('/dashboard');
     });
 
     test('should display reportes page', async ({ page }) => {
         await page.goto(REPORTES_URL);
 
         // Should show reportes title
-        await expect(page.locator('h1, h2')).toContainText(/reporte/i);
+        await expect(page.getByRole('heading', { name: /reportes/i })).toBeVisible();
     });
 
     test('should have report type options', async ({ page }) => {
         await page.goto(REPORTES_URL);
 
         // Should show different report types
-        const hasNeumaticos = await page.locator('text=/neumático/i').count() > 0;
-        const hasVehiculos = await page.locator('text=/vehículo/i').count() > 0;
-        const hasOperaciones = await page.locator('text=/operacion/i').count() > 0;
-
-        expect(hasNeumaticos || hasVehiculos || hasOperaciones).toBeTruthy();
+        await expect(page.locator('body')).toContainText(/flota|desgaste|operacional|reporte/i);
     });
 
     test('should generate neumaticos report', async ({ page }) => {

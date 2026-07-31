@@ -10,6 +10,7 @@ import { Loader2, ArrowLeft, AlertTriangle, CheckCircle, XCircle } from 'lucide-
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { ResponsiveContainer, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Cell, Legend } from 'recharts';
+import { ChartContainer } from '@/components/ui/chart-container';
 
 interface SemaforoData {
     filtro_aplicado: string | null;
@@ -151,7 +152,8 @@ export default function SemaforoAvanzadoPage() {
                     <CardDescription>Direccional vs Tracción vs Repuesto</CardDescription>
                 </CardHeader>
                 <CardContent className="h-[300px]">
-                    <ResponsiveContainer width="100%" height="100%">
+                    <ChartContainer className="h-full">
+                    <ResponsiveContainer width="100%" height="100%" minHeight={300}>
                         <BarChart data={chartData}>
                             <CartesianGrid strokeDasharray="3 3" />
                             <XAxis dataKey="name" />
@@ -163,6 +165,7 @@ export default function SemaforoAvanzadoPage() {
                             <Bar dataKey="Rojo" stackId="a" fill={SEMAFORO_COLORS.ROJO} />
                         </BarChart>
                     </ResponsiveContainer>
+                    </ChartContainer>
                 </CardContent>
             </Card>
 

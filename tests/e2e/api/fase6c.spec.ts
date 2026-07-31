@@ -42,7 +42,7 @@ test.describe('Fase 6C: Financials & TCO Verification', () => {
                 empresa_id: empresa.id,
                 modelo_id: modelo.id,
                 numero_serie: `TCO-TEST-${Date.now()}`,
-                estado_actual: 'EN_USO',
+                estado_actual: 'INSTALADO',
                 costo_compra: 500.00, // Costo Base
                 moneda_compra: 'USD',
                 fecha_compra: new Date(),

@@ -10,6 +10,8 @@ test.describe('Authentication Flow', () => {
     const DASHBOARD_URL = '/dashboard';
 
     test.describe('Login', () => {
+        test.use({ storageState: { cookies: [], origins: [] } });
+
         test('should successfully login with valid credentials', async ({ page }) => {
             await page.goto(LOGIN_URL);
 
@@ -74,26 +76,27 @@ test.describe('Authentication Flow', () => {
 
     test.describe('Logout', () => {
         test.beforeEach(async ({ page }) => {
-            // Login before each logout test
-            await page.goto(LOGIN_URL);
-            await page.fill('input[name="identifier"]', process.env.STRESS_USER || 'admin@gesneu.com');
-            await page.fill('input[name="password"]', process.env.STRESS_PASSWORD || 'admin123');
-            await page.click('button[type="submit"]');
+            // Go to dashboard directly (session is already restored via storageState)
+            await page.goto(DASHBOARD_URL);
             await page.waitForURL(new RegExp(DASHBOARD_URL));
         });
 
         test('should successfully logout', async ({ page }) => {
-            // Find and click logout button
-            await page.click('button:has-text("Salir"), button:has-text("Cerrar sesión"), [data-testid="logout-button"]');
-
-            // Should redirect to login
-            await expect(page).toHaveURL(new RegExp(LOGIN_URL));
+            await page.waitForSelector('[data-testid="logout-button"]', { timeout: 15000 });
+            await Promise.all([
+                page.waitForURL(new RegExp(LOGIN_URL), { timeout: 15000 }),
+                page.locator('[data-testid="logout-button"]').first().click({ force: true })
+            ]);
+            expect(page.url()).toContain(LOGIN_URL);
         });
 
         test('should clear session after logout', async ({ page }) => {
             // Logout
-            await page.click('button:has-text("Salir"), button:has-text("Cerrar sesión"), [data-testid="logout-button"]');
-            await page.waitForURL(new RegExp(LOGIN_URL));
+            await page.waitForSelector('[data-testid="logout-button"]', { timeout: 15000 });
+            await Promise.all([
+                page.waitForURL(new RegExp(LOGIN_URL), { timeout: 15000 }),
+                page.locator('[data-testid="logout-button"]').first().click({ force: true })
+            ]);
 
             // Try to access protected route
             await page.goto(DASHBOARD_URL);
@@ -104,6 +107,8 @@ test.describe('Authentication Flow', () => {
     });
 
     test.describe('Protected Routes', () => {
+        test.use({ storageState: { cookies: [], origins: [] } });
+
         test('should redirect unauthenticated users to login', async ({ page }) => {
             // Try to access dashboard without login
             await page.goto(DASHBOARD_URL);

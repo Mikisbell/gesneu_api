@@ -11,12 +11,16 @@ const isLocalhost = connectionString?.includes('localhost') || connectionString?
 const isCI = process.env.CI === 'true';
 const useSSL = !isLocalhost && !isCI;
 
+const maxPoolSize = process.env.DATABASE_POOL_SIZE 
+  ? Number(process.env.DATABASE_POOL_SIZE) 
+  : (process.env.VERCEL ? 1 : 5);
+
 const pool = new Pool({
   connectionString,
   ssl: useSSL ? { rejectUnauthorized: false } : false,
-  max: 10, // Reduced for concurrency (was 20)
+  max: maxPoolSize, // 1 en Vercel, 5 en local para no saturar Supabase Session Mode (pool_size: 15)
   idleTimeoutMillis: 30000,
-  connectionTimeoutMillis: 20000, // Increased timeout for queueing
+  connectionTimeoutMillis: 10000,
 })
 
 const adapter = new PrismaPg(pool)

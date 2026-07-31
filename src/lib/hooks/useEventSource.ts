@@ -28,6 +28,14 @@ export function useEventSource(options: UseEventSourceOptions = {}) {
     const retryCountRef = useRef(0);
     const [isConnected, setIsConnected] = useState(false);
 
+    const onConnectRef = useRef(onConnect);
+    const onErrorRef = useRef(onError);
+
+    useEffect(() => {
+        onConnectRef.current = onConnect;
+        onErrorRef.current = onError;
+    });
+
     const connect = useCallback(() => {
         // Only run in browser
         if (typeof window === 'undefined') return;
@@ -46,14 +54,14 @@ export function useEventSource(options: UseEventSourceOptions = {}) {
 
         console.log('[SSE] Connecting...');
         // Added withCredentials: true to ensure cookies are sent
-        const eventSource = new EventSource('/api/events', { withCredentials: true });
+        const eventSource = new EventSource('/api/v1/sse', { withCredentials: true });
         eventSourceRef.current = eventSource;
 
         eventSource.onopen = () => {
             console.log('[SSE] Connected');
             retryCountRef.current = 0;
             setIsConnected(true);
-            onConnect?.();
+            onConnectRef.current?.();
         };
 
         eventSource.onmessage = (event) => {
@@ -87,7 +95,7 @@ export function useEventSource(options: UseEventSourceOptions = {}) {
             console.warn('[SSE] Connection lost');
             eventSource.close();
             setIsConnected(false);
-            onError?.(new Event('error'));
+            onErrorRef.current?.(new Event('error'));
 
             retryCountRef.current++;
 
@@ -100,7 +108,7 @@ export function useEventSource(options: UseEventSourceOptions = {}) {
                 console.error('[SSE] Connection failed after max retries. Refresh to try again.');
             }
         };
-    }, [enabled, queryClient, onConnect, onError, maxRetries]);
+    }, [enabled, queryClient, maxRetries]);
 
     useEffect(() => {
         if (enabled) {

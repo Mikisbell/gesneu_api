@@ -1,7 +1,7 @@
 import { prisma } from '@/lib/prisma';
 import { EventBus } from '../events/core';
 import { InspeccionEvents, PressureReadPayload, DepthReadPayload } from '../events/inspeccion.events';
-import { TipoAlertaEnum, SeveridadAlertaEnum } from '@prisma/client';
+import { TipoAlertaEnum, SeveridadAlertaEnum, WebhookEventType } from '@prisma/client';
 
 export class AlertObserver {
     static init() {
@@ -9,7 +9,7 @@ export class AlertObserver {
 
         // PRESSURE MONITOR
         EventBus.subscribe<PressureReadPayload>(InspeccionEvents.PRESSURE_READ, async (event) => {
-            const { neumaticoId, presionPsi } = event.payload;
+            const { neumaticoId, presionPsi, empresaId } = event.payload;
 
             // 1. Get Tire Specs
             const neumatico = await prisma.neumatico.findUnique({
@@ -20,23 +20,60 @@ export class AlertObserver {
             if (!neumatico || !neumatico.modelo.presion_recomendada_psi) return;
 
             const recommended = Number(neumatico.modelo.presion_recomendada_psi);
-            const threshold = recommended * 0.9; // 10% tolerance
+            const criticalThreshold = recommended * 0.8; // < 80% → CRITICAL
+            const warningThreshold  = recommended * 0.9; // < 90% → WARNING
 
-            if (presionPsi < threshold) {
-                console.log(`⚠️ [Alert] Low Pressure detected on ${neumatico.numero_serie}: ${presionPsi} / ${recommended}`);
+            let severidad: SeveridadAlertaEnum | null = null;
+            if (presionPsi < criticalThreshold) {
+                severidad = SeveridadAlertaEnum.CRITICAL;
+            } else if (presionPsi < warningThreshold) {
+                severidad = SeveridadAlertaEnum.WARNING;
+            }
 
-                // Create Alert (Idempotent check ideal here, but simpler for now)
-                await prisma.alerta.create({
-                    data: {
-                        tipo: TipoAlertaEnum.PRESION_BAJA,
-                        severidad: SeveridadAlertaEnum.WARNING,
-                        neumatico_id: neumaticoId,
-                        mensaje: `Presión baja: ${presionPsi} PSI (Recomendado: ${recommended})`,
-                        leida: false
-                    }
-                });
+            if (!severidad) return; // presión dentro de rango → no alerta
+
+            console.log(`⚠️ [Alert] ${severidad} Pressure on ${neumatico.numero_serie}: ${presionPsi} PSI / recommended ${recommended} PSI`);
+
+            // 2. Create Alert (Idempotent: skip if unresolved alert already exists)
+            const existing = await prisma.alerta.findFirst({
+                where: {
+                    neumatico_id: neumaticoId,
+                    tipo: TipoAlertaEnum.PRESION_BAJA,
+                    resuelta: false
+                }
+            });
+
+            if (existing) return;
+
+            const alerta = await prisma.alerta.create({
+                data: {
+                    tipo: TipoAlertaEnum.PRESION_BAJA,
+                    severidad,
+                    neumatico_id: neumaticoId,
+                    mensaje: `Presión ${severidad === SeveridadAlertaEnum.CRITICAL ? 'CRÍTICA' : 'baja'}: ${presionPsi} PSI (Recomendado: ${recommended})`,
+                    leida: false
+                }
+            });
+
+            // 3. Dispatch webhook for CRITICAL alerts
+            if (severidad === SeveridadAlertaEnum.CRITICAL && empresaId) {
+                try {
+                    const { WebhookService } = require('../services/webhook.service');
+                    const webhookService = new WebhookService();
+                    await webhookService.dispatch(
+                        WebhookEventType.ALERTA_CRITICAL,
+                        {
+                            ...alerta,
+                            neumatico: { numero_serie: neumatico.numero_serie }
+                        },
+                        empresaId
+                    );
+                } catch (err) {
+                    console.error('[AlertObserver] Webhook dispatch failed:', err);
+                }
             }
         });
+
 
         // TREAD DEPTH MONITOR
         EventBus.subscribe<DepthReadPayload>(InspeccionEvents.DEPTH_READ, async (event) => {

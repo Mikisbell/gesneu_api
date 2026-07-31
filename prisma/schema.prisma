@@ -100,6 +100,7 @@ model Vehiculo {
   @@index([tipo_vehiculo_id])
   @@index([placa])
   @@index([numero_economico])
+  @@index([empresa_id, activo])
   @@map("vehiculos")
 }
 
@@ -168,6 +169,8 @@ model Neumatico {
 
   @@unique([empresa_id, numero_serie], name: "unique_numero_serie_per_empresa")
   @@index([empresa_id])
+  @@index([empresa_id, activo, estado_actual])
+  @@index([empresa_id, kilometraje_acumulado])
   @@index([estado_actual, ubicacion_vehiculo_id])
   @@index([modelo_id])
   @@index([estado_actual])
@@ -359,6 +362,7 @@ model Almacen {
   parametros            ParametroConfig[]
   parametros_inventario ParametroInventario[]
 
+  @@index([empresa_id, activo])
   @@map("almacenes")
 }
 

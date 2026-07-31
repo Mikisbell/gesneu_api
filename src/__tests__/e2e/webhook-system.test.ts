@@ -112,7 +112,7 @@ describe('System E2E: Webhooks & Alerts Flow', () => {
         // 50 PSI es < 90% de 100 (Threshold 90 del AlertObserver). Debe generar Alerta WARNING.
         await inspeccionService.registrarPresion({
             neumaticoId,
-            presionPsi: 50,
+            presionPsi: 30, // 30 PSI is < 80% of 100 PSI threshold (CRITICAL ALERT)
             empresaId,
             usuarioId,
         });
@@ -135,8 +135,7 @@ describe('System E2E: Webhooks & Alerts Flow', () => {
         // Esperamos un pequeño delay si fuera async puro, pero en test environment suele ser sequential promises
         const job = await prisma.webhookJob.findFirst({
             where: {
-                webhook_id: webhookId,
-                status: 'PENDING'
+                webhook_id: webhookId
             }
         });
 

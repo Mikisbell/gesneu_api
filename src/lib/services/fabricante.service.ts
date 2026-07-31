@@ -11,6 +11,11 @@ export class FabricanteService {
             const where: Prisma.FabricanteNeumaticoWhereInput = includeInactive ? {} : { activo: true };
             const fabricantes = await prisma.fabricanteNeumatico.findMany({
                 where,
+                include: {
+                    _count: {
+                        select: { modelos: true }
+                    }
+                },
                 orderBy: { nombre: 'asc' }
             });
             return ok(fabricantes.map(mapEntityToResponse));

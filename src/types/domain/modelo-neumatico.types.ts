@@ -1,4 +1,3 @@
-
 import { ModeloNeumatico, FabricanteNeumatico } from '@prisma/client';
 
 export type ModeloNeumaticoEntity = ModeloNeumatico & {
@@ -10,12 +9,14 @@ export interface CreateModeloNeumaticoDTO {
     nombre: string;
     medida: string;
     profundidad_original_mm: number;
+    profundidad_minima_retiro_mm?: number;
     presion_recomendada_psi?: number;
+    patron_dibujo?: string;
+    tipo_servicio?: string;
     indice_carga?: string;
     indice_velocidad?: string;
     permite_reencauche?: boolean;
     reencauches_maximos?: number;
-    // Others omitted for Phase 1
 }
 
 export interface UpdateModeloNeumaticoDTO extends Partial<CreateModeloNeumaticoDTO> {
@@ -31,7 +32,10 @@ export interface ModeloNeumaticoResponse {
     nombre: string;
     medida: string;
     profundidadOriginal: number;
+    profundidadMinimaRetiro?: number | null;
     presionRecomendada: number | null;
+    patronDibujo?: string | null;
+    tipoServicio?: string | null;
     especificaciones: {
         indiceCarga: string | null;
         indiceVelocidad: string | null;

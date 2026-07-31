@@ -1,4 +1,3 @@
-
 import { Prisma } from '@prisma/client';
 import { CreateFabricanteDTO, UpdateFabricanteDTO, FabricanteEntity, FabricanteResponse } from '@/types/domain/fabricante.types';
 
@@ -29,6 +28,7 @@ export function mapEntityToResponse(entity: FabricanteEntity): FabricanteRespons
         codigoAbreviado: entity.codigo_abreviado,
         paisOrigen: entity.pais_origen,
         sitioWeb: entity.sitio_web,
+        totalModelos: entity._count?.modelos ?? 0,
         activo: entity.activo,
         createdAt: entity.creado_en.toISOString(),
         updatedAt: entity.actualizado_en?.toISOString() ?? null,

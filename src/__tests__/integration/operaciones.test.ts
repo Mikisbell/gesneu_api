@@ -46,8 +46,8 @@ describe('Operations API Integration Tests', () => {
             expect(res.status).toBe(401);
         });
 
-        it('should return 403 when consultor tries to mount tire', async () => {
-            (auth as jest.Mock).mockResolvedValue(mockSessions.consultor);
+        it('should return 403 when user without permissions tries to mount tire', async () => {
+            (auth as jest.Mock).mockResolvedValue(mockSessions.readonly);
             const req = new NextRequest(`${BASE_URL}/montaje`, {
                 method: 'POST',
                 body: JSON.stringify({ neumatico_id: 'test-id' })
@@ -96,8 +96,8 @@ describe('Operations API Integration Tests', () => {
             expect(res.status).toBe(401);
         });
 
-        it('should return 403 when consultor tries to dismount', async () => {
-            (auth as jest.Mock).mockResolvedValue(mockSessions.consultor);
+        it('should return 403 when user without permissions tries to dismount', async () => {
+            (auth as jest.Mock).mockResolvedValue(mockSessions.readonly);
             const req = new NextRequest(`${BASE_URL}/desmontaje`, {
                 method: 'POST',
                 body: JSON.stringify({ neumatico_id: 'test-id' })
@@ -169,8 +169,8 @@ describe('Operations API Integration Tests', () => {
             expect(res.status).toBe(401);
         });
 
-        it('should return 403 when consultor tries to rotate', async () => {
-            (auth as jest.Mock).mockResolvedValue(mockSessions.consultor);
+        it('should return 403 when user without permissions tries to rotate', async () => {
+            (auth as jest.Mock).mockResolvedValue(mockSessions.readonly);
             const req = new NextRequest(`${BASE_URL}/rotacion`, {
                 method: 'POST',
                 body: JSON.stringify({ vehiculo_id: 'test-id' })
@@ -282,8 +282,8 @@ describe('Operations API Integration Tests', () => {
             ];
 
             for (const { handler, name } of handlers) {
-                // Consultor should be denied (403)
-                (auth as jest.Mock).mockResolvedValue(mockSessions.consultor);
+                // Readonly session should be denied (403)
+                (auth as jest.Mock).mockResolvedValue(mockSessions.readonly);
                 let req = new NextRequest(`${BASE_URL}/${name.toLowerCase()}`, {
                     method: 'POST',
                     body: JSON.stringify(validData)
